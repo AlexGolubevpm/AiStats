@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── CORE ENTITIES ───
+
+model Bundle {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  color     String?
+  sites     Site[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bundles")
+}
+
+model Site {
+  id         String  @id @default(cuid())
+  name       String
+  slug       String  @unique
+  domain     String  @unique
+  bundleId   String
+  externalId String?
+  sheetName  String?
+  isActive   Boolean @default(true)
+
+  bundle           Bundle             @relation(fields: [bundleId], references: [id])
+  dailyMetrics     DailyMetric[]
+  formatMetrics    FormatMetric[]
+  tierMetrics      TierMetric[]
+  costs            Cost[]
+  affiliateRevenue AffiliateRevenue[]
+  healthScores     HealthScore[]
+  anomalies        Anomaly[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bundleId])
+  @@map("sites")
+}
+
+// ─── METRICS ───
+
+model DailyMetric {
+  id     String   @id @default(cuid())
+  siteId String
+  date   DateTime @db.Date
+
+  users       Int     @default(0)
+  hits        Int     @default(0)
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+
+  adRevenue        Decimal @default(0) @db.Decimal(12, 4)
+  affiliateRevenue Decimal @default(0) @db.Decimal(12, 4)
+  totalRevenue     Decimal @default(0) @db.Decimal(12, 4)
+
+  costs  Decimal @default(0) @db.Decimal(12, 4)
+  profit Decimal @default(0) @db.Decimal(12, 4)
+
+  romi     Decimal @default(0) @db.Decimal(8, 2)
+  rpm      Decimal @default(0) @db.Decimal(8, 4)
+  ctr      Decimal @default(0) @db.Decimal(6, 4)
+  fillRate Decimal @default(0) @db.Decimal(6, 4)
+  ecpm     Decimal @default(0) @db.Decimal(8, 4)
+
+  site      Site     @relation(fields: [siteId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([siteId, date])
+  @@index([date])
+  @@index([siteId, date])
+  @@map("daily_metrics")
+}
+
+model FormatMetric {
+  id     String   @id @default(cuid())
+  siteId String
+  date   DateTime @db.Date
+  format AdFormat
+
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+  revenue     Decimal @default(0) @db.Decimal(12, 4)
+  ctr         Decimal @default(0) @db.Decimal(6, 4)
+  fillRate    Decimal @default(0) @db.Decimal(6, 4)
+  ecpm        Decimal @default(0) @db.Decimal(8, 4)
+  rpm         Decimal @default(0) @db.Decimal(8, 4)
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, date, format])
+  @@index([siteId, date])
+  @@map("format_metrics")
+}
+
+enum AdFormat {
+  POP
+  PUSH
+  BANNER
+  SLIDER
+  OUTSTREAM
+  VAST
+  OTHER
+}
+
+model TierMetric {
+  id     String   @id @default(cuid())
+  siteId String
+  date   DateTime @db.Date
+  tier   GeoTier
+
+  users       Int     @default(0)
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+  revenue     Decimal @default(0) @db.Decimal(12, 4)
+  ctr         Decimal @default(0) @db.Decimal(6, 4)
+  fillRate    Decimal @default(0) @db.Decimal(6, 4)
+  rpm         Decimal @default(0) @db.Decimal(8, 4)
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, date, tier])
+  @@index([siteId, date])
+  @@map("tier_metrics")
+}
+
+enum GeoTier {
+  TIER_1
+  TIER_2
+  TIER_3
+  TIER_4
+}
+
+// ─── COSTS & AFFILIATE ───
+
+model Cost {
+  id            String   @id @default(cuid())
+  siteId        String
+  date          DateTime @db.Date
+  amount        Decimal  @db.Decimal(12, 4)
+  source        String   @default("google_sheets")
+  mappingStatus String   @default("matched")
+  syncedAt      DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, date, source])
+  @@index([siteId, date])
+  @@map("costs")
+}
+
+model AffiliateRevenue {
+  id       String   @id @default(cuid())
+  siteId   String
+  date     DateTime @db.Date
+  amount   Decimal  @db.Decimal(12, 4)
+  source   String?
+  syncedAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, date, source])
+  @@index([siteId, date])
+  @@map("affiliate_revenues")
+}
+
+// ─── ANALYTICS ───
+
+model HealthScore {
+  id     String   @id @default(cuid())
+  siteId String
+  date   DateTime @db.Date
+  score  Int
+  status String
+
+  profitQuality   Decimal @db.Decimal(5, 2)
+  romiQuality     Decimal @db.Decimal(5, 2)
+  revenueTrend    Decimal @db.Decimal(5, 2)
+  costPressure    Decimal @db.Decimal(5, 2)
+  formatQuality   Decimal @db.Decimal(5, 2)
+  tierQuality     Decimal @db.Decimal(5, 2)
+  anomalyPressure Decimal @db.Decimal(5, 2)
+  stability       Decimal @db.Decimal(5, 2)
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([siteId, date])
+  @@index([date])
+  @@map("health_scores")
+}
+
+model Anomaly {
+  id          String   @id @default(cuid())
+  siteId      String
+  date        DateTime @db.Date
+  type        String
+  severity    String
+  metric      String
+  expected    Decimal  @db.Decimal(12, 4)
+  actual      Decimal  @db.Decimal(12, 4)
+  delta       Decimal  @db.Decimal(8, 2)
+  description String?
+  resolved    Boolean  @default(false)
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId, date])
+  @@index([date, severity])
+  @@map("anomalies")
+}
+
+// ─── AI & SYNC ───
+
+model AiAnalysis {
+  id              String   @id @default(cuid())
+  date            DateTime @db.Date
+  scope           String
+  summary         String   @db.Text
+  risks           Json
+  opportunities   Json
+  recommendations Json
+  rawResponse     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@unique([date, scope])
+  @@index([date])
+  @@map("ai_analyses")
+}
+
+model SyncLog {
+  id               String    @id @default(cuid())
+  source           String
+  status           String
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  recordsProcessed Int       @default(0)
+  error            String?   @db.Text
+
+  @@map("sync_logs")
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+
+  @@map("settings")
+}
