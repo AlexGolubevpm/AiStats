@@ -1,33 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+// Auth middleware disabled — open access for now
+// Re-enable when SSL is configured
 
-const publicPaths = ['/login', '/api/auth']
+import { NextResponse } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Allow public paths
-  if (publicPaths.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next()
-  }
-
-  // Allow static files and Next.js internals
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
-
-  // Check auth token
-  const token = request.cookies.get('auth-token')?.value
-
-  if (!token || !verifyToken(token)) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
-  }
-
+export function middleware() {
   return NextResponse.next()
 }
 
