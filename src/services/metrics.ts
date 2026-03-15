@@ -67,6 +67,7 @@ function sumNum(val: Prisma.Decimal | number | null | undefined): number {
 
 interface AggregatedMetrics {
   users: number
+  pageviews: number
   hits: number
   impressions: number
   clicks: number
@@ -82,6 +83,7 @@ interface AggregatedMetrics {
 function buildAggregateResult(raw: {
   _sum: {
     users: number | null
+    pageviews: number | null
     hits: number | null
     impressions: number | null
     clicks: number | null
@@ -93,6 +95,7 @@ function buildAggregateResult(raw: {
   }
 }): AggregatedMetrics {
   const users = raw._sum.users ?? 0
+  const pageviews = raw._sum.pageviews ?? 0
   const hits = raw._sum.hits ?? 0
   const impressions = raw._sum.impressions ?? 0
   const clicks = raw._sum.clicks ?? 0
@@ -106,6 +109,7 @@ function buildAggregateResult(raw: {
 
   return {
     users,
+    pageviews,
     hits,
     impressions,
     clicks,
@@ -129,6 +133,7 @@ export async function aggregateNetworkMetrics(
     },
     _sum: {
       users: true,
+      pageviews: true,
       hits: true,
       impressions: true,
       clicks: true,
@@ -155,6 +160,7 @@ export async function aggregateBundleMetrics(
     },
     _sum: {
       users: true,
+      pageviews: true,
       hits: true,
       impressions: true,
       clicks: true,
@@ -181,6 +187,7 @@ export async function aggregateSiteMetrics(
     },
     _sum: {
       users: true,
+      pageviews: true,
       hits: true,
       impressions: true,
       clicks: true,
@@ -200,6 +207,7 @@ export async function aggregateSiteMetrics(
 interface TrendPoint {
   date: string
   users: number
+  pageviews: number
   adRevenue: number
   affiliateRevenue: number
   totalRevenue: number
@@ -215,6 +223,7 @@ async function buildTrend(
     where,
     _sum: {
       users: true,
+      pageviews: true,
       adRevenue: true,
       affiliateRevenue: true,
       totalRevenue: true,
@@ -227,6 +236,7 @@ async function buildTrend(
   return rows.map((row) => ({
     date: format(row.date, 'yyyy-MM-dd'),
     users: row._sum.users ?? 0,
+    pageviews: row._sum.pageviews ?? 0,
     adRevenue: sumNum(row._sum.adRevenue),
     affiliateRevenue: sumNum(row._sum.affiliateRevenue),
     totalRevenue: sumNum(row._sum.totalRevenue),

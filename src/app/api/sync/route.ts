@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { Prisma, AdFormat } from '@prisma/client'
 import { jsonResponse, errorResponse } from '@/lib/api-utils'
 import { AdOkService, mapAdTypeToFormat } from '@/services/adspyglass'
+import { YandexMetricaService, getGeoTierByCountryName } from '@/services/yandex-metrica'
 
 export async function GET() {
   try {
@@ -71,14 +72,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}))
-    const source = (body as { source?: string }).source || 'adspyglass'
+    const source = (body as { source?: string }).source || 'all'
 
-    if (source !== 'adspyglass' && source !== 'all') {
-      return jsonResponse({ message: `Source '${source}' not supported for direct sync` }, 400)
+    if (!['adspyglass', 'yandex', 'all'].includes(source)) {
+      return jsonResponse({ message: `Source '${source}' not supported` }, 400)
     }
 
     const service = new AdOkService()
-    if (!service.isConfigured) {
+    const skipAdspyglass = source === 'yandex'
+
+    if (!skipAdspyglass && !service.isConfigured) {
       throw new Error('AdOK API not configured. Set ADOK_AUTH_EMAIL and ADOK_AUTH_TOKEN.')
     }
 
@@ -96,7 +99,9 @@ export async function POST(request: NextRequest) {
     }
 
     let totalRecords = 0
+    let dailyRows: Awaited<ReturnType<typeof service.fetchReport>> = []
 
+    if (!skipAdspyglass) {
     // ── Step 1: Fetch daily spot data (per-site breakdown) ──
     console.log(`[sync] Fetching daily data from ${fromDate} to ${toDate}...`)
 
@@ -322,6 +327,130 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    } // end if (!skipAdspyglass)
+
+    // ── Step 4: Yandex Metrica — real users, pageviews, country tiers ──
+    let yandexSynced = 0
+
+    // Get token from env or settings
+    let yandexToken = process.env.YANDEX_OAUTH_TOKEN || ''
+    if (!yandexToken) {
+      const setting = await prisma.setting.findUnique({ where: { key: 'yandex.oauth_token' } })
+      if (setting) yandexToken = setting.value as string
+    }
+
+    if (yandexToken) {
+      console.log('[sync] Starting Yandex Metrica sync...')
+      const ym = new YandexMetricaService(yandexToken)
+
+      // Get sites with mapped counter IDs
+      const sitesWithCounters = allSites.filter(s => s.yandexCounterId)
+
+      for (const site of sitesWithCounters) {
+        const counterId = parseInt(site.yandexCounterId!, 10)
+        if (!counterId) continue
+
+        try {
+          // 4a. Daily stats (users, pageviews)
+          const dailyStats = await ym.getDailyStats(counterId, fromDate, toDate)
+
+          for (const day of dailyStats) {
+            if (!day.date) continue
+            const date = new Date(day.date + 'T00:00:00.000Z')
+
+            await prisma.dailyMetric.upsert({
+              where: { siteId_date: { siteId: site.id, date } },
+              create: {
+                siteId: site.id,
+                date,
+                users: day.users,
+                pageviews: day.pageviews,
+                hits: day.visits,
+              },
+              update: {
+                users: day.users,
+                pageviews: day.pageviews,
+              },
+            })
+            yandexSynced++
+          }
+
+          // 4b. Country breakdown → tier metrics (from Yandex, more accurate for visitors)
+          for (const dayRow of dailyRows) {
+            const dateStr = dayRow.name
+            if (!dateStr) continue
+            const date = new Date(dateStr + 'T00:00:00.000Z')
+
+            const countryStats = await ym.getDailyCountryStats(counterId, dateStr)
+
+            // Aggregate by tier
+            const tierAgg = new Map<string, { users: number; visits: number; pageviews: number }>()
+
+            for (const cs of countryStats) {
+              const tier = getGeoTierByCountryName(cs.countryName)
+              const existing = tierAgg.get(tier)
+              if (existing) {
+                existing.users += cs.users
+                existing.visits += cs.visits
+                existing.pageviews += cs.pageviews
+              } else {
+                tierAgg.set(tier, {
+                  users: cs.users,
+                  visits: cs.visits,
+                  pageviews: cs.pageviews,
+                })
+              }
+            }
+
+            // Update tier metrics with real user data from Yandex
+            for (const [tier, agg] of tierAgg) {
+              if (agg.users === 0) continue
+
+              // Check if we already have ad revenue data for this tier from AdSpyglass
+              const existingTier = await prisma.tierMetric.findUnique({
+                where: { siteId_date_tier: { siteId: site.id, date, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
+              })
+
+              await prisma.tierMetric.upsert({
+                where: { siteId_date_tier: { siteId: site.id, date, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
+                create: {
+                  siteId: site.id, date,
+                  tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4',
+                  users: agg.users,
+                  impressions: existingTier?.impressions ?? 0,
+                  clicks: existingTier?.clicks ?? 0,
+                  revenue: existingTier?.revenue ?? new Prisma.Decimal(0),
+                  ctr: existingTier?.ctr ?? new Prisma.Decimal(0),
+                  fillRate: existingTier?.fillRate ?? new Prisma.Decimal(0),
+                  rpm: existingTier
+                    ? new Prisma.Decimal((Number(existingTier.revenue) / agg.users * 1000).toFixed(4))
+                    : new Prisma.Decimal(0),
+                },
+                update: {
+                  users: agg.users,
+                  // Recalculate RPM with real user count
+                  rpm: existingTier
+                    ? new Prisma.Decimal((Number(existingTier.revenue) / agg.users * 1000).toFixed(4))
+                    : undefined,
+                },
+              })
+              yandexSynced++
+            }
+          }
+
+          console.log(`[sync:yandex] ${site.domain}: synced counter ${counterId}`)
+        } catch (err) {
+          console.error(`[sync:yandex] Error for ${site.domain} (counter ${counterId}):`, err instanceof Error ? err.message : err)
+        }
+      }
+
+      console.log(`[sync:yandex] Done: ${yandexSynced} records`)
+    } else {
+      console.log('[sync] Yandex Metrica: skipped (no OAuth token)')
+    }
+
+    totalRecords += yandexSynced
+
     // ── Done ──
     await prisma.syncLog.update({
       where: { id: syncLog.id },
@@ -338,6 +467,7 @@ export async function POST(request: NextRequest) {
       message: 'Sync completed',
       syncLogId: syncLog.id,
       recordsProcessed: totalRecords,
+      yandexRecords: yandexSynced,
       period: { from: fromDate, to: toDate },
     })
   } catch (error) {

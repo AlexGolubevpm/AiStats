@@ -27,9 +27,10 @@ model Site {
   slug       String  @unique
   domain     String  @unique
   bundleId   String
-  externalId String?
-  sheetName  String?
-  isActive   Boolean @default(true)
+  externalId      String?
+  sheetName       String?
+  yandexCounterId String?
+  isActive        Boolean @default(true)
 
   bundle           Bundle             @relation(fields: [bundleId], references: [id])
   dailyMetrics     DailyMetric[]
@@ -55,6 +56,7 @@ model DailyMetric {
   date   DateTime @db.Date
 
   users       Int     @default(0)
+  pageviews   Int     @default(0)
   hits        Int     @default(0)
   impressions Int     @default(0)
   clicks      Int     @default(0)
