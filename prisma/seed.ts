@@ -51,21 +51,56 @@ const BUNDLE_DEFS = [
   { name: 'Hentai', slug: 'hentai', color: '#8B5CF6', adRevMin: 25, adRevMax: 50, usersMin: 3000, usersMax: 6000 },
 ] as const;
 
-const SITES_PER_BUNDLE = 10;
 const DAYS = 30;
 
-const ALL_FORMATS = ['POP', 'PUSH', 'BANNER', 'SLIDER', 'OUTSTREAM', 'VAST', 'OTHER'] as const;
+const ALL_FORMATS = ['POP', 'PUSH', 'BANNER', 'SLIDER', 'OUTSTREAM', 'VAST', 'IN_VIDEO', 'IN_PAGE_PUSH', 'OTHER'] as const;
+
+// Real sites from AdOK/AdSpyglass, mapped to bundles
+const REAL_SITES: Record<string, Array<{ name: string; domain: string; slug: string }>> = {
+  gays: [
+    { name: 'GayXHub', domain: 'gayxhub.com', slug: 'gayxhub' },
+    { name: 'GayXXXWorld', domain: 'gayxxxworld.com', slug: 'gayxxxworld' },
+    { name: 'GayDesireXHub', domain: 'gaydesirexhub.com', slug: 'gaydesirexhub' },
+    { name: 'GayLoveXHub', domain: 'gaylovexhub.com', slug: 'gaylovexhub' },
+    { name: 'LoveForBoysXHub', domain: 'loveforboysxhub.com', slug: 'loveforboysxhub' },
+    { name: 'PrideBoysXHub', domain: 'prideboysxhub.com', slug: 'prideboysxhub' },
+    { name: 'PrideXHub', domain: 'pridexhub.com', slug: 'pridexhub' },
+    { name: 'AdultXHub', domain: 'adultxhub.com', slug: 'adultxhub' },
+  ],
+  jav: [
+    { name: 'Japan Whores', domain: 'japan-whores.com', slug: 'japan-whores' },
+    { name: 'Japanese Matures', domain: 'japanesematures.com', slug: 'japanesematures' },
+    { name: 'JavMix', domain: 'javmix.com', slug: 'javmix' },
+    { name: 'JP Milfs', domain: 'jpmilfs.com', slug: 'jpmilfs' },
+    { name: 'POV JP', domain: 'povjp.com', slug: 'povjp' },
+    { name: 'Big Tits Tokyo', domain: 'bigtitstokyo.com', slug: 'bigtitstokyo' },
+    { name: '18 Tokyo', domain: '18tokyo.com', slug: '18tokyo' },
+    { name: 'Wierd Japan', domain: 'wierdjapan.com', slug: 'wierdjapan' },
+    { name: 'Asian Muffin', domain: 'asianmuffin.com', slug: 'asianmuffin' },
+  ],
+  hentai: [
+    { name: 'Hentai Smile', domain: 'hentaismile.com', slug: 'hentaismile' },
+    { name: 'Anime Hentai XHub', domain: 'animehentaixhub.com', slug: 'animehentaixhub' },
+    { name: 'Hentai Lover XHub', domain: 'hentailoverxhub.com', slug: 'hentailoverxhub' },
+    { name: 'Hi Hentai Porn', domain: 'hihentaiporn.com', slug: 'hihentaiporn' },
+  ],
+  trans: [
+    // No sites in AdOK yet — placeholder for future
+  ],
+};
 const ALL_TIERS = ['TIER_1', 'TIER_2', 'TIER_3', 'TIER_4'] as const;
 
-// Format impression share weights (POP and BANNER dominant)
+// Format impression share weights (based on real AdOK data)
 const FORMAT_WEIGHTS: Record<string, number> = {
-  POP: 0.25,
-  BANNER: 0.22,
-  PUSH: 0.15,
-  SLIDER: 0.12,
-  OUTSTREAM: 0.10,
-  VAST: 0.09,
-  OTHER: 0.07,
+  POP: 0.22,        // Popunder — highest revenue
+  BANNER: 0.20,     // Banner
+  SLIDER: 0.14,     // Slider (VAST)
+  OUTSTREAM: 0.14,  // Outstream (VAST)
+  IN_VIDEO: 0.12,   // In-Video (VAST)
+  IN_PAGE_PUSH: 0.05,
+  PUSH: 0.05,
+  VAST: 0.04,
+  OTHER: 0.04,
 };
 
 // Tier distribution: users% and revenue share
@@ -76,11 +111,12 @@ const TIER_CONFIG = [
   { tier: 'TIER_4' as const, userShare: 0.17, revenueShare: 0.08 },
 ];
 
+// Kept for backward compat reference only
 const SITE_PREFIXES: Record<string, { prefix: string; domainBase: string }> = {
-  gays: { prefix: 'gays-tube', domainBase: 'gaystube' },
-  trans: { prefix: 'trans-tube', domainBase: 'transtube' },
-  jav: { prefix: 'jav-tube', domainBase: 'javtube' },
-  hentai: { prefix: 'hentai-tube', domainBase: 'hentaitube' },
+  gays: { prefix: 'gays', domainBase: 'gayxhub' },
+  trans: { prefix: 'trans', domainBase: 'transxhub' },
+  jav: { prefix: 'jav', domainBase: 'japan-whores' },
+  hentai: { prefix: 'hentai', domainBase: 'hentaismile' },
 };
 
 // ─── Date helpers ───
@@ -138,7 +174,7 @@ async function main() {
   );
   console.log(`Created ${bundles.length} bundles.`);
 
-  // 3. Create sites
+  // 3. Create sites (real domains from AdOK)
   console.log('Creating sites...');
   const siteRecords: Array<{
     id: string;
@@ -149,18 +185,18 @@ async function main() {
 
   for (const bundle of bundles) {
     const def = BUNDLE_DEFS.find((b) => b.slug === bundle.slug)!;
-    const sitePrefix = SITE_PREFIXES[def.slug];
+    const realSites = REAL_SITES[def.slug] || [];
 
-    for (let i = 1; i <= SITES_PER_BUNDLE; i++) {
-      const num = String(i).padStart(2, '0');
+    for (let i = 0; i < realSites.length; i++) {
+      const siteDef = realSites[i];
       const site = await prisma.site.create({
         data: {
-          name: `${sitePrefix.prefix}-${num}`,
-          slug: `${sitePrefix.prefix}-${num}`,
-          domain: `${sitePrefix.domainBase}${num}.com`,
+          name: siteDef.name,
+          slug: siteDef.slug,
+          domain: siteDef.domain,
           bundleId: bundle.id,
-          externalId: `ext-${def.slug}-${num}`,
-          sheetName: `${def.name} ${num}`,
+          externalId: null, // Mapped by domain in sync worker
+          sheetName: siteDef.name,
           isActive: true,
         },
       });
@@ -168,7 +204,7 @@ async function main() {
         id: site.id,
         bundleId: bundle.id,
         bundleSlug: def.slug,
-        siteIndex: i,
+        siteIndex: i + 1,
       });
     }
   }

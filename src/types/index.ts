@@ -4,7 +4,7 @@ export type BundleName = 'Gays' | 'Trans' | 'JAV' | 'Hentai'
 
 export type HealthStatus = 'healthy' | 'warning' | 'critical'
 
-export type AdFormatType = 'POP' | 'PUSH' | 'BANNER' | 'SLIDER' | 'OUTSTREAM' | 'VAST' | 'OTHER'
+export type AdFormatType = 'POP' | 'PUSH' | 'BANNER' | 'SLIDER' | 'OUTSTREAM' | 'VAST' | 'IN_VIDEO' | 'IN_PAGE_PUSH' | 'OTHER'
 
 export type GeoTierType = 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4'
 

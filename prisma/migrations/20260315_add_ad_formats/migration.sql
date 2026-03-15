@@ -1,0 +1,3 @@
+-- Add new enum values to AdFormat
+ALTER TYPE "AdFormat" ADD VALUE IF NOT EXISTS 'IN_VIDEO';
+ALTER TYPE "AdFormat" ADD VALUE IF NOT EXISTS 'IN_PAGE_PUSH';
