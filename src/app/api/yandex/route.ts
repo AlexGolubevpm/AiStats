@@ -69,12 +69,20 @@ export async function POST(request: NextRequest) {
 
       const result = await YandexMetricaService.exchangeCode(code)
 
-      // Save token to settings
+      // Save token and refresh_token to settings
       await prisma.setting.upsert({
         where: { key: 'yandex.oauth_token' },
         create: { key: 'yandex.oauth_token', value: JSON.parse(JSON.stringify(result.access_token)) },
         update: { value: JSON.parse(JSON.stringify(result.access_token)) },
       })
+
+      if (result.refresh_token) {
+        await prisma.setting.upsert({
+          where: { key: 'yandex.refresh_token' },
+          create: { key: 'yandex.refresh_token', value: JSON.parse(JSON.stringify(result.refresh_token)) },
+          update: { value: JSON.parse(JSON.stringify(result.refresh_token)) },
+        })
+      }
 
       return jsonResponse({
         message: 'OAuth token saved successfully',

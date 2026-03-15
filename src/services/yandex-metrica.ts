@@ -148,6 +148,7 @@ export class YandexMetricaService {
   /** Exchange authorization code for OAuth token */
   static async exchangeCode(code: string, clientId?: string, clientSecret?: string): Promise<{
     access_token: string
+    refresh_token: string
     token_type: string
     expires_in: number
   }> {
