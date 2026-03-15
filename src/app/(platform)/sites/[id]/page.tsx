@@ -44,13 +44,6 @@ const tierColumns: ColumnDef<TierRow, unknown>[] = [
   { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span> },
 ]
 
-const BUNDLE_COLORS: Record<string, string> = {
-  Gays: '#3B82F6',
-  Trans: '#EC4899',
-  JAV: '#EF4444',
-  Hentai: '#8B5CF6',
-}
-
 function SiteDetailContent({ id }: { id: string }) {
   const { period } = usePeriod()
   const { data, isLoading } = useSite(id, period)
@@ -62,7 +55,7 @@ function SiteDetailContent({ id }: { id: string }) {
   const siteName = data.site?.name || 'Unknown'
   const domain = data.site?.domain || siteName
   const bundleName = data.site?.bundle?.name || ''
-  const bundleColor = BUNDLE_COLORS[bundleName] || '#94A3B8'
+  const bundleColor = data.site?.bundle?.color || '#94A3B8'
   const healthScore = data.health?.score ?? null
   const healthStatus = healthScore != null ? getHealthStatus(healthScore) : null
   const hasKpis = data.kpis && data.kpis.length > 0

@@ -24,7 +24,7 @@ export function useSyncStatus() {
       if (!res.ok) throw new Error('Failed to fetch sync status')
       return res.json()
     },
-    refetchInterval: isSyncing ? 5000 : false,
+    refetchInterval: isSyncing ? 3000 : false,
   })
 
   const syncMutation = useMutation({
@@ -34,15 +34,27 @@ export function useSyncStatus() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source: source || 'all' }),
       })
-      if (!res.ok) throw new Error('Failed to trigger sync')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to trigger sync')
+      }
       return res.json()
     },
     onMutate: () => setIsSyncing(true),
-    onSettled: () => {
-      setTimeout(() => {
-        setIsSyncing(false)
-        queryClient.invalidateQueries({ queryKey: ['sync-status'] })
-      }, 10000)
+    onSuccess: () => {
+      setIsSyncing(false)
+      // Invalidate all data queries so dashboard refreshes with new data
+      queryClient.invalidateQueries({ queryKey: ['sync-status'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['bundles'] })
+      queryClient.invalidateQueries({ queryKey: ['sites'] })
+      queryClient.invalidateQueries({ queryKey: ['costs'] })
+      queryClient.invalidateQueries({ queryKey: ['affiliate'] })
+      queryClient.invalidateQueries({ queryKey: ['conclusions'] })
+    },
+    onError: () => {
+      setIsSyncing(false)
+      queryClient.invalidateQueries({ queryKey: ['sync-status'] })
     },
   })
 

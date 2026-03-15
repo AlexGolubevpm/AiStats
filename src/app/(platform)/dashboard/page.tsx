@@ -125,7 +125,7 @@ function DashboardContent() {
         </div>
       )}
       {hasKpis && data.kpis.length > 5 && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {data.kpis.slice(5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
             <motion.div key={kpi.label} custom={i + 5} variants={fadeIn}>
               <KPICard {...kpi} />

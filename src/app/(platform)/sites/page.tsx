@@ -99,13 +99,6 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
   },
 ]
 
-const BUNDLE_COLORS: Record<string, string> = {
-  Gays: '#3B82F6',
-  Trans: '#EC4899',
-  JAV: '#EF4444',
-  Hentai: '#8B5CF6',
-}
-
 function SitesContent() {
   const { period } = usePeriod()
   const { filters } = useFilters()
@@ -115,12 +108,12 @@ function SitesContent() {
     return <div className="px-6 py-8"><TableSkeleton rows={10} /></div>
   }
 
-  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string }; health: { score: number } | null; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
+  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string; color?: string }; health: { score: number } | null; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
     id: s.id,
     name: s.name,
     slug: s.slug,
     bundle: s.bundle?.name || '',
-    bundleColor: BUNDLE_COLORS[s.bundle?.name] || '#94A3B8',
+    bundleColor: s.bundle?.color || '#94A3B8',
     healthScore: s.health?.score ?? null,
     users: s.users || 0,
     adRevenue: s.adRevenue || 0,

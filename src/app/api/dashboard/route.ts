@@ -32,6 +32,13 @@ export async function GET(request: NextRequest) {
         trend: last7.map((d) => d.users),
       },
       {
+        label: 'Pageviews',
+        value: current.pageviews,
+        delta: calculateDelta(current.pageviews, previous.pageviews),
+        format: 'number',
+        trend: last7.map((d) => d.pageviews),
+      },
+      {
         label: 'Ad Revenue',
         value: current.adRevenue,
         delta: calculateDelta(current.adRevenue, previous.adRevenue),

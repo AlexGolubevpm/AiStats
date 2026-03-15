@@ -21,10 +21,11 @@ function SettingsContent() {
 
   const getValue = (key: string) => formData[key] ?? settings?.[key] ?? ''
 
-  const handleSave = (keys: string[]) => {
-    const data: Record<string, unknown> = {}
-    keys.forEach((k) => { data[k] = formData[k] ?? settings?.[k] ?? '' })
-    saveSettings.mutate(data)
+  const handleSave = async (keys: string[]) => {
+    for (const key of keys) {
+      const value = formData[key] ?? settings?.[key] ?? ''
+      saveSettings.mutate({ key, value })
+    }
   }
 
   return (
@@ -35,6 +36,7 @@ function SettingsContent() {
         <TabsTrigger value="sync" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
         <TabsTrigger value="thresholds" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
         <TabsTrigger value="health" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
+        <TabsTrigger value="yandex" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Yandex Metrica</TabsTrigger>
         <TabsTrigger value="ai" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
       </TabsList>
 
@@ -129,6 +131,38 @@ function SettingsContent() {
               </div>
             ))}
             <Button onClick={() => handleSave(['weight_profit_quality', 'weight_romi_quality', 'weight_revenue_trend', 'weight_cost_pressure', 'weight_format_quality', 'weight_tier_quality', 'weight_anomaly_pressure', 'weight_stability'])} className="rounded-[var(--radius-control)]">Save Weights</Button>
+          </div>
+        </ChartCard>
+      </TabsContent>
+
+      <TabsContent value="yandex" className="mt-6">
+        <ChartCard title="Yandex Metrica" description="Connect Yandex Metrica for real visitor stats, pageviews, and country data">
+          <div className="space-y-4">
+            <div>
+              <Label>OAuth Token</Label>
+              <Input type="password" value={getValue('yandex.oauth_token')} onChange={(e) => setFormData({ ...formData, 'yandex.oauth_token': e.target.value })} placeholder="Paste your Yandex OAuth token" className="mt-1.5" />
+              <p className="mt-1 text-meta">
+                Get a token: open{' '}
+                <a href={`https://oauth.yandex.com/authorize?response_type=token&client_id=${getValue('yandex_client_id') || '46a4535051fb4ebd86dc4d7b32c3d585'}`} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary-600)] underline">
+                  Yandex OAuth
+                </a>
+                , authorize, and paste the token above.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => handleSave(['yandex.oauth_token'])} className="rounded-[var(--radius-control)]">Save Token</Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const res = await fetch('/api/yandex', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'auto_map' }) })
+                  const data = await res.json()
+                  alert(data.message || 'Auto-map completed')
+                }}
+                className="rounded-[var(--radius-control)]"
+              >
+                Auto-Map Counters to Sites
+              </Button>
+            </div>
           </div>
         </ChartCard>
       </TabsContent>

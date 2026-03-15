@@ -4,6 +4,8 @@ import { Prisma, AdFormat } from '@prisma/client'
 import { jsonResponse, errorResponse } from '@/lib/api-utils'
 import { AdOkService, mapAdTypeToFormat } from '@/services/adspyglass'
 import { YandexMetricaService, getGeoTierByCountryName } from '@/services/yandex-metrica'
+import { calculateHealthScore } from '@/services/health-score'
+import { detectAnomalies } from '@/services/anomaly-detector'
 
 export async function GET() {
   try {
@@ -66,17 +68,18 @@ function formatDate(d: Date): string {
 // ─── POST: Direct sync from AdSpyglass API ───
 
 export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const source = (body as { source?: string }).source || 'all'
+
+  if (!['adspyglass', 'yandex', 'all'].includes(source)) {
+    return jsonResponse({ message: `Source '${source}' not supported` }, 400)
+  }
+
   const syncLog = await prisma.syncLog.create({
-    data: { source: 'adspyglass', status: 'running' },
+    data: { source, status: 'running' },
   })
 
   try {
-    const body = await request.json().catch(() => ({}))
-    const source = (body as { source?: string }).source || 'all'
-
-    if (!['adspyglass', 'yandex', 'all'].includes(source)) {
-      return jsonResponse({ message: `Source '${source}' not supported` }, 400)
-    }
 
     const service = new AdOkService()
     const skipAdspyglass = source === 'yandex'
@@ -155,12 +158,19 @@ export async function POST(request: NextRequest) {
         const ecpm = agg.impressions > 0 ? (adRevenue / agg.impressions) * 1000 : 0
         const rpm = agg.hits > 0 ? (adRevenue / agg.hits) * 1000 : 0
 
+        // Check if Yandex already wrote real user data for this record
+        const existing = await prisma.dailyMetric.findUnique({
+          where: { siteId_date: { siteId: site.id, date } },
+          select: { users: true, pageviews: true },
+        })
+        const hasYandexData = existing && existing.pageviews > 0
+
         await prisma.dailyMetric.upsert({
           where: { siteId_date: { siteId: site.id, date } },
           create: {
             siteId: site.id,
             date,
-            users: agg.hits,
+            users: agg.hits, // fallback: use hits as users until Yandex syncs
             hits: agg.hits,
             impressions: agg.impressions,
             clicks: agg.clicks,
@@ -172,7 +182,8 @@ export async function POST(request: NextRequest) {
             rpm: new Prisma.Decimal(rpm.toFixed(4)),
           },
           update: {
-            users: agg.hits,
+            // Don't overwrite users if Yandex already wrote real data
+            ...(hasYandexData ? {} : { users: agg.hits }),
             hits: agg.hits,
             impressions: agg.impressions,
             clicks: agg.clicks,
@@ -450,6 +461,20 @@ export async function POST(request: NextRequest) {
     }
 
     totalRecords += yandexSynced
+
+    // ── Step 5: Calculate health scores and detect anomalies ──
+    console.log('[sync] Calculating health scores and detecting anomalies...')
+    const today = new Date(toDate + 'T00:00:00.000Z')
+
+    for (const site of allSites) {
+      try {
+        await calculateHealthScore(site.id, today)
+        await detectAnomalies(site.id, today)
+      } catch (err) {
+        console.error(`[sync:health] Error for ${site.domain}:`, err instanceof Error ? err.message : err)
+      }
+    }
+    console.log(`[sync] Health scores and anomalies calculated for ${allSites.length} sites`)
 
     // ── Done ──
     await prisma.syncLog.update({
