@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Topbar } from '@/components/layout/topbar'
+import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
 import { useSettings, useSaveSettings } from '@/hooks/use-api'
@@ -16,7 +16,7 @@ function SettingsContent() {
   const [formData, setFormData] = useState<Record<string, string>>({})
 
   if (isLoading) {
-    return <div className="space-y-6 p-8"><ChartSkeleton /><ChartSkeleton /></div>
+    return <div className="space-y-6"><ChartSkeleton /><ChartSkeleton /></div>
   }
 
   const getValue = (key: string) => formData[key] ?? settings?.[key] ?? ''
@@ -29,58 +29,58 @@ function SettingsContent() {
 
   return (
     <Tabs defaultValue="api">
-      <TabsList>
-        <TabsTrigger value="api">API Config</TabsTrigger>
-        <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
-        <TabsTrigger value="sync">Sync</TabsTrigger>
-        <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
-        <TabsTrigger value="health">Health Score</TabsTrigger>
-        <TabsTrigger value="ai">AI Settings</TabsTrigger>
+      <TabsList className="h-11 gap-1 rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-1">
+        <TabsTrigger value="api" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">API Config</TabsTrigger>
+        <TabsTrigger value="sheets" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
+        <TabsTrigger value="sync" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
+        <TabsTrigger value="thresholds" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
+        <TabsTrigger value="health" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
+        <TabsTrigger value="ai" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="api" className="mt-5">
+      <TabsContent value="api" className="mt-6">
         <ChartCard title="API Configuration" description="AdSpyglass and AdOK connection settings">
           <div className="space-y-4">
             <div>
               <Label>AdSpyglass API URL</Label>
-              <Input type="text" value={getValue('adspyglass_url')} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} className="mt-1" />
+              <Input type="text" value={getValue('adspyglass_url')} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} className="mt-1.5" />
             </div>
             <div>
               <Label>API Key</Label>
-              <Input type="password" value={getValue('adspyglass_api_key')} onChange={(e) => setFormData({ ...formData, adspyglass_api_key: e.target.value })} className="mt-1" />
+              <Input type="password" value={getValue('adspyglass_api_key')} onChange={(e) => setFormData({ ...formData, adspyglass_api_key: e.target.value })} className="mt-1.5" />
             </div>
-            <Button onClick={() => handleSave(['adspyglass_url', 'adspyglass_api_key'])}>Save Configuration</Button>
+            <Button onClick={() => handleSave(['adspyglass_url', 'adspyglass_api_key'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
           </div>
         </ChartCard>
       </TabsContent>
 
-      <TabsContent value="sheets" className="mt-5">
+      <TabsContent value="sheets" className="mt-6">
         <ChartCard title="Google Sheets Configuration" description="Costs and affiliate data sources">
           <div className="space-y-4">
             <div>
               <Label>Costs Sheet ID</Label>
-              <Input type="text" value={getValue('costs_sheet_id')} onChange={(e) => setFormData({ ...formData, costs_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1" />
+              <Input type="text" value={getValue('costs_sheet_id')} onChange={(e) => setFormData({ ...formData, costs_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1.5" />
             </div>
             <div>
               <Label>Affiliate Sheet ID</Label>
-              <Input type="text" value={getValue('affiliate_sheet_id')} onChange={(e) => setFormData({ ...formData, affiliate_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1" />
+              <Input type="text" value={getValue('affiliate_sheet_id')} onChange={(e) => setFormData({ ...formData, affiliate_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1.5" />
             </div>
-            <Button onClick={() => handleSave(['costs_sheet_id', 'affiliate_sheet_id'])}>Save Configuration</Button>
+            <Button onClick={() => handleSave(['costs_sheet_id', 'affiliate_sheet_id'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
           </div>
         </ChartCard>
       </TabsContent>
 
-      <TabsContent value="sync" className="mt-5">
+      <TabsContent value="sync" className="mt-6">
         <ChartCard title="Sync Status" description="Last synchronization results">
           <div className="space-y-2">
             {['AdSpyglass', 'Google Sheets (Costs)', 'Google Sheets (Affiliate)'].map((source) => (
-              <div key={source} className="flex items-center justify-between rounded-[var(--radius-md)] bg-[var(--color-background)] px-4 py-3">
-                <span className="text-sm font-medium">{source}</span>
+              <div key={source} className="flex items-center justify-between rounded-[var(--radius-control)] bg-[var(--color-surface-secondary)] px-4 py-3.5">
+                <span className="text-[13px] font-semibold">{source}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--color-text-muted)]">
+                  <span className="text-meta">
                     {settings?.lastSync?.[source] || 'Never synced'}
                   </span>
-                  <span className="rounded-full bg-[var(--color-warning-bg)] px-2 py-0.5 text-xs text-[var(--color-warning)]">
+                  <span className="rounded-[var(--radius-pill)] bg-[var(--color-warning-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-warning-dark)]">
                     {settings?.syncStatus?.[source] || 'Pending'}
                   </span>
                 </div>
@@ -90,7 +90,7 @@ function SettingsContent() {
         </ChartCard>
       </TabsContent>
 
-      <TabsContent value="thresholds" className="mt-5">
+      <TabsContent value="thresholds" className="mt-6">
         <ChartCard title="Anomaly Detection Thresholds" description="Configure sensitivity for anomaly detection">
           <div className="space-y-4">
             {[
@@ -101,15 +101,15 @@ function SettingsContent() {
             ].map(({ key, label, def }) => (
               <div key={key}>
                 <Label>{label}</Label>
-                <Input type="number" value={getValue(key) || def} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="mt-1" />
+                <Input type="number" value={getValue(key) || def} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="mt-1.5" />
               </div>
             ))}
-            <Button onClick={() => handleSave(['threshold_traffic_drop', 'threshold_revenue_change', 'threshold_cost_spike', 'threshold_fill_rate_drop'])}>Save Thresholds</Button>
+            <Button onClick={() => handleSave(['threshold_traffic_drop', 'threshold_revenue_change', 'threshold_cost_spike', 'threshold_fill_rate_drop'])} className="rounded-[var(--radius-control)]">Save Thresholds</Button>
           </div>
         </ChartCard>
       </TabsContent>
 
-      <TabsContent value="health" className="mt-5">
+      <TabsContent value="health" className="mt-6">
         <ChartCard title="Health Score Weights" description="Configure component weights (must sum to 100%)">
           <div className="space-y-4">
             {[
@@ -123,24 +123,24 @@ function SettingsContent() {
               { key: 'weight_stability', label: 'Stability', def: '10' },
             ].map(({ key, label, def }) => (
               <div key={key} className="flex items-center gap-4">
-                <Label className="w-40">{label}</Label>
+                <Label className="w-40 text-[13px]">{label}</Label>
                 <input type="range" min="0" max="30" value={getValue(key) || def} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} className="flex-1" />
-                <span className="w-10 text-right text-sm tabular-nums">{getValue(key) || def}%</span>
+                <span className="w-12 text-right text-[13px] font-semibold tabular-nums">{getValue(key) || def}%</span>
               </div>
             ))}
-            <Button onClick={() => handleSave(['weight_profit_quality', 'weight_romi_quality', 'weight_revenue_trend', 'weight_cost_pressure', 'weight_format_quality', 'weight_tier_quality', 'weight_anomaly_pressure', 'weight_stability'])}>Save Weights</Button>
+            <Button onClick={() => handleSave(['weight_profit_quality', 'weight_romi_quality', 'weight_revenue_trend', 'weight_cost_pressure', 'weight_format_quality', 'weight_tier_quality', 'weight_anomaly_pressure', 'weight_stability'])} className="rounded-[var(--radius-control)]">Save Weights</Button>
           </div>
         </ChartCard>
       </TabsContent>
 
-      <TabsContent value="ai" className="mt-5">
+      <TabsContent value="ai" className="mt-6">
         <ChartCard title="AI Configuration" description="Claude API settings for analysis">
           <div className="space-y-4">
             <div>
               <Label>Anthropic API Key</Label>
-              <Input type="password" value={getValue('anthropic_api_key')} onChange={(e) => setFormData({ ...formData, anthropic_api_key: e.target.value })} placeholder="sk-ant-..." className="mt-1" />
+              <Input type="password" value={getValue('anthropic_api_key')} onChange={(e) => setFormData({ ...formData, anthropic_api_key: e.target.value })} placeholder="sk-ant-..." className="mt-1.5" />
             </div>
-            <Button onClick={() => handleSave(['anthropic_api_key'])}>Save AI Settings</Button>
+            <Button onClick={() => handleSave(['anthropic_api_key'])} className="rounded-[var(--radius-control)]">Save AI Settings</Button>
           </div>
         </ChartCard>
       </TabsContent>
@@ -151,8 +151,8 @@ function SettingsContent() {
 export default function SettingsPage() {
   return (
     <div>
-      <Topbar title="Settings" description="Platform configuration" />
-      <div className="p-8">
+      <TopContextBar title="Settings" subtitle="Platform configuration" showPeriod={false} showSync={false} />
+      <div className="px-6 py-8">
         <Suspense fallback={<ChartSkeleton />}>
           <SettingsContent />
         </Suspense>

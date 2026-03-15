@@ -2,19 +2,21 @@
 
 import { ResponsiveContainer, LineChart, Line } from 'recharts'
 
-interface SparklineProps {
+interface MiniSparklineProps {
   data: number[]
   color?: string
   width?: number
   height?: number
 }
 
-export function Sparkline({
+export function MiniSparkline({
   data,
-  color = '#6366F1',
-  width = 80,
-  height = 32,
-}: SparklineProps) {
+  color = 'var(--color-primary-500)',
+  width = 100,
+  height = 28,
+}: MiniSparklineProps) {
+  if (!data || data.length < 2) return null
+
   const chartData = data.map((value, index) => ({ index, value }))
 
   return (
@@ -25,11 +27,15 @@ export function Sparkline({
             type="monotone"
             dataKey="value"
             stroke={color}
-            strokeWidth={1.5}
+            strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>
     </div>
   )
 }
+
+// Keep backward compat
+export const Sparkline = MiniSparkline

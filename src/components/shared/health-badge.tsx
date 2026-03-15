@@ -3,28 +3,49 @@ import { cn, getHealthStatus } from '@/lib/utils'
 interface HealthBadgeProps {
   score: number
   showLabel?: boolean
+  size?: 'sm' | 'md'
   className?: string
 }
 
-export function HealthBadge({ score, showLabel = true, className }: HealthBadgeProps) {
-  const status = getHealthStatus(score)
+const statusStyles = {
+  healthy: {
+    bg: 'bg-[var(--color-success-bg)]',
+    text: 'text-[var(--color-success-dark)]',
+    dot: 'bg-[var(--color-success)]',
+  },
+  warning: {
+    bg: 'bg-[var(--color-warning-bg)]',
+    text: 'text-[var(--color-warning-dark)]',
+    dot: 'bg-[var(--color-warning)]',
+  },
+  critical: {
+    bg: 'bg-[var(--color-danger-bg)]',
+    text: 'text-[var(--color-danger-dark)]',
+    dot: 'bg-[var(--color-danger)]',
+  },
+}
 
-  const colors = {
-    healthy: 'bg-[var(--color-healthy-bg)] text-[var(--color-healthy)]',
-    warning: 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]',
-    critical: 'bg-[var(--color-critical-bg)] text-[var(--color-critical)]',
-  }
+export function HealthBadge({ score, showLabel = true, size = 'sm', className }: HealthBadgeProps) {
+  const status = getHealthStatus(score)
+  const styles = statusStyles[status]
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums',
-        colors[status],
+        'inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] font-semibold tabular-nums',
+        styles.bg,
+        styles.text,
+        size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-[12px]',
         className
       )}
     >
-      <span className="font-semibold">{score}</span>
-      {showLabel && <span className="capitalize">{status}</span>}
+      <span className={cn('h-1.5 w-1.5 rounded-full', styles.dot)} />
+      <span>{score}</span>
+      {showLabel && <span className="capitalize font-medium">{status}</span>}
     </span>
   )
+}
+
+export function HealthPill({ score, className }: { score: number; className?: string }) {
+  return <HealthBadge score={score} showLabel={false} size="sm" className={className} />
 }

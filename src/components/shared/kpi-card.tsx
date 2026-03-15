@@ -1,8 +1,8 @@
 'use client'
 
 import { cn, formatCurrency, formatNumber, formatPercent, formatCompact } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Sparkline } from './sparkline'
+import { MetricDelta } from './delta-indicator'
+import { MiniSparkline } from './sparkline'
 
 interface KPICardProps {
   label: string
@@ -37,50 +37,42 @@ export function KPICard({
     }
   })()
 
+  const sparkColor =
+    delta !== undefined
+      ? delta >= 0
+        ? 'var(--color-success)'
+        : 'var(--color-danger)'
+      : 'var(--color-primary-500)'
+
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-md)]',
+        'group relative min-h-[144px] rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
-            {label}
-          </p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-[var(--color-text-primary)]">
-            {formattedValue}
-          </p>
+      {/* Label */}
+      <p className="text-card-title uppercase tracking-wider">
+        {label}
+      </p>
+
+      {/* Main value */}
+      <p className="mt-3 text-kpi-value">
+        {formattedValue}
+      </p>
+
+      {/* Delta + Sparkline row */}
+      <div className="mt-3 flex items-end justify-between">
+        <div>
           {delta !== undefined && (
-            <div className="mt-2 flex items-center gap-1">
-              {delta > 0 ? (
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-              ) : delta < 0 ? (
-                <TrendingDown className="h-3.5 w-3.5 text-red-600" />
-              ) : (
-                <Minus className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-              )}
-              <span
-                className={cn(
-                  'text-xs font-medium tabular-nums',
-                  delta > 0
-                    ? 'text-emerald-600'
-                    : delta < 0
-                      ? 'text-red-600'
-                      : 'text-[var(--color-text-muted)]'
-                )}
-              >
-                {formatPercent(delta)}
-              </span>
-              <span className="text-xs text-[var(--color-text-muted)]">vs prev</span>
+            <div className="flex items-center gap-1.5">
+              <MetricDelta value={delta} />
+              <span className="text-meta">vs prev</span>
             </div>
           )}
         </div>
-        {trend && trend.length > 0 && (
-          <div className="ml-4 mt-1">
-            <Sparkline data={trend} color={delta && delta >= 0 ? '#059669' : '#DC2626'} />
-          </div>
+        {trend && trend.length > 1 && (
+          <MiniSparkline data={trend} color={sparkColor} width={100} height={28} />
         )}
       </div>
     </div>

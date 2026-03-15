@@ -1,7 +1,8 @@
 'use client'
 
 import { Suspense } from 'react'
-import { Topbar } from '@/components/layout/topbar'
+import { motion } from 'framer-motion'
+import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ function AnalysisContent() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-8">
+      <div className="space-y-8 px-6 py-8">
         <ChartSkeleton />
         <div className="grid grid-cols-2 gap-5">
           <ChartSkeleton />
@@ -25,8 +26,12 @@ function AnalysisContent() {
   }
 
   return (
-    <div className="space-y-6 p-8">
-      {/* AI Summary */}
+    <motion.div
+      className="space-y-8 px-6 py-8"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22 }}
+    >
       <ChartCard
         title="Executive Summary"
         description="AI-generated analysis powered by Claude"
@@ -35,19 +40,20 @@ function AnalysisContent() {
             size="sm"
             onClick={() => runAnalysis.mutate()}
             disabled={runAnalysis.isPending}
+            className="h-9 rounded-[var(--radius-control)] text-[13px]"
           >
             {runAnalysis.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
             ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             )}
             {runAnalysis.isPending ? 'Running...' : 'Run Analysis'}
           </Button>
         }
       >
-        <div className="flex items-start gap-4 rounded-[var(--radius-md)] bg-[var(--color-accent-light)] p-4">
-          <Brain className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-accent)]" />
-          <div className="space-y-3 text-sm text-[var(--color-text-secondary)]">
+        <div className="flex items-start gap-4 rounded-[var(--radius-card)] bg-[var(--color-primary-50)] p-5">
+          <Brain className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary-600)]" />
+          <div className="space-y-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
             {data?.summary ? (
               data.summary.split('\n').map((p: string, i: number) => <p key={i}>{p}</p>)
             ) : (
@@ -57,7 +63,6 @@ function AnalysisContent() {
         </div>
       </ChartCard>
 
-      {/* Risks & Opportunities */}
       <div className="grid grid-cols-2 gap-5">
         <ChartCard title="Top Risks" description="Issues requiring immediate attention">
           <div className="space-y-3">
@@ -66,13 +71,14 @@ function AnalysisContent() {
                 const title = typeof risk === 'string' ? risk : risk.title
                 const desc = typeof risk === 'string' ? null : risk.description
                 return (
-                <div key={i} className="rounded-[var(--radius-md)] border border-red-100 bg-red-50 p-3">
-                  <p className="text-sm font-medium text-red-800">{i + 1}. {title}</p>
-                  {desc && <p className="mt-1 text-xs text-red-600">{desc}</p>}
-                </div>)
+                  <div key={i} className="rounded-[var(--radius-control)] border border-[var(--color-danger)]/20 bg-[var(--color-danger-bg)] p-3.5">
+                    <p className="text-[13px] font-semibold text-[var(--color-danger-dark)]">{i + 1}. {title}</p>
+                    {desc && <p className="mt-1 text-[12px] text-[var(--color-danger-dark)]/70">{desc}</p>}
+                  </div>
+                )
               })
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">No risks identified.</p>
+              <p className="text-[13px] text-[var(--color-text-muted)]">No risks identified.</p>
             )}
           </div>
         </ChartCard>
@@ -84,26 +90,27 @@ function AnalysisContent() {
                 const title = typeof opp === 'string' ? opp : opp.title
                 const desc = typeof opp === 'string' ? null : opp.description
                 return (
-                <div key={i} className="rounded-[var(--radius-md)] border border-emerald-100 bg-emerald-50 p-3">
-                  <p className="text-sm font-medium text-emerald-800">{i + 1}. {title}</p>
-                  {desc && <p className="mt-1 text-xs text-emerald-600">{desc}</p>}
-                </div>)
+                  <div key={i} className="rounded-[var(--radius-control)] border border-[var(--color-success)]/20 bg-[var(--color-success-bg)] p-3.5">
+                    <p className="text-[13px] font-semibold text-[var(--color-success-dark)]">{i + 1}. {title}</p>
+                    {desc && <p className="mt-1 text-[12px] text-[var(--color-success-dark)]/70">{desc}</p>}
+                  </div>
+                )
               })
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">No opportunities identified.</p>
+              <p className="text-[13px] text-[var(--color-text-muted)]">No opportunities identified.</p>
             )}
           </div>
         </ChartCard>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 export default function AnalysisPage() {
   return (
     <div>
-      <Topbar title="Analysis" description="AI-powered insights and recommendations" />
-      <Suspense fallback={<div className="space-y-6 p-8"><ChartSkeleton /></div>}>
+      <TopContextBar title="Analysis" subtitle="AI-powered insights and recommendations" showPeriod={false} />
+      <Suspense fallback={<div className="space-y-8 px-6 py-8"><ChartSkeleton /></div>}>
         <AnalysisContent />
       </Suspense>
     </div>
