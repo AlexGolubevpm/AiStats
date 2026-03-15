@@ -16,15 +16,18 @@ export function ForecastChart({ currentValues, projectedValues }: ForecastChartP
   ]
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
-        <XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-        <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--color-border)' }} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar dataKey="current" name="Current" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="projected" name="Projected" fill="#10B981" radius={[4, 4, 0, 0]} />
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} barGap={4}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" />
+        <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} />
+        <YAxis tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+        <Tooltip
+          contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid var(--color-border-default)', boxShadow: 'var(--shadow-elevated)', background: 'white' }}
+          formatter={(value) => [`$${Number(value).toFixed(2)}`]}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar dataKey="current" name="Current" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="projected" name="Projected" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

@@ -1,15 +1,17 @@
 'use client'
 
 import { Suspense } from 'react'
-import { Topbar } from '@/components/layout/topbar'
+import { motion } from 'framer-motion'
+import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
-import { DeltaIndicator } from '@/components/shared/delta-indicator'
+import { MetricDelta } from '@/components/shared/delta-indicator'
 import { KPICardSkeleton, ChartSkeleton, TableSkeleton } from '@/components/shared/loading-skeleton'
 import { CostTrendChart } from '@/components/features/charts/cost-trend-chart'
 import { DataTable } from '@/components/features/data-table'
 import { useCosts } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
+import { formatCurrency } from '@/lib/utils'
 import type { ColumnDef } from '@tanstack/react-table'
 
 interface CostRow {
@@ -23,26 +25,55 @@ interface CostRow {
 }
 
 const columns: ColumnDef<CostRow, unknown>[] = [
-  { accessorKey: 'site', header: 'Site' },
+  {
+    accessorKey: 'site',
+    header: 'Site',
+    cell: ({ row }) => <span className="font-semibold text-[var(--color-text-primary)]">{row.original.site}</span>,
+  },
   { accessorKey: 'bundle', header: 'Bundle' },
-  { accessorKey: 'yesterday', header: 'Yesterday', cell: ({ row }) => `$${(row.original.yesterday || 0).toFixed(2)}` },
-  { accessorKey: 'avg7d', header: '7d Avg', cell: ({ row }) => `$${(row.original.avg7d || 0).toFixed(2)}` },
-  { accessorKey: 'total30d', header: '30d Total', cell: ({ row }) => `$${(row.original.total30d || 0).toLocaleString()}` },
-  { accessorKey: 'change', header: 'Change', cell: ({ row }) => <DeltaIndicator value={row.original.change || 0} /> },
+  {
+    accessorKey: 'yesterday',
+    header: 'Yesterday',
+    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.yesterday || 0)}</span>,
+  },
+  {
+    accessorKey: 'avg7d',
+    header: '7d Avg',
+    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.avg7d || 0)}</span>,
+  },
+  {
+    accessorKey: 'total30d',
+    header: '30d Total',
+    cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.total30d || 0)}</span>,
+  },
+  {
+    accessorKey: 'change',
+    header: 'Change',
+    cell: ({ row }) => <MetricDelta value={row.original.change || 0} />,
+  },
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => (
-      <span className={`rounded-full px-2 py-0.5 text-xs ${
-        row.original.status === 'matched'
-          ? 'bg-[var(--color-healthy-bg)] text-[var(--color-healthy)]'
-          : 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]'
-      }`}>
-        {row.original.status === 'matched' ? 'Matched' : 'Unmatched'}
-      </span>
-    ),
+    cell: ({ row }) => {
+      const matched = row.original.status === 'matched'
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[11px] font-semibold ${
+          matched
+            ? 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]'
+            : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-dark)]'
+        }`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${matched ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
+          {matched ? 'Matched' : 'Unmatched'}
+        </span>
+      )
+    },
   },
 ]
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.22 } },
+}
 
 function CostsContent() {
   const { period } = usePeriod()
@@ -50,12 +81,12 @@ function CostsContent() {
 
   if (isLoading || !data) {
     return (
-      <div className="space-y-6 p-8">
-        <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}
+      <div className="space-y-8 px-6 py-8">
+        <div className="grid grid-cols-4 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
-        <TableSkeleton />
         <ChartSkeleton />
+        <TableSkeleton />
       </div>
     )
   }
@@ -64,7 +95,6 @@ function CostsContent() {
   const sites = data.sites || []
   const trend = data.trend || []
 
-  // Build table rows from API site data
   const tableRows: CostRow[] = sites.map((s: { name: string; bundle: { name: string }; yesterdayCost: number; sevenDayAvg: number; thirtyDayTotal: number; changePercent: number; mappingStatus: string | null }) => ({
     site: s.name,
     bundle: s.bundle?.name || '',
@@ -75,39 +105,60 @@ function CostsContent() {
     status: s.mappingStatus || 'unmatched',
   }))
 
+  const unmatchedCount = tableRows.filter(r => r.status !== 'matched').length
+
   return (
-    <div className="space-y-6 p-8">
-      <div className="grid grid-cols-3 gap-4">
+    <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeIn}>
+      {/* KPI Row */}
+      <div className="grid grid-cols-4 gap-5">
         <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
-        <KPICard label="7-Day Avg" value={summary.sevenDayAvg || 0} format="currency" />
+        <KPICard label="7-Day Average" value={summary.sevenDayAvg || 0} format="currency" />
         <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
+        <KPICard label="Missing Mappings" value={unmatchedCount} format="number" />
       </div>
 
-      {tableRows.length > 0 ? (
-        <ChartCard title="Cost Breakdown" description="Costs by site and period">
-          <DataTable columns={columns} data={tableRows} searchKey="site" searchPlaceholder="Search sites..." />
-        </ChartCard>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
-          <p className="text-sm text-[var(--color-text-muted)]">No cost data available</p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Cost data will appear after syncing</p>
-        </div>
-      )}
-
+      {/* Cost Trend */}
       {trend.length > 0 && (
-        <ChartCard title="Cost Trend" description="Last 30 days">
+        <ChartCard title="Cost Trend" description="Daily cost breakdown">
           <CostTrendChart data={trend} />
         </ChartCard>
       )}
-    </div>
+
+      {/* Table */}
+      {tableRows.length > 0 ? (
+        <div>
+          <h2 className="text-section-title mb-5">Cost Breakdown</h2>
+          <DataTable columns={columns} data={tableRows} searchKey="site" searchPlaceholder="Search sites..." />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-16">
+          <p className="text-[14px] text-[var(--color-text-muted)]">No cost data available</p>
+          <p className="mt-1.5 text-meta">Cost data will appear after syncing</p>
+        </div>
+      )}
+
+      {/* Mapping Issues Banner */}
+      {unmatchedCount > 0 && (
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-warning)] bg-[var(--color-warning-bg)] p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[14px] font-semibold text-[var(--color-warning-dark)]">
+              {unmatchedCount} site{unmatchedCount > 1 ? 's' : ''} with unmatched cost mapping
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] text-[var(--color-warning-dark)]/70">
+            Check site mappings in Settings to ensure cost data is correctly attributed.
+          </p>
+        </div>
+      )}
+    </motion.div>
   )
 }
 
 export default function CostsPage() {
   return (
     <div>
-      <Topbar title="Costs" description="Cost tracking and analysis" />
-      <Suspense fallback={<div className="space-y-6 p-8"><div className="grid grid-cols-3 gap-4">{Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <TopContextBar title="Costs" subtitle="Cost tracking and analysis" showExport />
+      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
         <CostsContent />
       </Suspense>
     </div>
