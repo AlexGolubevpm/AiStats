@@ -109,6 +109,8 @@ enum AdFormat {
   SLIDER
   OUTSTREAM
   VAST
+  IN_VIDEO
+  IN_PAGE_PUSH
   OTHER
 }
 
