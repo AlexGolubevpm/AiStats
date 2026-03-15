@@ -1,6 +1,8 @@
 'use client'
 
-import { CalendarDays, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
+import { Suspense } from 'react'
+import { PeriodSelector } from '@/components/features/period-selector'
 
 interface TopbarProps {
   title: string
@@ -18,13 +20,10 @@ export function Topbar({ title, description }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Period Selector */}
-        <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5">
-          <CalendarDays className="h-4 w-4 text-[var(--color-text-muted)]" />
-          <span className="text-sm text-[var(--color-text-secondary)]">Last 7 days</span>
-        </div>
+        <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-background)]" />}>
+          <PeriodSelector />
+        </Suspense>
 
-        {/* Sync Button */}
         <button className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-background)]">
           <RefreshCw className="h-3.5 w-3.5" />
           Sync

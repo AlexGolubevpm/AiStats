@@ -1,64 +1,93 @@
+'use client'
+
+import { Suspense } from 'react'
 import { Topbar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
+import { DeltaIndicator } from '@/components/shared/delta-indicator'
+import { KPICardSkeleton, ChartSkeleton, TableSkeleton } from '@/components/shared/loading-skeleton'
+import { CostTrendChart } from '@/components/features/charts/cost-trend-chart'
+import { DataTable } from '@/components/features/data-table'
+import { useCosts } from '@/hooks/use-api'
+import { usePeriod } from '@/hooks/use-period'
+import type { ColumnDef } from '@tanstack/react-table'
+
+interface CostRow {
+  site: string
+  bundle: string
+  yesterday: number
+  avg7d: number
+  total30d: number
+  change: number
+  status: string
+}
+
+const columns: ColumnDef<CostRow, unknown>[] = [
+  { accessorKey: 'site', header: 'Site' },
+  { accessorKey: 'bundle', header: 'Bundle' },
+  { accessorKey: 'yesterday', header: 'Yesterday', cell: ({ row }) => `$${row.original.yesterday.toFixed(2)}` },
+  { accessorKey: 'avg7d', header: '7d Avg', cell: ({ row }) => `$${row.original.avg7d.toFixed(2)}` },
+  { accessorKey: 'total30d', header: '30d Total', cell: ({ row }) => `$${row.original.total30d.toLocaleString()}` },
+  { accessorKey: 'change', header: 'Change', cell: ({ row }) => <DeltaIndicator value={row.original.change} /> },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => (
+      <span className={`rounded-full px-2 py-0.5 text-xs ${
+        row.original.status === 'matched'
+          ? 'bg-[var(--color-healthy-bg)] text-[var(--color-healthy)]'
+          : 'bg-[var(--color-warning-bg)] text-[var(--color-warning)]'
+      }`}>
+        {row.original.status === 'matched' ? 'Matched' : 'Unmatched'}
+      </span>
+    ),
+  },
+]
+
+function CostsContent() {
+  const { period } = usePeriod()
+  const { data, isLoading } = useCosts(period)
+
+  if (isLoading || !data) {
+    return (
+      <div className="space-y-6 p-8">
+        <div className="grid grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
+        </div>
+        <TableSkeleton />
+        <ChartSkeleton />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 p-8">
+      <div className="grid grid-cols-4 gap-4">
+        {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
+          <KPICard key={kpi.label} {...kpi} />
+        ))}
+      </div>
+
+      <ChartCard title="Cost Breakdown" description="Costs by site and period">
+        <DataTable columns={columns} data={data.sites} searchKey="site" searchPlaceholder="Search sites..." />
+      </ChartCard>
+
+      {data.trend && (
+        <ChartCard title="Cost Trend" description="Last 30 days">
+          <CostTrendChart data={data.trend} />
+        </ChartCard>
+      )}
+    </div>
+  )
+}
 
 export default function CostsPage() {
   return (
     <div>
       <Topbar title="Costs" description="Cost tracking and analysis" />
-
-      <div className="space-y-6 p-8">
-        <div className="grid grid-cols-4 gap-4">
-          <KPICard label="Total Costs" value={8500} delta={2.1} format="currency" />
-          <KPICard label="Avg Cost / Site" value={212.5} delta={1.8} format="currency" />
-          <KPICard label="Highest Cost Site" value={450} format="currency" />
-          <KPICard label="Unmatched Rows" value={3} format="number" />
-        </div>
-
-        <ChartCard title="Cost Breakdown" description="Costs by site and period">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--color-border-subtle)]">
-                  <th className="pb-3 text-left text-xs font-medium text-[var(--color-text-muted)]">Site</th>
-                  <th className="pb-3 text-left text-xs font-medium text-[var(--color-text-muted)]">Bundle</th>
-                  <th className="pb-3 text-right text-xs font-medium text-[var(--color-text-muted)]">Yesterday</th>
-                  <th className="pb-3 text-right text-xs font-medium text-[var(--color-text-muted)]">7d Avg</th>
-                  <th className="pb-3 text-right text-xs font-medium text-[var(--color-text-muted)]">30d Total</th>
-                  <th className="pb-3 text-right text-xs font-medium text-[var(--color-text-muted)]">Change</th>
-                  <th className="pb-3 text-center text-xs font-medium text-[var(--color-text-muted)]">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border-subtle)]">
-                <tr className="hover:bg-[var(--color-background)]">
-                  <td className="py-3 font-medium">site-01</td>
-                  <td className="py-3 text-[var(--color-text-muted)]">Gays</td>
-                  <td className="py-3 text-right tabular-nums">$85.00</td>
-                  <td className="py-3 text-right tabular-nums">$82.50</td>
-                  <td className="py-3 text-right tabular-nums">$2,475</td>
-                  <td className="py-3 text-right tabular-nums text-red-600">+3.0%</td>
-                  <td className="py-3 text-center"><span className="rounded-full bg-[var(--color-healthy-bg)] px-2 py-0.5 text-xs text-[var(--color-healthy)]">Matched</span></td>
-                </tr>
-                <tr className="hover:bg-[var(--color-background)]">
-                  <td className="py-3 font-medium">site-02</td>
-                  <td className="py-3 text-[var(--color-text-muted)]">Trans</td>
-                  <td className="py-3 text-right tabular-nums">$72.00</td>
-                  <td className="py-3 text-right tabular-nums">$68.50</td>
-                  <td className="py-3 text-right tabular-nums">$2,055</td>
-                  <td className="py-3 text-right tabular-nums text-red-600">+5.1%</td>
-                  <td className="py-3 text-center"><span className="rounded-full bg-[var(--color-healthy-bg)] px-2 py-0.5 text-xs text-[var(--color-healthy)]">Matched</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Cost Trend" description="Last 30 days">
-          <div className="flex h-[200px] items-center justify-center text-sm text-[var(--color-text-muted)]">
-            Cost trend chart will render here
-          </div>
-        </ChartCard>
-      </div>
+      <Suspense fallback={<div className="space-y-6 p-8"><div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+        <CostsContent />
+      </Suspense>
     </div>
   )
 }
