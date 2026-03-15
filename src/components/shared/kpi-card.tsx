@@ -47,7 +47,7 @@ export function KPICard({
   return (
     <div
       className={cn(
-        'group relative min-h-[144px] rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
+        'group relative flex min-h-[130px] flex-col justify-between rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
         className
       )}
     >
@@ -57,22 +57,22 @@ export function KPICard({
       </p>
 
       {/* Main value */}
-      <p className="mt-3 text-kpi-value">
+      <p className="mt-2 truncate text-kpi-value">
         {formattedValue}
       </p>
 
       {/* Delta + Sparkline row */}
-      <div className="mt-3 flex items-end justify-between">
-        <div>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div className="shrink-0">
           {delta !== undefined && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <MetricDelta value={delta} />
-              <span className="text-meta">vs prev</span>
+              <span className="text-meta whitespace-nowrap">vs prev</span>
             </div>
           )}
         </div>
         {trend && trend.length > 1 && (
-          <MiniSparkline data={trend} color={sparkColor} width={100} height={28} />
+          <MiniSparkline data={trend} color={sparkColor} width={80} height={24} />
         )}
       </div>
     </div>
