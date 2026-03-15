@@ -53,12 +53,30 @@ function ConclusionsContent() {
     )
   }
 
+  const winners = data.winners || []
+  const losers = data.losers || []
+  const risks = data.risks || []
+  const opportunities = data.opportunities || []
+
+  const hasAny = winners.length > 0 || losers.length > 0 || risks.length > 0 || opportunities.length > 0
+
+  if (!hasAny) {
+    return (
+      <div className="p-8">
+        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-16">
+          <p className="text-sm text-[var(--color-text-muted)]">No conclusions available</p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Conclusions will be generated once metric data is synced</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 p-8">
-      <Section title="Winners" color="bg-emerald-500" items={data.winners} />
-      <Section title="Losers" color="bg-red-500" items={data.losers} />
-      <Section title="Risks" color="bg-amber-500" items={data.risks} />
-      <Section title="Opportunities" color="bg-blue-500" items={data.opportunities} />
+      <Section title="Winners" color="bg-emerald-500" items={winners} />
+      <Section title="Losers" color="bg-red-500" items={losers} />
+      <Section title="Risks" color="bg-amber-500" items={risks} />
+      <Section title="Opportunities" color="bg-blue-500" items={opportunities} />
     </div>
   )
 }

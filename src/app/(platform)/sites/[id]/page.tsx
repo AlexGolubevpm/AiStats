@@ -6,7 +6,6 @@ import { Topbar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
 import { HealthBadge } from '@/components/shared/health-badge'
-import { InsightCard } from '@/components/shared/insight-card'
 import { KPICardSkeleton, ChartSkeleton } from '@/components/shared/loading-skeleton'
 import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-chart'
 import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-chart'
@@ -21,25 +20,24 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 interface FormatRow { format: string; impressions: number; clicks: number; ctr: number; revenue: number; fillRate: number; rpm: number }
 interface TierRow { tier: string; users: number; impressions: number; revenue: number; ctr: number; rpm: number }
-interface CostRow { date: string; amount: number }
 
 const formatColumns: ColumnDef<FormatRow, unknown>[] = [
   { accessorKey: 'format', header: 'Format' },
-  { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => row.original.impressions.toLocaleString() },
-  { accessorKey: 'clicks', header: 'Clicks', cell: ({ row }) => row.original.clicks.toLocaleString() },
-  { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => `${(row.original.ctr * 100).toFixed(2)}%` },
-  { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => `$${row.original.revenue.toFixed(2)}` },
-  { accessorKey: 'fillRate', header: 'Fill Rate', cell: ({ row }) => `${(row.original.fillRate * 100).toFixed(1)}%` },
-  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => `$${row.original.rpm.toFixed(2)}` },
+  { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => (row.original.impressions || 0).toLocaleString() },
+  { accessorKey: 'clicks', header: 'Clicks', cell: ({ row }) => (row.original.clicks || 0).toLocaleString() },
+  { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => `${(row.original.ctr || 0).toFixed(2)}%` },
+  { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => `$${(row.original.revenue || 0).toFixed(2)}` },
+  { accessorKey: 'fillRate', header: 'Fill Rate', cell: ({ row }) => `${(row.original.fillRate || 0).toFixed(1)}%` },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => `$${(row.original.rpm || 0).toFixed(2)}` },
 ]
 
 const tierColumns: ColumnDef<TierRow, unknown>[] = [
   { accessorKey: 'tier', header: 'Tier', cell: ({ row }) => row.original.tier.replace('TIER_', 'Tier ') },
-  { accessorKey: 'users', header: 'Users', cell: ({ row }) => row.original.users.toLocaleString() },
-  { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => row.original.impressions.toLocaleString() },
-  { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => `$${row.original.revenue.toFixed(2)}` },
-  { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => `${(row.original.ctr * 100).toFixed(2)}%` },
-  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => `$${row.original.rpm.toFixed(2)}` },
+  { accessorKey: 'users', header: 'Users', cell: ({ row }) => (row.original.users || 0).toLocaleString() },
+  { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => (row.original.impressions || 0).toLocaleString() },
+  { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => `$${(row.original.revenue || 0).toFixed(2)}` },
+  { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => `${(row.original.ctr || 0).toFixed(2)}%` },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => `$${(row.original.rpm || 0).toFixed(2)}` },
 ]
 
 function SiteDetailContent({ id }: { id: string }) {
@@ -57,23 +55,41 @@ function SiteDetailContent({ id }: { id: string }) {
     )
   }
 
+  const siteName = data.site?.name || 'Unknown'
+  const bundleName = data.site?.bundle?.name || ''
+  const healthScore = data.health?.score ?? null
+  const hasKpis = data.kpis && data.kpis.length > 0
+  const hasTrend = data.trend && data.trend.length > 0
+  const hasFormats = data.formatBreakdown && data.formatBreakdown.length > 0
+  const hasTiers = data.tierBreakdown && data.tierBreakdown.length > 0
+  const hasCosts = data.costs && data.costs.length > 0
+
+  // Build cost trend from cost entries
+  const costTrend = hasCosts
+    ? data.costs.map((c: { date: string; amount: number }) => ({ date: c.date, total: c.amount }))
+    : []
+
   return (
     <div className="space-y-6 p-8">
       {/* Site Header */}
       <div className="flex items-center gap-4">
-        <h2 className="text-xl font-semibold">{data.name}</h2>
-        <span className="rounded-full bg-[var(--color-accent-light)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
-          {data.bundleName}
-        </span>
-        <HealthBadge score={data.healthScore || 0} />
+        <h2 className="text-xl font-semibold">{siteName}</h2>
+        {bundleName && (
+          <span className="rounded-full bg-[var(--color-accent-light)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
+            {bundleName}
+          </span>
+        )}
+        {healthScore != null && <HealthBadge score={healthScore} />}
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-5 gap-4">
-        {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
-          <KPICard key={kpi.label} {...kpi} />
-        ))}
-      </div>
+      {hasKpis && (
+        <div className="grid grid-cols-5 gap-4">
+          {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
+            <KPICard key={kpi.label} {...kpi} />
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
@@ -83,22 +99,27 @@ function SiteDetailContent({ id }: { id: string }) {
           <TabsTrigger value="tiers">GEO/Tiers</TabsTrigger>
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
-          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-5">
-          <div className="grid grid-cols-2 gap-5">
-            <ChartCard title="Revenue Trend" description="Daily revenue">
-              {data.trend ? <RevenueTrendChart data={data.trend} /> : <div className="h-[250px]" />}
-            </ChartCard>
-            <ChartCard title="Traffic Trend" description="Daily users">
-              {data.trend ? <TrafficTrendChart data={data.trend} /> : <div className="h-[250px]" />}
-            </ChartCard>
-          </div>
+          {hasTrend ? (
+            <div className="grid grid-cols-2 gap-5">
+              <ChartCard title="Revenue Trend" description="Daily revenue">
+                <RevenueTrendChart data={data.trend} />
+              </ChartCard>
+              <ChartCard title="Traffic Trend" description="Daily users">
+                <TrafficTrendChart data={data.trend} />
+              </ChartCard>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+              <p className="text-sm text-[var(--color-text-muted)]">No trend data available yet</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="formats" className="mt-5 space-y-5">
-          {data.formatBreakdown && (
+          {hasFormats ? (
             <>
               <ChartCard title="Format Revenue" description="Revenue by ad format">
                 <FormatBreakdownChart data={data.formatBreakdown} />
@@ -107,11 +128,15 @@ function SiteDetailContent({ id }: { id: string }) {
                 <DataTable columns={formatColumns} data={data.formatBreakdown} />
               </ChartCard>
             </>
+          ) : (
+            <div className="flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+              <p className="text-sm text-[var(--color-text-muted)]">No format data available</p>
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="tiers" className="mt-5 space-y-5">
-          {data.tierBreakdown && (
+          {hasTiers ? (
             <>
               <ChartCard title="Tier Distribution" description="Revenue and users by GEO tier">
                 <TierBreakdownChart data={data.tierBreakdown} />
@@ -120,44 +145,42 @@ function SiteDetailContent({ id }: { id: string }) {
                 <DataTable columns={tierColumns} data={data.tierBreakdown} />
               </ChartCard>
             </>
+          ) : (
+            <div className="flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+              <p className="text-sm text-[var(--color-text-muted)]">No tier data available</p>
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="costs" className="mt-5">
-          {data.costTrend && (
+          {costTrend.length > 0 ? (
             <ChartCard title="Cost Trend" description="Daily costs">
-              <CostTrendChart data={data.costTrend} />
+              <CostTrendChart data={costTrend} />
             </ChartCard>
+          ) : (
+            <div className="flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+              <p className="text-sm text-[var(--color-text-muted)]">No cost data available</p>
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="trends" className="mt-5">
-          <div className="space-y-5">
-            {data.trend && (
-              <>
-                <ChartCard title="Revenue" description="Revenue over time">
-                  <RevenueTrendChart data={data.trend} />
-                </ChartCard>
-                <ChartCard title="Traffic" description="Traffic over time">
-                  <TrafficTrendChart data={data.trend} />
-                </ChartCard>
-                <ChartCard title="Profit" description="Profit over time">
-                  <ProfitTrendChart data={data.trend} />
-                </ChartCard>
-              </>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="recommendations" className="mt-5">
-          {data.insights && data.insights.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {data.insights.map((insight: { entity: string; entityType: string; metric: string; value: string; delta?: number; reason: string; action?: string; severity: 'low' | 'medium' | 'high' | 'critical'; type?: 'risk' | 'opportunity' | 'info' }, i: number) => (
-                <InsightCard key={i} {...insight} />
-              ))}
+          {hasTrend ? (
+            <div className="space-y-5">
+              <ChartCard title="Revenue" description="Revenue over time">
+                <RevenueTrendChart data={data.trend} />
+              </ChartCard>
+              <ChartCard title="Traffic" description="Traffic over time">
+                <TrafficTrendChart data={data.trend} />
+              </ChartCard>
+              <ChartCard title="Profit" description="Profit over time">
+                <ProfitTrendChart data={data.trend} />
+              </ChartCard>
             </div>
           ) : (
-            <p className="text-sm text-[var(--color-text-muted)]">No recommendations at this time.</p>
+            <div className="flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+              <p className="text-sm text-[var(--color-text-muted)]">No trend data available</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>

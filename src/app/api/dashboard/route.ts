@@ -113,17 +113,15 @@ export async function GET(request: NextRequest) {
     })
 
     const insights = anomalies.map((a) => ({
-      id: a.id,
-      type: a.type,
-      severity: a.severity,
+      entity: a.site.name,
+      entityType: 'site',
       metric: a.metric,
-      site: a.site.name,
-      siteSlug: a.site.slug,
-      description: a.description,
+      value: `${Number(a.actual).toFixed(2)}`,
       delta: Number(a.delta),
-      expected: Number(a.expected),
-      actual: Number(a.actual),
-      date: a.date,
+      reason: a.description ?? `${a.type} detected: expected ${Number(a.expected).toFixed(2)}, got ${Number(a.actual).toFixed(2)}`,
+      action: `Investigate ${a.type} anomaly on ${a.metric}`,
+      severity: a.severity,
+      type: a.type === 'spike' || a.type === 'drop' ? 'risk' as const : 'info' as const,
     }))
 
     return jsonResponse({ kpis, bundles, insights, trend })

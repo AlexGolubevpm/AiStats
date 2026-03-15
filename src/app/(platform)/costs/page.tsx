@@ -25,10 +25,10 @@ interface CostRow {
 const columns: ColumnDef<CostRow, unknown>[] = [
   { accessorKey: 'site', header: 'Site' },
   { accessorKey: 'bundle', header: 'Bundle' },
-  { accessorKey: 'yesterday', header: 'Yesterday', cell: ({ row }) => `$${row.original.yesterday.toFixed(2)}` },
-  { accessorKey: 'avg7d', header: '7d Avg', cell: ({ row }) => `$${row.original.avg7d.toFixed(2)}` },
-  { accessorKey: 'total30d', header: '30d Total', cell: ({ row }) => `$${row.original.total30d.toLocaleString()}` },
-  { accessorKey: 'change', header: 'Change', cell: ({ row }) => <DeltaIndicator value={row.original.change} /> },
+  { accessorKey: 'yesterday', header: 'Yesterday', cell: ({ row }) => `$${(row.original.yesterday || 0).toFixed(2)}` },
+  { accessorKey: 'avg7d', header: '7d Avg', cell: ({ row }) => `$${(row.original.avg7d || 0).toFixed(2)}` },
+  { accessorKey: 'total30d', header: '30d Total', cell: ({ row }) => `$${(row.original.total30d || 0).toLocaleString()}` },
+  { accessorKey: 'change', header: 'Change', cell: ({ row }) => <DeltaIndicator value={row.original.change || 0} /> },
   {
     accessorKey: 'status',
     header: 'Status',
@@ -51,8 +51,8 @@ function CostsContent() {
   if (isLoading || !data) {
     return (
       <div className="space-y-6 p-8">
-        <div className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         <TableSkeleton />
         <ChartSkeleton />
@@ -60,21 +60,43 @@ function CostsContent() {
     )
   }
 
+  const summary = data.summary || {}
+  const sites = data.sites || []
+  const trend = data.trend || []
+
+  // Build table rows from API site data
+  const tableRows: CostRow[] = sites.map((s: { name: string; bundle: { name: string }; yesterdayCost: number; sevenDayAvg: number; thirtyDayTotal: number; changePercent: number; mappingStatus: string | null }) => ({
+    site: s.name,
+    bundle: s.bundle?.name || '',
+    yesterday: s.yesterdayCost || 0,
+    avg7d: s.sevenDayAvg || 0,
+    total30d: s.thirtyDayTotal || 0,
+    change: s.changePercent || 0,
+    status: s.mappingStatus || 'unmatched',
+  }))
+
   return (
     <div className="space-y-6 p-8">
-      <div className="grid grid-cols-4 gap-4">
-        {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
-          <KPICard key={kpi.label} {...kpi} />
-        ))}
+      <div className="grid grid-cols-3 gap-4">
+        <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
+        <KPICard label="7-Day Avg" value={summary.sevenDayAvg || 0} format="currency" />
+        <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
       </div>
 
-      <ChartCard title="Cost Breakdown" description="Costs by site and period">
-        <DataTable columns={columns} data={data.sites} searchKey="site" searchPlaceholder="Search sites..." />
-      </ChartCard>
+      {tableRows.length > 0 ? (
+        <ChartCard title="Cost Breakdown" description="Costs by site and period">
+          <DataTable columns={columns} data={tableRows} searchKey="site" searchPlaceholder="Search sites..." />
+        </ChartCard>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-12">
+          <p className="text-sm text-[var(--color-text-muted)]">No cost data available</p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Cost data will appear after syncing</p>
+        </div>
+      )}
 
-      {data.trend && (
+      {trend.length > 0 && (
         <ChartCard title="Cost Trend" description="Last 30 days">
-          <CostTrendChart data={data.trend} />
+          <CostTrendChart data={trend} />
         </ChartCard>
       )}
     </div>
@@ -85,7 +107,7 @@ export default function CostsPage() {
   return (
     <div>
       <Topbar title="Costs" description="Cost tracking and analysis" />
-      <Suspense fallback={<div className="space-y-6 p-8"><div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={<div className="space-y-6 p-8"><div className="grid grid-cols-3 gap-4">{Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
         <CostsContent />
       </Suspense>
     </div>

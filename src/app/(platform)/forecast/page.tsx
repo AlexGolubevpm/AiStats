@@ -27,10 +27,23 @@ function ForecastContent() {
     )
   }
 
-  const baseRevenue = baseData.revenue || 18750
-  const baseAffiliate = baseData.affiliate || 4320
-  const baseCosts = baseData.costs || 8500
-  const baseTraffic = baseData.traffic || 2450000
+  const baseRevenue = baseData.revenue || 0
+  const baseAffiliate = baseData.affiliate || 0
+  const baseCosts = baseData.costs || 0
+  const baseTraffic = baseData.traffic || 0
+
+  const hasData = baseRevenue > 0 || baseAffiliate > 0 || baseCosts > 0 || baseTraffic > 0
+
+  if (!hasData) {
+    return (
+      <div className="p-8">
+        <div className="flex flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] py-16">
+          <p className="text-sm text-[var(--color-text-muted)]">No baseline data available for forecasting</p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Forecast will be available after syncing metric data from AdSpyglass</p>
+        </div>
+      </div>
+    )
+  }
 
   const projTraffic = baseTraffic * (1 + trafficChange / 100)
   const projAdRevenue = baseRevenue * (1 + rpmChange / 100) * (1 + trafficChange / 100)
@@ -74,12 +87,12 @@ function ForecastContent() {
 
       {/* Projected Results */}
       <div className="grid grid-cols-3 gap-4">
-        <KPICard label="Projected Ad Revenue" value={projAdRevenue} format="currency" delta={((projAdRevenue - baseRevenue) / baseRevenue) * 100} />
-        <KPICard label="Projected Affiliate" value={projAffiliate} format="currency" delta={((projAffiliate - baseAffiliate) / baseAffiliate) * 100} />
+        <KPICard label="Projected Ad Revenue" value={projAdRevenue} format="currency" delta={baseRevenue > 0 ? ((projAdRevenue - baseRevenue) / baseRevenue) * 100 : 0} />
+        <KPICard label="Projected Affiliate" value={projAffiliate} format="currency" delta={baseAffiliate > 0 ? ((projAffiliate - baseAffiliate) / baseAffiliate) * 100 : 0} />
         <KPICard label="Projected Total Revenue" value={projTotalRevenue} format="currency" />
       </div>
       <div className="grid grid-cols-3 gap-4">
-        <KPICard label="Projected Costs" value={projCosts} format="currency" delta={((projCosts - baseCosts) / baseCosts) * 100} />
+        <KPICard label="Projected Costs" value={projCosts} format="currency" delta={baseCosts > 0 ? ((projCosts - baseCosts) / baseCosts) * 100 : 0} />
         <KPICard label="Projected Profit" value={projProfit} format="currency" delta={baseProfit > 0 ? ((projProfit - baseProfit) / baseProfit) * 100 : 0} />
         <KPICard label="Projected ROMI" value={projRomi} format="percent" />
       </div>
