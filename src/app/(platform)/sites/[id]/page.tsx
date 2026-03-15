@@ -1,7 +1,7 @@
 'use client'
 
 import { use, Suspense } from 'react'
-import * as Tabs from '@radix-ui/react-tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Topbar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
@@ -18,8 +18,6 @@ import { DataTable } from '@/components/features/data-table'
 import { useSite } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import type { ColumnDef } from '@tanstack/react-table'
-
-const tabTriggerClass = 'px-4 py-2.5 text-sm font-medium transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]'
 
 interface FormatRow { format: string; impressions: number; clicks: number; ctr: number; revenue: number; fillRate: number; rpm: number }
 interface TierRow { tier: string; users: number; impressions: number; revenue: number; ctr: number; rpm: number }
@@ -78,17 +76,17 @@ function SiteDetailContent({ id }: { id: string }) {
       </div>
 
       {/* Tabs */}
-      <Tabs.Root defaultValue="overview">
-        <Tabs.List className="flex gap-1 border-b border-[var(--color-border)]">
-          <Tabs.Trigger value="overview" className={tabTriggerClass}>Overview</Tabs.Trigger>
-          <Tabs.Trigger value="formats" className={tabTriggerClass}>Formats</Tabs.Trigger>
-          <Tabs.Trigger value="tiers" className={tabTriggerClass}>GEO/Tiers</Tabs.Trigger>
-          <Tabs.Trigger value="costs" className={tabTriggerClass}>Costs</Tabs.Trigger>
-          <Tabs.Trigger value="trends" className={tabTriggerClass}>Trends</Tabs.Trigger>
-          <Tabs.Trigger value="recommendations" className={tabTriggerClass}>Recommendations</Tabs.Trigger>
-        </Tabs.List>
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="formats">Formats</TabsTrigger>
+          <TabsTrigger value="tiers">GEO/Tiers</TabsTrigger>
+          <TabsTrigger value="costs">Costs</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+        </TabsList>
 
-        <Tabs.Content value="overview" className="mt-5">
+        <TabsContent value="overview" className="mt-5">
           <div className="grid grid-cols-2 gap-5">
             <ChartCard title="Revenue Trend" description="Daily revenue">
               {data.trend ? <RevenueTrendChart data={data.trend} /> : <div className="h-[250px]" />}
@@ -97,9 +95,9 @@ function SiteDetailContent({ id }: { id: string }) {
               {data.trend ? <TrafficTrendChart data={data.trend} /> : <div className="h-[250px]" />}
             </ChartCard>
           </div>
-        </Tabs.Content>
+        </TabsContent>
 
-        <Tabs.Content value="formats" className="mt-5 space-y-5">
+        <TabsContent value="formats" className="mt-5 space-y-5">
           {data.formatBreakdown && (
             <>
               <ChartCard title="Format Revenue" description="Revenue by ad format">
@@ -110,9 +108,9 @@ function SiteDetailContent({ id }: { id: string }) {
               </ChartCard>
             </>
           )}
-        </Tabs.Content>
+        </TabsContent>
 
-        <Tabs.Content value="tiers" className="mt-5 space-y-5">
+        <TabsContent value="tiers" className="mt-5 space-y-5">
           {data.tierBreakdown && (
             <>
               <ChartCard title="Tier Distribution" description="Revenue and users by GEO tier">
@@ -123,17 +121,17 @@ function SiteDetailContent({ id }: { id: string }) {
               </ChartCard>
             </>
           )}
-        </Tabs.Content>
+        </TabsContent>
 
-        <Tabs.Content value="costs" className="mt-5">
+        <TabsContent value="costs" className="mt-5">
           {data.costTrend && (
             <ChartCard title="Cost Trend" description="Daily costs">
               <CostTrendChart data={data.costTrend} />
             </ChartCard>
           )}
-        </Tabs.Content>
+        </TabsContent>
 
-        <Tabs.Content value="trends" className="mt-5">
+        <TabsContent value="trends" className="mt-5">
           <div className="space-y-5">
             {data.trend && (
               <>
@@ -149,9 +147,9 @@ function SiteDetailContent({ id }: { id: string }) {
               </>
             )}
           </div>
-        </Tabs.Content>
+        </TabsContent>
 
-        <Tabs.Content value="recommendations" className="mt-5">
+        <TabsContent value="recommendations" className="mt-5">
           {data.insights && data.insights.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {data.insights.map((insight: { entity: string; entityType: string; metric: string; value: string; delta?: number; reason: string; action?: string; severity: 'low' | 'medium' | 'high' | 'critical'; type?: 'risk' | 'opportunity' | 'info' }, i: number) => (
@@ -161,8 +159,8 @@ function SiteDetailContent({ id }: { id: string }) {
           ) : (
             <p className="text-sm text-[var(--color-text-muted)]">No recommendations at this time.</p>
           )}
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

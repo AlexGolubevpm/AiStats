@@ -1,8 +1,26 @@
 'use client'
 
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Loader2 } from 'lucide-react'
 import { Suspense } from 'react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PeriodSelector } from '@/components/features/period-selector'
+import { useSyncStatus } from '@/hooks/use-sync-status'
+
+function SyncButton() {
+  const { triggerSync, isSyncing } = useSyncStatus()
+
+  return (
+    <Button variant="outline" size="sm" onClick={() => triggerSync()} disabled={isSyncing}>
+      {isSyncing ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+      )}
+      {isSyncing ? 'Syncing...' : 'Sync'}
+    </Button>
+  )
+}
 
 interface TopbarProps {
   title: string
@@ -20,14 +38,12 @@ export function Topbar({ title, description }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-background)]" />}>
+        <Suspense fallback={<Skeleton className="h-9 w-[160px]" />}>
           <PeriodSelector />
         </Suspense>
-
-        <button className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-background)]">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Sync
-        </button>
+        <Suspense fallback={<Skeleton className="h-9 w-20" />}>
+          <SyncButton />
+        </Suspense>
       </div>
     </header>
   )

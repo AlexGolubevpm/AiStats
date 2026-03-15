@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { Topbar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
+import { Button } from '@/components/ui/button'
 import { Brain, RefreshCw, Loader2 } from 'lucide-react'
 import { useAnalysis, useRunAnalysis } from '@/hooks/use-api'
 
@@ -30,10 +31,10 @@ function AnalysisContent() {
         title="Executive Summary"
         description="AI-generated analysis powered by Claude"
         action={
-          <button
+          <Button
+            size="sm"
             onClick={() => runAnalysis.mutate()}
             disabled={runAnalysis.isPending}
-            className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {runAnalysis.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -41,7 +42,7 @@ function AnalysisContent() {
               <RefreshCw className="h-3.5 w-3.5" />
             )}
             {runAnalysis.isPending ? 'Running...' : 'Run Analysis'}
-          </button>
+          </Button>
         }
       >
         <div className="flex items-start gap-4 rounded-[var(--radius-md)] bg-[var(--color-accent-light)] p-4">

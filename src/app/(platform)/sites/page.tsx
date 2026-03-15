@@ -8,6 +8,8 @@ import { TableSkeleton } from '@/components/shared/loading-skeleton'
 import { DataTable } from '@/components/features/data-table'
 import { useSites } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
+import { useFilters } from '@/hooks/use-filters'
+import { FilterBar } from '@/components/features/filter-bar'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -85,14 +87,16 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
 
 function SitesContent() {
   const { period } = usePeriod()
-  const { data: sites, isLoading } = useSites(period)
+  const { filters } = useFilters()
+  const { data: sites, isLoading } = useSites(period, filters.bundleId)
 
   if (isLoading || !sites) {
     return <div className="p-8"><TableSkeleton rows={10} /></div>
   }
 
   return (
-    <div className="p-8">
+    <div className="space-y-4 p-8">
+      <FilterBar showBundle showFormat={false} showTier={false} />
       <DataTable columns={columns} data={sites} searchKey="name" searchPlaceholder="Search sites..." />
     </div>
   )
