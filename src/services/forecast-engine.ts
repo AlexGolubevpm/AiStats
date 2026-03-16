@@ -26,6 +26,6 @@ export async function getForecastBaseValues(
     revenue: metrics.adRevenue,
     affiliate: metrics.affiliateRevenue,
     costs: metrics.costs,
-    traffic: metrics.users,
+    traffic: metrics.hits,
   }
 }

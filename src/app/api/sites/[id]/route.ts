@@ -39,9 +39,9 @@ export async function GET(
 
     const kpis = [
       {
-        label: 'Users',
-        value: current.users,
-        delta: calculateDelta(current.users, previous.users),
+        label: 'Requests',
+        value: current.hits,
+        delta: calculateDelta(current.hits, previous.hits),
         format: 'number',
       },
       {

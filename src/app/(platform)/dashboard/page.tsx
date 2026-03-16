@@ -36,7 +36,7 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
-function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number } }) {
+function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number } }) {
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
@@ -57,8 +57,8 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
       {/* Metrics */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <span className="text-meta">Traffic</span>
-          <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCompact(bundle.users || 0)}</p>
+          <span className="text-meta">Requests</span>
+          <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCompact(bundle.hits || 0)}</p>
         </div>
         <div>
           <span className="text-meta">Revenue</span>
@@ -163,7 +163,7 @@ function DashboardContent() {
         <div>
           <h2 className="text-section-title mb-5">Bundles</h2>
           <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
+            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
               <motion.div key={bundle.id} custom={i} variants={fadeIn}>
                 <BundleSummaryCard bundle={bundle} />
               </motion.div>

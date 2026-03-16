@@ -266,7 +266,7 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
               siteId: site.id,
               date,
               tier: tier as any,
-              users: 0,
+              users: siteHits, // proportional hits as traffic proxy (no per-tier Metrica data)
               impressions: siteImpressions,
               clicks: siteClicks,
               revenue: new Prisma.Decimal(siteRevenue.toFixed(4)),
@@ -275,6 +275,7 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
               rpm: new Prisma.Decimal(siteRpm.toFixed(4)),
             },
             update: {
+              users: siteHits,
               impressions: siteImpressions,
               clicks: siteClicks,
               revenue: new Prisma.Decimal(siteRevenue.toFixed(4)),

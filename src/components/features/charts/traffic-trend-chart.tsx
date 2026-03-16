@@ -3,7 +3,7 @@
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 interface TrafficTrendChartProps {
-  data: { date: string; users: number }[]
+  data: { date: string; hits: number }[]
 }
 
 export function TrafficTrendChart({ data }: TrafficTrendChartProps) {
@@ -21,9 +21,9 @@ export function TrafficTrendChart({ data }: TrafficTrendChartProps) {
         <YAxis tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
         <Tooltip
           contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid var(--color-border-default)', boxShadow: 'var(--shadow-elevated)', background: 'white' }}
-          formatter={(value) => [Number(value).toLocaleString(), 'Users']}
+          formatter={(value) => [Number(value).toLocaleString(), 'Requests']}
         />
-        <Area type="monotone" dataKey="users" stroke="var(--color-chart-cyan)" fill="url(#trafficGrad)" strokeWidth={2} />
+        <Area type="monotone" dataKey="hits" stroke="var(--color-chart-cyan)" fill="url(#trafficGrad)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   )

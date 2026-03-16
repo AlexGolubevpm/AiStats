@@ -22,7 +22,7 @@ interface SiteRow {
   bundle: string
   bundleColor: string
   healthScore: number | null
-  users: number
+  hits: number
   adRevenue: number
   affiliateRevenue: number
   costs: number
@@ -61,9 +61,9 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
       ),
   },
   {
-    accessorKey: 'users',
-    header: 'Traffic',
-    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.users || 0)}</span>,
+    accessorKey: 'hits',
+    header: 'Requests',
+    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || 0)}</span>,
   },
   {
     accessorKey: 'adRevenue',
@@ -115,14 +115,14 @@ function SitesContent() {
     return <div className="px-6 py-8"><TableSkeleton rows={10} /></div>
   }
 
-  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string }; health: { score: number } | null; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
+  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string }; health: { score: number } | null; hits: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
     id: s.id,
     name: s.name,
     slug: s.slug,
     bundle: s.bundle?.name || '',
     bundleColor: BUNDLE_COLORS[s.bundle?.name] || '#94A3B8',
     healthScore: s.health?.score ?? null,
-    users: s.users || 0,
+    hits: s.hits || 0,
     adRevenue: s.adRevenue || 0,
     affiliateRevenue: s.affiliateRevenue || 0,
     costs: s.costs || 0,

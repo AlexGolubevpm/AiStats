@@ -199,7 +199,8 @@ export async function aggregateSiteMetrics(
 
 interface TrendPoint {
   date: string
-  users: number
+  hits: number      // ad requests from AdOK
+  users: number     // real users from Yandex Metrica (0 until connected)
   adRevenue: number
   affiliateRevenue: number
   totalRevenue: number
@@ -214,6 +215,7 @@ async function buildTrend(
     by: ['date'],
     where,
     _sum: {
+      hits: true,
       users: true,
       adRevenue: true,
       affiliateRevenue: true,
@@ -226,6 +228,7 @@ async function buildTrend(
 
   return rows.map((row) => ({
     date: format(row.date, 'yyyy-MM-dd'),
+    hits: row._sum.hits ?? 0,
     users: row._sum.users ?? 0,
     adRevenue: sumNum(row._sum.adRevenue),
     affiliateRevenue: sumNum(row._sum.affiliateRevenue),

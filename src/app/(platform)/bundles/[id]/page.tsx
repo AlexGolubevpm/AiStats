@@ -19,7 +19,7 @@ interface SiteRow {
   id: string
   name: string
   slug: string
-  users: number
+  hits: number
   totalRevenue: number
   profit: number
   romi: number
@@ -35,7 +35,7 @@ const siteColumns: ColumnDef<SiteRow, unknown>[] = [
       </Link>
     ),
   },
-  { accessorKey: 'users', header: 'Traffic', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.users || 0)}</span> },
+  { accessorKey: 'hits', header: 'Requests', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || 0)}</span> },
   { accessorKey: 'totalRevenue', header: 'Revenue', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.totalRevenue || 0)}</span> },
   {
     accessorKey: 'profit',

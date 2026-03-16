@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           slug: bundle.slug,
           color: bundle.color,
           sitesCount: bundle.sites.length,
-          traffic: current.users,
+          requests: current.hits,
           adRevenue: current.adRevenue,
           affiliateRevenue: current.affiliateRevenue,
           totalRevenue: current.totalRevenue,

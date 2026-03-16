@@ -24,7 +24,7 @@ export function TierBreakdownChart({ data }: TierBreakdownChartProps) {
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar yAxisId="rev" dataKey="revenue" name="Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} />
-        <Bar yAxisId="users" dataKey="users" name="Users" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} />
+        <Bar yAxisId="users" dataKey="users" name="Requests" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

@@ -4,9 +4,9 @@ export async function detectAnomalies(siteId: string, date: Date) {
   const sevenDaysAgo = new Date(date)
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // Get 7-day average
+  // Get 7-day average (hits = ad requests from AdOK, used as traffic proxy)
   const avgResult = await prisma.dailyMetric.aggregate({
-    _avg: { users: true, adRevenue: true, costs: true, fillRate: true },
+    _avg: { hits: true, adRevenue: true, costs: true, fillRate: true },
     where: { siteId, date: { gte: sevenDaysAgo, lt: date } },
   })
 
@@ -15,25 +15,25 @@ export async function detectAnomalies(siteId: string, date: Date) {
     where: { siteId_date: { siteId, date } },
   })
 
-  if (!today || !avgResult._avg.users) return []
+  if (!today || !avgResult._avg.hits) return []
 
   const anomalies: Array<{
     type: string; severity: string; metric: string;
     expected: number; actual: number; delta: number; description: string
   }> = []
 
-  const avgUsers = avgResult._avg.users || 0
+  const avgHits = avgResult._avg.hits || 0
   const avgRevenue = Number(avgResult._avg.adRevenue) || 0
   const avgCosts = Number(avgResult._avg.costs) || 0
   const avgFillRate = Number(avgResult._avg.fillRate) || 0
 
-  // Traffic drop > 20%
-  const trafficDelta = ((today.users - avgUsers) / avgUsers) * 100
+  // Traffic drop > 20% (based on hits/requests from AdOK)
+  const trafficDelta = ((today.hits - avgHits) / avgHits) * 100
   if (trafficDelta < -20) {
     anomalies.push({
-      type: 'traffic_drop', severity: 'critical', metric: 'users',
-      expected: avgUsers, actual: today.users, delta: trafficDelta,
-      description: `Traffic dropped ${Math.abs(trafficDelta).toFixed(1)}% below 7-day average`
+      type: 'traffic_drop', severity: 'critical', metric: 'hits',
+      expected: avgHits, actual: today.hits, delta: trafficDelta,
+      description: `Requests dropped ${Math.abs(trafficDelta).toFixed(1)}% below 7-day average`
     })
   }
 

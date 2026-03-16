@@ -69,7 +69,7 @@ function BundlesContent() {
 
               <div className="mt-5 grid grid-cols-4 gap-4">
                 {[
-                  { label: 'Traffic', value: formatCompact(bundle.traffic || 0) },
+                  { label: 'Requests', value: formatCompact(bundle.requests || 0) },
                   { label: 'Ad Revenue', value: formatCurrency(bundle.adRevenue || 0) },
                   { label: 'Affiliate', value: formatCurrency(bundle.affiliateRevenue || 0) },
                   { label: 'Total Revenue', value: formatCurrency(bundle.totalRevenue || 0) },
