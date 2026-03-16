@@ -19,7 +19,7 @@ import { CostTrendChart } from '@/components/features/charts/cost-trend-chart'
 import { DataTable } from '@/components/features/data-table'
 import { useSite } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact, getHealthStatus } from '@/lib/utils'
+import { formatCurrency, formatCompact, formatRPM, getHealthStatus } from '@/lib/utils'
 import { ExternalLink, AlertTriangle, Shield } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -33,7 +33,7 @@ const formatColumns: ColumnDef<FormatRow, unknown>[] = [
   { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => <span className="tabular-nums">{(row.original.ctr || 0).toFixed(2)}%</span> },
   { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.revenue || 0)}</span> },
   { accessorKey: 'fillRate', header: 'Fill Rate', cell: ({ row }) => <span className="tabular-nums">{(row.original.fillRate || 0).toFixed(1)}%</span> },
-  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span> },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatRPM(row.original.rpm || 0)}</span> },
 ]
 
 const tierColumns: ColumnDef<TierRow, unknown>[] = [
@@ -42,7 +42,7 @@ const tierColumns: ColumnDef<TierRow, unknown>[] = [
   { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => <span className="tabular-nums">{(row.original.impressions || 0).toLocaleString()}</span> },
   { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.revenue || 0)}</span> },
   { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => <span className="tabular-nums">{(row.original.ctr || 0).toFixed(2)}%</span> },
-  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span> },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatRPM(row.original.rpm || 0)}</span> },
 ]
 
 function SiteDetailContent({ id }: { id: string }) {

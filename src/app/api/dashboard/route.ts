@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         label: 'RPM',
         value: current.rpm,
         delta: calculateDelta(current.rpm, previous.rpm),
-        format: 'currency',
+        format: 'rpm',
         trend: [],
       },
     ]

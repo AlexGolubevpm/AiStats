@@ -16,7 +16,7 @@ import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-ch
 import { ProfitTrendChart } from '@/components/features/charts/profit-trend-chart'
 import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact, downloadCSV } from '@/lib/utils'
+import { formatCurrency, formatCompact, formatRPM, downloadCSV } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 
 const fadeIn = {
@@ -38,7 +38,7 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
-function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number } }) {
+function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; rpm: number; costs: number; healthScore?: number; delta?: number } }) {
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
@@ -67,16 +67,22 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
           <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCurrency(bundle.totalRevenue || 0)}</p>
         </div>
         <div>
-          <span className="text-meta">Profit</span>
+          <span className="text-meta">{bundle.costs > 0 ? 'Profit' : 'RPM'}</span>
           <p className="mt-0.5 text-[16px] font-semibold tabular-nums text-[var(--color-success-dark)]">
-            {formatCurrency(bundle.profit || 0)}
+            {bundle.costs > 0 ? formatCurrency(bundle.profit || 0) : formatRPM(bundle.rpm || 0)}
           </p>
         </div>
         <div>
           <span className="text-meta">ROMI</span>
           <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-[16px] font-semibold tabular-nums">{(bundle.romi || 0).toFixed(1)}%</span>
-            {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
+            {bundle.costs > 0 ? (
+              <>
+                <span className="text-[16px] font-semibold tabular-nums">{(bundle.romi || 0).toFixed(1)}%</span>
+                {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
+              </>
+            ) : (
+              <span className="text-[14px] text-[var(--color-text-disabled)]">N/A</span>
+            )}
           </div>
         </div>
       </div>
@@ -194,7 +200,7 @@ function DashboardContent() {
         <div>
           <h2 className="text-section-title mb-5">Bundles</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
+            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; rpm: number; costs: number; healthScore?: number; delta?: number }, i: number) => (
               <motion.div key={bundle.id} custom={i} variants={fadeIn}>
                 <BundleSummaryCard bundle={bundle} />
               </motion.div>

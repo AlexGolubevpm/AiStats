@@ -14,6 +14,18 @@ export function formatCurrency(value: number): string {
   }).format(value)
 }
 
+export function formatRPM(value: number): string {
+  if (value === 0) return '$0.00'
+  // Show up to 4 decimal places for small RPM values
+  const fractionDigits = value < 0.01 ? 4 : value < 1 ? 3 : 2
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value)
+}
+
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value)
 }

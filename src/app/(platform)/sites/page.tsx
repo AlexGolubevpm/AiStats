@@ -12,7 +12,7 @@ import { useSites } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { useFilters } from '@/hooks/use-filters'
 import { FilterBar } from '@/components/features/filter-bar'
-import { formatCurrency, formatCompact, downloadCSV } from '@/lib/utils'
+import { formatCurrency, formatCompact, formatRPM, downloadCSV } from '@/lib/utils'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -83,7 +83,7 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
   {
     accessorKey: 'rpm',
     header: 'RPM',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span>,
+    cell: ({ row }) => <span className="tabular-nums">{formatRPM(row.original.rpm || 0)}</span>,
   },
 ]
 

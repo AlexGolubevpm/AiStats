@@ -1,6 +1,6 @@
 'use client'
 
-import { cn, formatCurrency, formatNumber, formatPercent, formatCompact } from '@/lib/utils'
+import { cn, formatCurrency, formatNumber, formatPercent, formatCompact, formatRPM } from '@/lib/utils'
 import { MetricDelta } from './delta-indicator'
 import { MiniSparkline } from './sparkline'
 
@@ -9,7 +9,7 @@ interface KPICardProps {
   value: number
   previousValue?: number
   delta?: number
-  format?: 'currency' | 'number' | 'percent' | 'score' | 'compact'
+  format?: 'currency' | 'number' | 'percent' | 'score' | 'compact' | 'rpm'
   trend?: number[]
   className?: string
 }
@@ -26,6 +26,8 @@ export function KPICard({
     switch (format) {
       case 'currency':
         return formatCurrency(value)
+      case 'rpm':
+        return formatRPM(value)
       case 'percent':
         return `${value.toFixed(1)}%`
       case 'score':

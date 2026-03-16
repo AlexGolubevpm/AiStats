@@ -9,7 +9,7 @@ import { KPICardSkeleton } from '@/components/shared/loading-skeleton'
 import { ErrorState } from '@/components/shared/error-state'
 import { useBundles } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact } from '@/lib/utils'
+import { formatCurrency, formatCompact, formatRPM } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -101,7 +101,7 @@ function BundlesContent() {
                 </div>
                 <div>
                   <p className="text-meta">RPM</p>
-                  <p className="mt-1 text-[14px] font-semibold tabular-nums">{formatCurrency(bundle.rpm || 0)}</p>
+                  <p className="mt-1 text-[14px] font-semibold tabular-nums">{formatRPM(bundle.rpm || 0)}</p>
                 </div>
               </div>
 

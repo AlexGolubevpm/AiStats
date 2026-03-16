@@ -12,7 +12,7 @@ import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-ch
 import { DataTable } from '@/components/features/data-table'
 import { useBundle } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact } from '@/lib/utils'
+import { formatCurrency, formatCompact, formatRPM } from '@/lib/utils'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -49,7 +49,7 @@ const siteColumns: ColumnDef<SiteRow, unknown>[] = [
       </span>
     ),
   },
-  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span> },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatRPM(row.original.rpm || 0)}</span> },
 ]
 
 function BundleDetailContent({ id }: { id: string }) {

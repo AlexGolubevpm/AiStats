@@ -170,7 +170,12 @@ export async function POST(request: NextRequest) {
           const ctr = dayImpressions > 0 ? (dayClicks / dayImpressions) * 100 : 0
           const fillRate = dayHits > 0 ? (dayImpressions / dayHits) * 100 : 0
           const ecpm = dayImpressions > 0 ? (dayRevenue / dayImpressions) * 1000 : 0
-          const rpm = dayImpressions > 0 ? (dayRevenue / dayImpressions) * 1000 : 0
+          // RPM: prefer impressions, fallback to hits when impressions aren't available
+          const rpm = dayImpressions > 0
+            ? (dayRevenue / dayImpressions) * 1000
+            : dayHits > 0
+              ? (dayRevenue / dayHits) * 1000
+              : 0
 
           // Check existing record for affiliate revenue and costs
           const existing = await prisma.dailyMetric.findUnique({
