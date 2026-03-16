@@ -37,11 +37,18 @@ export async function GET(
     const current = await aggregateBundleMetrics(bundle.id, from, to)
     const previous = await aggregateBundleMetrics(bundle.id, prevFrom, prevTo)
 
-    const kpis = [
+    // Only show KPIs that have actual data
+    const kpis: Array<{ label: string; value: number; delta?: number; format: string }> = [
       {
-        label: 'Users',
-        value: current.users,
-        delta: calculateDelta(current.users, previous.users),
+        label: 'Hits',
+        value: current.hits,
+        delta: calculateDelta(current.hits, previous.hits),
+        format: 'number',
+      },
+      {
+        label: 'Impressions',
+        value: current.impressions,
+        delta: calculateDelta(current.impressions, previous.impressions),
         format: 'number',
       },
       {
@@ -51,42 +58,36 @@ export async function GET(
         format: 'currency',
       },
       {
-        label: 'Affiliate Revenue',
-        value: current.affiliateRevenue,
-        delta: calculateDelta(current.affiliateRevenue, previous.affiliateRevenue),
-        format: 'currency',
-      },
-      {
-        label: 'Total Revenue',
-        value: current.totalRevenue,
-        delta: calculateDelta(current.totalRevenue, previous.totalRevenue),
-        format: 'currency',
-      },
-      {
-        label: 'Costs',
-        value: current.costs,
-        delta: calculateDelta(current.costs, previous.costs),
-        format: 'currency',
-      },
-      {
-        label: 'Profit',
-        value: current.profit,
-        delta: calculateDelta(current.profit, previous.profit),
-        format: 'currency',
-      },
-      {
-        label: 'ROMI',
-        value: current.romi,
-        delta: calculateDelta(current.romi, previous.romi),
-        format: 'percent',
-      },
-      {
         label: 'RPM',
         value: current.rpm,
         delta: calculateDelta(current.rpm, previous.rpm),
         format: 'currency',
       },
     ]
+
+    // Add costs-related KPIs only if cost data exists
+    if (current.costs > 0) {
+      kpis.push(
+        {
+          label: 'Costs',
+          value: current.costs,
+          delta: calculateDelta(current.costs, previous.costs),
+          format: 'currency',
+        },
+        {
+          label: 'Profit',
+          value: current.profit,
+          delta: calculateDelta(current.profit, previous.profit),
+          format: 'currency',
+        },
+        {
+          label: 'ROMI',
+          value: current.romi,
+          delta: calculateDelta(current.romi, previous.romi),
+          format: 'percent',
+        },
+      )
+    }
 
     // Per-site metrics within this bundle
     const sites = await Promise.all(

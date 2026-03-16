@@ -19,25 +19,25 @@ import type { ColumnDef } from '@tanstack/react-table'
 interface SiteRow {
   id: string
   name: string
+  domain: string
   slug: string
   bundle: string
   bundleColor: string
   healthScore: number | null
   users: number
+  hits: number
+  impressions: number
   adRevenue: number
-  affiliateRevenue: number
-  costs: number
-  profit: number
-  romi: number
+  rpm: number
 }
 
 const columns: ColumnDef<SiteRow, unknown>[] = [
   {
-    accessorKey: 'name',
+    accessorKey: 'domain',
     header: 'Site',
     cell: ({ row }) => (
       <Link href={`/sites/${row.original.slug}`} className="text-[13px] font-semibold text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline">
-        {row.original.name}
+        {row.original.domain}
       </Link>
     ),
   },
@@ -63,40 +63,27 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
   },
   {
     accessorKey: 'users',
-    header: 'Traffic',
-    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.users || 0)}</span>,
+    header: 'Hits',
+    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || row.original.users || 0)}</span>,
+  },
+  {
+    accessorKey: 'impressions',
+    header: 'Impressions',
+    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.impressions || 0)}</span>,
   },
   {
     accessorKey: 'adRevenue',
     header: 'Ad Revenue',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.adRevenue || 0)}</span>,
+    cell: ({ row }) => (
+      <span className="font-semibold tabular-nums text-[var(--color-success-dark)]">
+        {formatCurrency(row.original.adRevenue || 0)}
+      </span>
+    ),
   },
   {
-    accessorKey: 'affiliateRevenue',
-    header: 'Affiliate',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.affiliateRevenue || 0)}</span>,
-  },
-  {
-    accessorKey: 'costs',
-    header: 'Costs',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.costs || 0)}</span>,
-  },
-  {
-    accessorKey: 'profit',
-    header: 'Profit',
-    cell: ({ row }) => {
-      const profit = row.original.profit || 0
-      return (
-        <span className={`font-semibold tabular-nums ${profit >= 0 ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-danger-dark)]'}`}>
-          {formatCurrency(profit)}
-        </span>
-      )
-    },
-  },
-  {
-    accessorKey: 'romi',
-    header: 'ROMI',
-    cell: ({ row }) => <span className="tabular-nums">{(row.original.romi || 0).toFixed(1)}%</span>,
+    accessorKey: 'rpm',
+    header: 'RPM',
+    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span>,
   },
 ]
 
@@ -113,19 +100,19 @@ function SitesContent() {
     return <div className="px-6 py-8"><ErrorState /></div>
   }
 
-  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string; color?: string }; health: { score: number } | null; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
+  const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; domain?: string; slug: string; bundle: { name: string; color?: string }; health: { score: number } | null; users: number; hits?: number; impressions?: number; adRevenue: number; rpm?: number }) => ({
     id: s.id,
     name: s.name,
+    domain: s.domain || s.name,
     slug: s.slug,
     bundle: s.bundle?.name || '',
     bundleColor: s.bundle?.color || '#94A3B8',
     healthScore: s.health?.score ?? null,
     users: s.users || 0,
+    hits: s.hits || s.users || 0,
+    impressions: s.impressions || 0,
     adRevenue: s.adRevenue || 0,
-    affiliateRevenue: s.affiliateRevenue || 0,
-    costs: s.costs || 0,
-    profit: s.profit || 0,
-    romi: s.romi || 0,
+    rpm: s.rpm || 0,
   }))
 
   if (sites.length === 0) {

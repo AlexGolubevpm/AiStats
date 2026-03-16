@@ -122,26 +122,43 @@ function DashboardContent() {
     )
   }
 
+  const dataSources = data.dataSources as { adspyglass?: boolean; yandex?: boolean; googleSheets?: boolean } | undefined
+
   return (
     <motion.div
       className="space-y-8 px-8 py-8"
       initial="hidden"
       animate="visible"
     >
-      {/* KPI Row */}
-      {hasKpis && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {data.kpis.slice(0, 5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
-            <motion.div key={kpi.label} custom={i} variants={fadeIn}>
-              <KPICard {...kpi} />
-            </motion.div>
-          ))}
+      {/* Data Sources Status */}
+      {dataSources && (
+        <div className="flex items-center gap-4 text-[12px]">
+          <span className="font-medium text-[var(--color-text-muted)]">Data sources:</span>
+          <span className={`flex items-center gap-1.5 ${dataSources.adspyglass ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-text-disabled)]'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${dataSources.adspyglass ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-disabled)]'}`} />
+            AdSpyglass
+          </span>
+          <span className={`flex items-center gap-1.5 ${dataSources.yandex ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-text-disabled)]'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${dataSources.yandex ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-disabled)]'}`} />
+            Yandex Metrica
+          </span>
+          <span className={`flex items-center gap-1.5 ${dataSources.googleSheets ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-text-disabled)]'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${dataSources.googleSheets ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-disabled)]'}`} />
+            Google Sheets
+          </span>
         </div>
       )}
-      {hasKpis && data.kpis.length > 5 && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {data.kpis.slice(5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
-            <motion.div key={kpi.label} custom={i + 5} variants={fadeIn}>
+      {/* KPI Row */}
+      {hasKpis && (
+        <div className={`grid gap-4 ${
+          data.kpis.length <= 3
+            ? 'grid-cols-1 md:grid-cols-3'
+            : data.kpis.length <= 4
+              ? 'grid-cols-2 md:grid-cols-4'
+              : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+        }`}>
+          {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
+            <motion.div key={kpi.label} custom={i} variants={fadeIn}>
               <KPICard {...kpi} />
             </motion.div>
           ))}

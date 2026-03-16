@@ -19,11 +19,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 interface SiteRow {
   id: string
   name: string
+  domain?: string
   slug: string
   users: number
-  totalRevenue: number
-  profit: number
-  romi: number
+  hits: number
+  impressions: number
+  adRevenue: number
+  rpm: number
 }
 
 const siteColumns: ColumnDef<SiteRow, unknown>[] = [
@@ -32,21 +34,22 @@ const siteColumns: ColumnDef<SiteRow, unknown>[] = [
     header: 'Site',
     cell: ({ row }) => (
       <Link href={`/sites/${row.original.slug}`} className="font-semibold text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline">
-        {row.original.name}
+        {row.original.domain || row.original.name}
       </Link>
     ),
   },
-  { accessorKey: 'users', header: 'Traffic', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.users || 0)}</span> },
-  { accessorKey: 'totalRevenue', header: 'Revenue', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.totalRevenue || 0)}</span> },
+  { accessorKey: 'users', header: 'Hits', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || row.original.users || 0)}</span> },
+  { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.impressions || 0)}</span> },
   {
-    accessorKey: 'profit',
-    header: 'Profit',
-    cell: ({ row }) => {
-      const profit = row.original.profit || 0
-      return <span className={`font-semibold tabular-nums ${profit >= 0 ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-danger-dark)]'}`}>{formatCurrency(profit)}</span>
-    },
+    accessorKey: 'adRevenue',
+    header: 'Ad Revenue',
+    cell: ({ row }) => (
+      <span className="font-semibold tabular-nums text-[var(--color-success-dark)]">
+        {formatCurrency(row.original.adRevenue || 0)}
+      </span>
+    ),
   },
-  { accessorKey: 'romi', header: 'ROMI', cell: ({ row }) => <span className="tabular-nums">{(row.original.romi || 0).toFixed(1)}%</span> },
+  { accessorKey: 'rpm', header: 'RPM', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.rpm || 0)}</span> },
 ]
 
 function BundleDetailContent({ id }: { id: string }) {
@@ -70,7 +73,11 @@ function BundleDetailContent({ id }: { id: string }) {
       transition={{ duration: 0.22 }}
     >
       {hasKpis && (
-        <div className="grid grid-cols-5 gap-5">
+        <div className={`grid gap-4 ${
+          data.kpis.length <= 4
+            ? 'grid-cols-2 md:grid-cols-4'
+            : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+        }`}>
           {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
             <KPICard key={kpi.label} {...kpi} />
           ))}

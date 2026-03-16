@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const trend = await getNetworkTrend(from, to)
     const last7 = trend.slice(-7)
 
-    // Build KPI cards
-    const kpis = [
+    // Build KPI cards — only show metrics that have actual data
+    const kpis: Array<{ label: string; value: number; delta?: number; format: string; trend: number[] }> = [
       {
         label: 'Users',
         value: current.users,
@@ -32,53 +32,11 @@ export async function GET(request: NextRequest) {
         trend: last7.map((d) => d.users),
       },
       {
-        label: 'Pageviews',
-        value: current.pageviews,
-        delta: calculateDelta(current.pageviews, previous.pageviews),
-        format: 'number',
-        trend: last7.map((d) => d.pageviews),
-      },
-      {
         label: 'Ad Revenue',
         value: current.adRevenue,
         delta: calculateDelta(current.adRevenue, previous.adRevenue),
         format: 'currency',
         trend: last7.map((d) => d.adRevenue),
-      },
-      {
-        label: 'Affiliate Revenue',
-        value: current.affiliateRevenue,
-        delta: calculateDelta(current.affiliateRevenue, previous.affiliateRevenue),
-        format: 'currency',
-        trend: last7.map((d) => d.affiliateRevenue),
-      },
-      {
-        label: 'Total Revenue',
-        value: current.totalRevenue,
-        delta: calculateDelta(current.totalRevenue, previous.totalRevenue),
-        format: 'currency',
-        trend: last7.map((d) => d.totalRevenue),
-      },
-      {
-        label: 'Costs',
-        value: current.costs,
-        delta: calculateDelta(current.costs, previous.costs),
-        format: 'currency',
-        trend: last7.map((d) => d.costs),
-      },
-      {
-        label: 'Profit',
-        value: current.profit,
-        delta: calculateDelta(current.profit, previous.profit),
-        format: 'currency',
-        trend: last7.map((d) => d.profit),
-      },
-      {
-        label: 'ROMI',
-        value: current.romi,
-        delta: calculateDelta(current.romi, previous.romi),
-        format: 'percent',
-        trend: [],
       },
       {
         label: 'RPM',
@@ -89,12 +47,60 @@ export async function GET(request: NextRequest) {
       },
     ]
 
-    // Bundle-level metrics
+    // Only show Pageviews if Yandex Metrica is configured
+    if (current.pageviews > 0) {
+      kpis.splice(1, 0, {
+        label: 'Pageviews',
+        value: current.pageviews,
+        delta: calculateDelta(current.pageviews, previous.pageviews),
+        format: 'number',
+        trend: last7.map((d) => d.pageviews),
+      })
+    }
+
+    // Only show Costs/Affiliate/Profit/ROMI if Google Sheets data exists
+    if (current.affiliateRevenue > 0) {
+      kpis.push({
+        label: 'Affiliate Revenue',
+        value: current.affiliateRevenue,
+        delta: calculateDelta(current.affiliateRevenue, previous.affiliateRevenue),
+        format: 'currency',
+        trend: last7.map((d) => d.affiliateRevenue),
+      })
+    }
+
+    if (current.costs > 0) {
+      kpis.push(
+        {
+          label: 'Costs',
+          value: current.costs,
+          delta: calculateDelta(current.costs, previous.costs),
+          format: 'currency',
+          trend: last7.map((d) => d.costs),
+        },
+        {
+          label: 'Profit',
+          value: current.profit,
+          delta: calculateDelta(current.profit, previous.profit),
+          format: 'currency',
+          trend: last7.map((d) => d.profit),
+        },
+        {
+          label: 'ROMI',
+          value: current.romi,
+          delta: calculateDelta(current.romi, previous.romi),
+          format: 'percent',
+          trend: [],
+        },
+      )
+    }
+
+    // Bundle-level metrics — only show bundles that have sites
     const allBundles = await prisma.bundle.findMany({
       include: { sites: { select: { id: true } } },
     })
 
-    const bundles = await Promise.all(
+    const bundlesRaw = await Promise.all(
       allBundles.map(async (bundle) => {
         const metrics = await aggregateBundleMetrics(bundle.id, from, to)
         return {
@@ -107,6 +113,9 @@ export async function GET(request: NextRequest) {
         }
       })
     )
+
+    // Filter out bundles with no sites or no revenue
+    const bundles = bundlesRaw.filter(b => b.sitesCount > 0)
 
     // Recent anomalies as insight cards
     const anomalies = await prisma.anomaly.findMany({
@@ -131,7 +140,14 @@ export async function GET(request: NextRequest) {
       type: a.type.includes('drop') || a.type.includes('critical') || a.type.includes('spike') ? 'risk' as const : 'info' as const,
     }))
 
-    return jsonResponse({ kpis, bundles, insights, trend })
+    // Data sources status
+    const dataSources = {
+      adspyglass: Boolean(process.env.ADOK_AUTH_EMAIL && process.env.ADOK_AUTH_TOKEN),
+      yandex: Boolean(process.env.YANDEX_OAUTH_TOKEN),
+      googleSheets: Boolean(process.env.GOOGLE_SHEETS_CREDENTIALS && process.env.GOOGLE_SHEETS_COSTS_ID),
+    }
+
+    return jsonResponse({ kpis, bundles, insights, trend, dataSources })
   } catch (error) {
     console.error('Dashboard API error:', error)
     return errorResponse('Failed to load dashboard data')

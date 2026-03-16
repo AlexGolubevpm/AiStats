@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   Layers,
   Globe,
-  DollarSign,
-  Handshake,
   TrendingUp,
   FileText,
   Brain,
@@ -20,8 +18,6 @@ const primaryNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Bundles', href: '/bundles', icon: Layers },
   { name: 'Sites', href: '/sites', icon: Globe },
-  { name: 'Costs', href: '/costs', icon: DollarSign },
-  { name: 'Affiliate', href: '/affiliate', icon: Handshake },
 ]
 
 const analyticsNav = [
