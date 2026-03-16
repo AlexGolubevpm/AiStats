@@ -9,13 +9,21 @@ import { useSyncStatus } from '@/hooks/use-sync-status'
 
 function SyncStatusBadge() {
   const { latestBySource } = useSyncStatus()
-  const latest = latestBySource('adspyglass')
+  const latest = latestBySource('adspyglass') || latestBySource('all')
   if (!latest?.completedAt) return null
 
   const ago = getTimeAgo(latest.completedAt)
+  const diff = Date.now() - new Date(latest.completedAt).getTime()
+  const hours = diff / 3600000
+  const dotColor = hours < 1
+    ? 'bg-[var(--color-success)]'
+    : hours < 6
+      ? 'bg-[var(--color-warning)]'
+      : 'bg-[var(--color-danger)]'
+
   return (
     <span className="text-meta flex items-center gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
       Synced {ago}
     </span>
   )
@@ -58,6 +66,7 @@ interface TopContextBarProps {
   showPeriod?: boolean
   showSync?: boolean
   showExport?: boolean
+  onExport?: () => void
   actions?: React.ReactNode
 }
 
@@ -67,6 +76,7 @@ export function TopContextBar({
   showPeriod = true,
   showSync = true,
   showExport = false,
+  onExport,
   actions,
 }: TopContextBarProps) {
   return (
@@ -95,6 +105,7 @@ export function TopContextBar({
           <Button
             variant="outline"
             size="sm"
+            onClick={onExport}
             className="h-9 rounded-[var(--radius-control)] border-[var(--color-border-default)] text-[13px]"
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />

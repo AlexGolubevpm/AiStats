@@ -15,7 +15,7 @@ import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-ch
 import { ProfitTrendChart } from '@/components/features/charts/profit-trend-chart'
 import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact } from '@/lib/utils'
+import { formatCurrency, formatCompact, downloadCSV } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 
 const fadeIn = {
@@ -30,8 +30,9 @@ const fadeIn = {
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-20">
-      <p className="text-[14px] text-[var(--color-text-muted)]">{message}</p>
-      <p className="mt-1.5 text-meta">Data will appear after syncing with AdSpyglass</p>
+      <div className="mb-3 text-4xl opacity-30">📊</div>
+      <p className="text-[14px] font-medium text-[var(--color-text-primary)]">{message}</p>
+      <p className="mt-1.5 text-meta max-w-sm text-center">Click the &ldquo;Sync&rdquo; button in the top bar to pull data from AdSpyglass and Yandex Metrica</p>
     </div>
   )
 }
@@ -85,6 +86,14 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
       </div>
     </Link>
   )
+}
+
+function handleDashboardExport(data: { kpis?: { label: string; value: number }[]; bundles?: { name: string; users: number; totalRevenue: number; profit: number; romi: number }[]; trend?: { date: string; adRevenue: number; totalRevenue: number; costs: number; profit: number }[] }) {
+  if (data?.trend?.length) {
+    downloadCSV(data.trend, `dashboard-trend-${new Date().toISOString().slice(0, 10)}`)
+  } else if (data?.bundles?.length) {
+    downloadCSV(data.bundles, `dashboard-bundles-${new Date().toISOString().slice(0, 10)}`)
+  }
 }
 
 function DashboardContent() {
@@ -189,13 +198,27 @@ function DashboardContent() {
   )
 }
 
-export default function DashboardPage() {
+function DashboardPageInner() {
+  const { period } = usePeriod()
+  const { data } = useDashboard(period)
+
   return (
     <div>
-      <TopContextBar title="Dashboard" subtitle="Network overview and key metrics" showExport />
-      <Suspense fallback={<PageSkeleton />}>
-        <DashboardContent />
-      </Suspense>
+      <TopContextBar
+        title="Dashboard"
+        subtitle="Network overview and key metrics"
+        showExport
+        onExport={() => data && handleDashboardExport(data)}
+      />
+      <DashboardContent />
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <DashboardPageInner />
+    </Suspense>
   )
 }

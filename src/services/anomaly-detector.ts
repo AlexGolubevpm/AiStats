@@ -15,7 +15,7 @@ export async function detectAnomalies(siteId: string, date: Date) {
     where: { siteId_date: { siteId, date } },
   })
 
-  if (!today || !avgResult._avg.users) return []
+  if (!today) return []
 
   const anomalies: Array<{
     type: string; severity: string; metric: string;
@@ -28,7 +28,7 @@ export async function detectAnomalies(siteId: string, date: Date) {
   const avgFillRate = Number(avgResult._avg.fillRate) || 0
 
   // Traffic drop > 20%
-  const trafficDelta = ((today.users - avgUsers) / avgUsers) * 100
+  const trafficDelta = avgUsers > 0 ? ((today.users - avgUsers) / avgUsers) * 100 : 0
   if (trafficDelta < -20) {
     anomalies.push({
       type: 'traffic_drop', severity: 'critical', metric: 'users',
@@ -39,7 +39,7 @@ export async function detectAnomalies(siteId: string, date: Date) {
 
   // Revenue change > 15%
   const actualRevenue = Number(today.adRevenue)
-  const revenueDelta = ((actualRevenue - avgRevenue) / avgRevenue) * 100
+  const revenueDelta = avgRevenue > 0 ? ((actualRevenue - avgRevenue) / avgRevenue) * 100 : 0
   if (Math.abs(revenueDelta) > 15) {
     anomalies.push({
       type: revenueDelta > 0 ? 'revenue_spike' : 'revenue_drop',
@@ -51,7 +51,7 @@ export async function detectAnomalies(siteId: string, date: Date) {
 
   // Cost spike > 25%
   const actualCosts = Number(today.costs)
-  const costDelta = ((actualCosts - avgCosts) / avgCosts) * 100
+  const costDelta = avgCosts > 0 ? ((actualCosts - avgCosts) / avgCosts) * 100 : 0
   if (costDelta > 25) {
     anomalies.push({
       type: 'cost_spike', severity: 'high', metric: 'costs',
@@ -62,7 +62,7 @@ export async function detectAnomalies(siteId: string, date: Date) {
 
   // Fill rate drop > 10%
   const actualFillRate = Number(today.fillRate)
-  const fillRateDelta = ((actualFillRate - avgFillRate) / avgFillRate) * 100
+  const fillRateDelta = avgFillRate > 0 ? ((actualFillRate - avgFillRate) / avgFillRate) * 100 : 0
   if (fillRateDelta < -10) {
     anomalies.push({
       type: 'fill_rate_drop', severity: 'medium', metric: 'fillRate',
@@ -78,6 +78,28 @@ export async function detectAnomalies(siteId: string, date: Date) {
       type: 'romi_critical', severity: 'critical', metric: 'romi',
       expected: 100, actual: romi, delta: romi - 100,
       description: `ROMI at ${romi.toFixed(1)}% — below breakeven threshold`
+    })
+  }
+
+  // Persist anomalies to database
+  if (anomalies.length > 0) {
+    // Delete old anomalies for this site/date before inserting new ones
+    await prisma.anomaly.deleteMany({
+      where: { siteId, date },
+    })
+
+    await prisma.anomaly.createMany({
+      data: anomalies.map(a => ({
+        siteId,
+        date,
+        type: a.type,
+        severity: a.severity,
+        metric: a.metric,
+        expected: a.expected,
+        actual: a.actual,
+        delta: a.delta,
+        description: a.description,
+      })),
     })
   }
 

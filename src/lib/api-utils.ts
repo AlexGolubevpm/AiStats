@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDateRange, getPreviousDateRange } from '@/services/metrics'
+import { verifyToken } from '@/lib/auth'
 
 export function parsePeriodParam(searchParams: URLSearchParams) {
   const period = searchParams.get('period') || '7d'
@@ -24,4 +25,15 @@ export function jsonResponse(data: unknown, status = 200) {
 
 export function errorResponse(message: string, status = 500) {
   return NextResponse.json({ error: message }, { status })
+}
+
+export function requireAuth(request: NextRequest): NextResponse | null {
+  // Skip auth check if AUTH_PASSWORD is not set (dev mode)
+  if (!process.env.AUTH_PASSWORD) return null
+
+  const token = request.cookies.get('auth-token')?.value
+  if (!token || !verifyToken(token)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  return null
 }

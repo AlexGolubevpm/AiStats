@@ -27,7 +27,7 @@ export async function calculateHealthScore(siteId: string, date: Date) {
   const lastHalf = metrics.slice(-3)
   const avgFirst = firstHalf.reduce((s, m) => s + Number(m.totalRevenue), 0) / firstHalf.length
   const avgLast = lastHalf.reduce((s, m) => s + Number(m.totalRevenue), 0) / lastHalf.length
-  const revenueTrend = Math.min(100, Math.max(0, 50 + ((avgLast - avgFirst) / avgFirst) * 200))
+  const revenueTrend = Math.min(100, Math.max(0, avgFirst > 0 ? 50 + ((avgLast - avgFirst) / avgFirst) * 200 : 50))
 
   // Cost pressure: lower is better
   const costRatio = costs / (totalRevenue || 1)
@@ -76,6 +76,37 @@ export async function calculateHealthScore(siteId: string, date: Date) {
   )
 
   const status = score >= 80 ? 'healthy' : score >= 60 ? 'warning' : 'critical'
+
+  // Persist to database
+  await prisma.healthScore.upsert({
+    where: { siteId_date: { siteId, date } },
+    create: {
+      siteId,
+      date,
+      score,
+      status,
+      profitQuality,
+      romiQuality,
+      revenueTrend,
+      costPressure,
+      formatQuality,
+      tierQuality,
+      anomalyPressure,
+      stability,
+    },
+    update: {
+      score,
+      status,
+      profitQuality,
+      romiQuality,
+      revenueTrend,
+      costPressure,
+      formatQuality,
+      tierQuality,
+      anomalyPressure,
+      stability,
+    },
+  })
 
   return { score, status, profitQuality, romiQuality, revenueTrend, costPressure, formatQuality, tierQuality, anomalyPressure, stability }
 }

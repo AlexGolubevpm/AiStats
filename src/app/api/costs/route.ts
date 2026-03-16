@@ -71,10 +71,10 @@ export async function GET(request: NextRequest) {
 
         const yesterdayTotal = Number(yesterdayCost._sum.amount ?? 0)
         const sevenDayTotal = Number(sevenDayCosts._sum.amount ?? 0)
-        const sevenDayAvg = sevenDayCosts._count > 0 ? sevenDayTotal / 7 : 0
+        const sevenDayAvg = sevenDayCosts._count > 0 ? sevenDayTotal / sevenDayCosts._count : 0
         const thirtyDayTotal = Number(thirtyDayCosts._sum.amount ?? 0)
         const prevSevenDayTotal = Number(prevSevenDayCosts._sum.amount ?? 0)
-        const prevSevenDayAvg = prevSevenDayCosts._count > 0 ? prevSevenDayTotal / 7 : 0
+        const prevSevenDayAvg = prevSevenDayCosts._count > 0 ? prevSevenDayTotal / prevSevenDayCosts._count : 0
         const changePercent =
           prevSevenDayAvg > 0
             ? ((sevenDayAvg - prevSevenDayAvg) / prevSevenDayAvg) * 100

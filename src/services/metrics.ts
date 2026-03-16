@@ -105,7 +105,7 @@ function buildAggregateResult(raw: {
   const costs = sumNum(raw._sum.costs)
   const profit = sumNum(raw._sum.profit)
   const romi = costs > 0 ? ((totalRevenue - costs) / costs) * 100 : 0
-  const rpm = users > 0 ? (totalRevenue / users) * 1000 : 0
+  const rpm = impressions > 0 ? (adRevenue / impressions) * 1000 : 0
 
   return {
     users,

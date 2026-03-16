@@ -11,7 +11,7 @@ import { useSites } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { useFilters } from '@/hooks/use-filters'
 import { FilterBar } from '@/components/features/filter-bar'
-import { formatCurrency, formatCompact } from '@/lib/utils'
+import { formatCurrency, formatCompact, downloadCSV } from '@/lib/utils'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 
@@ -148,13 +148,37 @@ function SitesContent() {
   )
 }
 
-export default function SitesPage() {
+function SitesPageInner() {
+  const { period } = usePeriod()
+  const { data: rawSites } = useSites(period)
+
+  const handleExport = () => {
+    if (!rawSites?.length) return
+    const exportData = rawSites.map((s: { name: string; bundle?: { name?: string }; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
+      name: s.name,
+      bundle: s.bundle?.name || '',
+      users: s.users || 0,
+      adRevenue: (s.adRevenue || 0).toFixed(2),
+      affiliateRevenue: (s.affiliateRevenue || 0).toFixed(2),
+      costs: (s.costs || 0).toFixed(2),
+      profit: (s.profit || 0).toFixed(2),
+      romi: (s.romi || 0).toFixed(1),
+    }))
+    downloadCSV(exportData, `sites-${period}-${new Date().toISOString().slice(0, 10)}`)
+  }
+
   return (
     <div>
-      <TopContextBar title="Sites" subtitle="All sites across bundles" showExport />
-      <Suspense fallback={<div className="px-6 py-8"><TableSkeleton rows={10} /></div>}>
-        <SitesContent />
-      </Suspense>
+      <TopContextBar title="Sites" subtitle="All sites across bundles" showExport onExport={handleExport} />
+      <SitesContent />
     </div>
+  )
+}
+
+export default function SitesPage() {
+  return (
+    <Suspense fallback={<div className="px-6 py-8"><TableSkeleton rows={10} /></div>}>
+      <SitesPageInner />
+    </Suspense>
   )
 }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { Prisma, AdFormat } from '@prisma/client'
-import { jsonResponse, errorResponse } from '@/lib/api-utils'
+import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-utils'
 import { AdOkService, mapAdTypeToFormat } from '@/services/adspyglass'
 import { YandexMetricaService, getGeoTierByCountryName } from '@/services/yandex-metrica'
 import { calculateHealthScore } from '@/services/health-score'
@@ -68,6 +68,9 @@ function formatDate(d: Date): string {
 // ─── POST: Direct sync from AdSpyglass API ───
 
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request)
+  if (authError) return authError
+
   const body = await request.json().catch(() => ({}))
   const source = (body as { source?: string }).source || 'all'
 
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
     // ── Step 1: Fetch daily spot data (per-site breakdown) ──
     console.log(`[sync] Fetching daily data from ${fromDate} to ${toDate}...`)
 
-    const dailyRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'date' })
+    dailyRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'date' })
     console.log(`[sync] Got ${dailyRows.length} daily rows`)
 
     for (const dayRow of dailyRows) {
@@ -156,14 +159,19 @@ export async function POST(request: NextRequest) {
         const ctr = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0
         const fillRate = agg.hits > 0 ? (agg.impressions / agg.hits) * 100 : 0
         const ecpm = agg.impressions > 0 ? (adRevenue / agg.impressions) * 1000 : 0
-        const rpm = agg.hits > 0 ? (adRevenue / agg.hits) * 1000 : 0
+        const rpm = agg.impressions > 0 ? (adRevenue / agg.impressions) * 1000 : 0
 
-        // Check if Yandex already wrote real user data for this record
+        // Check existing record for Yandex data and affiliate revenue
         const existing = await prisma.dailyMetric.findUnique({
           where: { siteId_date: { siteId: site.id, date } },
-          select: { users: true, pageviews: true },
+          select: { users: true, pageviews: true, affiliateRevenue: true, costs: true },
         })
         const hasYandexData = existing && existing.pageviews > 0
+        const existingAffiliate = existing ? Number(existing.affiliateRevenue) : 0
+        const existingCosts = existing ? Number(existing.costs) : 0
+        const totalRevenue = adRevenue + existingAffiliate
+        const profit = totalRevenue - existingCosts
+        const romi = existingCosts > 0 ? ((totalRevenue - existingCosts) / existingCosts) * 100 : 0
 
         await prisma.dailyMetric.upsert({
           where: { siteId_date: { siteId: site.id, date } },
@@ -175,7 +183,9 @@ export async function POST(request: NextRequest) {
             impressions: agg.impressions,
             clicks: agg.clicks,
             adRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
-            totalRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
+            totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
+            profit: new Prisma.Decimal(profit.toFixed(4)),
+            romi: new Prisma.Decimal(romi.toFixed(2)),
             ctr: new Prisma.Decimal(ctr.toFixed(4)),
             fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
             ecpm: new Prisma.Decimal(ecpm.toFixed(4)),
@@ -188,7 +198,9 @@ export async function POST(request: NextRequest) {
             impressions: agg.impressions,
             clicks: agg.clicks,
             adRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
-            totalRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
+            totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
+            profit: new Prisma.Decimal(profit.toFixed(4)),
+            romi: new Prisma.Decimal(romi.toFixed(2)),
             ctr: new Prisma.Decimal(ctr.toFixed(4)),
             fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
             ecpm: new Prisma.Decimal(ecpm.toFixed(4)),

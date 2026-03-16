@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
       reason: a.description ?? `${a.type} detected: expected ${Number(a.expected).toFixed(2)}, got ${Number(a.actual).toFixed(2)}`,
       action: `Investigate ${a.type} anomaly on ${a.metric}`,
       severity: a.severity,
-      type: a.type === 'spike' || a.type === 'drop' ? 'risk' as const : 'info' as const,
+      type: a.type.includes('drop') || a.type.includes('critical') || a.type.includes('spike') ? 'risk' as const : 'info' as const,
     }))
 
     return jsonResponse({ kpis, bundles, insights, trend })
