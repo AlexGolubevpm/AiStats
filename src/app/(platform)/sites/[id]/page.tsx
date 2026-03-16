@@ -2,6 +2,7 @@
 
 import { use, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
@@ -79,9 +80,10 @@ function SiteDetailContent({ id }: { id: string }) {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       {/* Site Header — Control Center */}
       <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]">

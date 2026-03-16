@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
@@ -70,10 +71,6 @@ const columns: ColumnDef<CostRow, unknown>[] = [
   },
 ]
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.22 } },
-}
 
 function CostsContent() {
   const { period } = usePeriod()
@@ -108,7 +105,7 @@ function CostsContent() {
   const unmatchedCount = tableRows.filter(r => r.status !== 'matched').length
 
   return (
-    <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeIn}>
+    <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeInUp}>
       {/* KPI Row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />

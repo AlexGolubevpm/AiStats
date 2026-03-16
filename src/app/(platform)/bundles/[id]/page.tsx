@@ -2,6 +2,7 @@
 
 import { use, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
@@ -60,9 +61,10 @@ function BundleDetailContent({ id }: { id: string }) {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       {hasKpis && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

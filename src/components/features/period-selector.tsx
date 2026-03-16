@@ -46,19 +46,19 @@ export function PeriodSelector() {
             type="date"
             value={localFrom}
             onChange={(e) => setLocalFrom(e.target.value)}
-            className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm"
+            className="rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
           />
           <span className="text-sm text-[var(--color-text-muted)]">to</span>
           <input
             type="date"
             value={localTo}
             onChange={(e) => setLocalTo(e.target.value)}
-            className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm"
+            className="rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
           />
           <button
             onClick={handleApplyCustomRange}
             disabled={!localFrom || !localTo}
-            className="rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            className="rounded-[var(--radius-control)] bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-3 py-1.5 text-[13px] font-medium text-white transition-colors disabled:opacity-40"
           >
             Apply
           </button>

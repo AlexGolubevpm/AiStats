@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'

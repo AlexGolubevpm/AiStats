@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { MetricDelta } from '@/components/shared/delta-indicator'
@@ -144,10 +145,11 @@ function SitesContent() {
 
   return (
     <motion.div
-      className="space-y-5 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      className="space-y-8 px-6 py-8"
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       <FilterBar showBundle showFormat={false} showTier={false} />
       <DataTable columns={columns} data={sites} searchKey="name" searchPlaceholder="Search sites..." />

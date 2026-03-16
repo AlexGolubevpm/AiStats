@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
@@ -57,9 +58,10 @@ function AffiliateContent() {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KPICard label="Affiliate Revenue" value={summary.totalAffiliateRevenue || 0} format="currency" />

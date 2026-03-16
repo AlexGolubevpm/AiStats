@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { KPICardSkeleton, ChartSkeleton } from '@/components/shared/loading-skeleton'
@@ -157,9 +158,10 @@ function ForecastContent() {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       {/* Section 1: Scenario Controls */}
       <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]">
