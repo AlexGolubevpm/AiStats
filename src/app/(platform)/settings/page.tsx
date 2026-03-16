@@ -1,6 +1,8 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -152,11 +154,11 @@ export default function SettingsPage() {
   return (
     <div>
       <TopContextBar title="Settings" subtitle="Platform configuration" showPeriod={false} showSync={false} />
-      <div className="px-6 py-8">
+      <motion.div className="px-6 py-8" initial="hidden" animate="visible" variants={fadeInUp} custom={0}>
         <Suspense fallback={<ChartSkeleton />}>
           <SettingsContent />
         </Suspense>
-      </div>
+      </motion.div>
     </div>
   )
 }

@@ -8,11 +8,13 @@ interface ForecastChartProps {
 }
 
 const tooltipStyle = {
-  fontSize: 12,
-  borderRadius: 10,
-  border: '1px solid var(--color-border-default)',
-  boxShadow: 'var(--shadow-elevated)',
-  background: 'white',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border-subtle)',
+  borderRadius: 'var(--radius-control)',
+  boxShadow: 'var(--shadow-modal)',
+  backdropFilter: 'blur(8px)',
+  fontSize: '12px',
+  padding: '8px 12px',
 }
 
 function ForecastTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
@@ -42,7 +44,7 @@ function ForecastTooltip({ active, payload, label }: { active?: boolean; payload
 export function ForecastChart({ currentValues, projectedValues }: ForecastChartProps) {
   if (!currentValues || !projectedValues) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-sm text-muted-foreground">
+      <div className="flex items-center justify-center h-[300px] text-sm text-[var(--color-text-muted)]">
         No forecast data available.
       </div>
     )
@@ -58,7 +60,7 @@ export function ForecastChart({ currentValues, projectedValues }: ForecastChartP
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }} barGap={4}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" />
+        <CartesianGrid strokeDasharray="3 6" strokeOpacity={0.5} stroke="var(--color-chart-grid)" />
         <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }}

@@ -29,9 +29,10 @@ function AnalysisContent() {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       <ChartCard
         title="Executive Summary"
