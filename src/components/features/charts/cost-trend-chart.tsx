@@ -49,7 +49,7 @@ export function CostTrendChart({ data, dataKey = 'total' }: CostTrendChartProps)
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'Cost']}
+          formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Cost']}
         />
         <Area type="monotone" dataKey={dataKey} name="Cost" stroke="var(--color-chart-red)" fill={`url(#${gradientId})`} strokeWidth={2} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>

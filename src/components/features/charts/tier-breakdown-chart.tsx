@@ -53,7 +53,7 @@ export function TierBreakdownChart({ data }: TierBreakdownChartProps) {
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number, name: string) => {
+          formatter={(value, name) => {
             if (name === 'Revenue') return [`$${Number(value).toFixed(2)}`, name]
             return [Number(value).toLocaleString(), name]
           }}

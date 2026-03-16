@@ -53,7 +53,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number, name: string) => [`$${Number(value).toFixed(2)}`, name]}
+          formatter={(value, name) => [`$${Number(value).toFixed(2)}`, name]}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Area type="monotone" dataKey="adRevenue" name="Ad Revenue" stroke="var(--color-chart-blue)" fill={`url(#${adRevGradId})`} strokeWidth={2} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />

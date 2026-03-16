@@ -48,7 +48,7 @@ export function ProfitTrendChart({ data }: ProfitTrendChartProps) {
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'Profit']}
+          formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Profit']}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <ReferenceLine y={0} stroke="var(--color-border-default)" strokeDasharray="3 3" />

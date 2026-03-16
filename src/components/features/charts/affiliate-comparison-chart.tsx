@@ -38,7 +38,7 @@ export function AffiliateComparisonChart({ data }: AffiliateComparisonChartProps
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number, name: string) => [`$${Number(value).toFixed(2)}`, name]}
+          formatter={(value, name) => [`$${Number(value).toFixed(2)}`, name]}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar dataKey="adRevenue" name="Ad Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />

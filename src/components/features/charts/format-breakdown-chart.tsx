@@ -50,7 +50,7 @@ export function FormatBreakdownChart({ data }: FormatBreakdownChartProps) {
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+          formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
         />
         <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out">
           {data.map((entry) => (
