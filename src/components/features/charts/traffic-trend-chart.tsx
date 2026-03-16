@@ -51,7 +51,7 @@ export function TrafficTrendChart({ data }: TrafficTrendChartProps) {
           formatter={(value: number) => [Number(value).toLocaleString(), 'Requests']}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Area type="monotone" dataKey="hits" name="Requests" stroke="var(--color-chart-cyan)" fill={`url(#${gradientId})`} strokeWidth={2} />
+        <Area type="monotone" dataKey="hits" name="Requests" stroke="var(--color-chart-cyan)" fill={`url(#${gradientId})`} strokeWidth={2} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>
     </ResponsiveContainer>
   )

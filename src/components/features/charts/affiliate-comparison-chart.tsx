@@ -41,8 +41,8 @@ export function AffiliateComparisonChart({ data }: AffiliateComparisonChartProps
           formatter={(value: number, name: string) => [`$${Number(value).toFixed(2)}`, name]}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="adRevenue" name="Ad Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="affiliateRevenue" name="Affiliate" fill="var(--color-chart-violet)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="adRevenue" name="Ad Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
+        <Bar dataKey="affiliateRevenue" name="Affiliate" fill="var(--color-chart-violet)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
       </BarChart>
     </ResponsiveContainer>
   )

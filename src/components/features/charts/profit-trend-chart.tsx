@@ -52,7 +52,7 @@ export function ProfitTrendChart({ data }: ProfitTrendChartProps) {
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <ReferenceLine y={0} stroke="var(--color-border-default)" strokeDasharray="3 6" strokeOpacity={0.5} />
-        <Area type="monotone" dataKey="profit" name="Profit" stroke="var(--color-chart-green)" fill={`url(#${gradientId})`} strokeWidth={2} />
+        <Area type="monotone" dataKey="profit" name="Profit" stroke="var(--color-chart-green)" fill={`url(#${gradientId})`} strokeWidth={2} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>
     </ResponsiveContainer>
   )

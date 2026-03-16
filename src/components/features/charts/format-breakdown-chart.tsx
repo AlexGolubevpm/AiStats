@@ -52,7 +52,7 @@ export function FormatBreakdownChart({ data }: FormatBreakdownChartProps) {
           contentStyle={tooltipStyle}
           formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
         />
-        <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]}>
+        <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out">
           {data.map((entry) => (
             <Cell key={entry.format} fill={FORMAT_COLORS[entry.format] || '#94A3B8'} />
           ))}

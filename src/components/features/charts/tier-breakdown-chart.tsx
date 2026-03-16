@@ -59,8 +59,8 @@ export function TierBreakdownChart({ data }: TierBreakdownChartProps) {
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar yAxisId="rev" dataKey="revenue" name="Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} />
-        <Bar yAxisId="requests" dataKey="users" name="Requests" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} />
+        <Bar yAxisId="rev" dataKey="revenue" name="Revenue" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
+        <Bar yAxisId="requests" dataKey="users" name="Requests" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
       </BarChart>
     </ResponsiveContainer>
   )
