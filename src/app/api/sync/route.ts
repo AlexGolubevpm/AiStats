@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { Prisma, AdFormat } from '@prisma/client'
-import { jsonResponse, errorResponse, requireAuth } from '@/lib/api-utils'
+import { jsonResponse, errorResponse } from '@/lib/api-utils'
 import { AdOkService, mapAdTypeToFormat } from '@/services/adspyglass'
 import { YandexMetricaService, getGeoTierByCountryName } from '@/services/yandex-metrica'
 import { calculateHealthScore } from '@/services/health-score'
@@ -68,9 +68,6 @@ function formatDate(d: Date): string {
 // ─── POST: Direct sync from AdSpyglass API ───
 
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request)
-  if (authError) return authError
-
   const body = await request.json().catch(() => ({}))
   const source = (body as { source?: string }).source || 'all'
 
