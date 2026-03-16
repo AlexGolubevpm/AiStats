@@ -65,7 +65,7 @@ function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-// ─── POST: Direct sync from AdSpyglass API ───
+// ─── POST: Optimized sync — 4-5 API calls instead of 120+ ───
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
   })
 
   try {
-
     const service = new AdOkService()
     const skipAdspyglass = source === 'yandex'
 
@@ -88,9 +87,9 @@ export async function POST(request: NextRequest) {
       throw new Error('AdOK API not configured. Set ADOK_AUTH_EMAIL and ADOK_AUTH_TOKEN.')
     }
 
-    // Default: sync last 30 days
+    // Default: sync last 7 days (was 30 — too many API calls)
     const now = new Date()
-    const fromDate = (body as { from?: string }).from || formatDate(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000))
+    const fromDate = (body as { from?: string }).from || formatDate(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000))
     const toDate = (body as { to?: string }).to || formatDate(now)
 
     // Load site mapping: domain → site record
@@ -102,23 +101,12 @@ export async function POST(request: NextRequest) {
     }
 
     let totalRecords = 0
-    let dailyRows: Awaited<ReturnType<typeof service.fetchReport>> = []
 
     if (!skipAdspyglass) {
-    // ── Step 1: Fetch daily spot data (per-site breakdown) ──
-    console.log(`[sync] Fetching daily data from ${fromDate} to ${toDate}...`)
-
-    dailyRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'date' })
-    console.log(`[sync] Got ${dailyRows.length} daily rows`)
-
-    for (const dayRow of dailyRows) {
-      const dateStr = dayRow.name
-      if (!dateStr) continue
-
-      const date = new Date(dateStr + 'T00:00:00.000Z')
-
-      // Fetch spot-level data for this specific date
-      const spotRows = await service.fetchReport({ from: dateStr, to: dateStr, group_by: 'spot' })
+      // ── Step 1: Fetch spot data for entire period (1 API call) ──
+      console.log(`[sync] Fetching spot data from ${fromDate} to ${toDate}...`)
+      const spotRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'spot' })
+      console.log(`[sync] Got ${spotRows.length} spot rows`)
 
       // Aggregate spots by domain
       const domainAgg = new Map<string, {
@@ -147,87 +135,107 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Upsert DailyMetric for each matched site
+      console.log(`[sync] Aggregated ${domainAgg.size} domains from spots`)
+
+      // Also fetch daily totals for trend (1 API call)
+      const dailyRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'date' })
+      console.log(`[sync] Got ${dailyRows.length} daily rows for trend`)
+
+      const totalDays = dailyRows.length || 1
+
+      // For each matched site: create one DailyMetric per day, distributed evenly
+      // Or create aggregate metric for the period
       for (const [domain, agg] of domainAgg) {
         const site = siteByDomain.get(domain)
-        if (!site) continue
+        if (!site) {
+          console.log(`[sync] WARN: domain ${domain} from AdOK not found in DB`)
+          continue
+        }
 
-        const adRevenue = agg.revenue
-        const ctr = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0
-        const fillRate = agg.hits > 0 ? (agg.impressions / agg.hits) * 100 : 0
-        const ecpm = agg.impressions > 0 ? (adRevenue / agg.impressions) * 1000 : 0
-        const rpm = agg.impressions > 0 ? (adRevenue / agg.impressions) * 1000 : 0
+        // Distribute aggregate data across days proportionally
+        for (const dayRow of dailyRows) {
+          const dateStr = dayRow.name
+          if (!dateStr) continue
+          const date = new Date(dateStr + 'T00:00:00.000Z')
 
-        // Check existing record for Yandex data and affiliate revenue
-        const existing = await prisma.dailyMetric.findUnique({
-          where: { siteId_date: { siteId: site.id, date } },
-          select: { users: true, pageviews: true, affiliateRevenue: true, costs: true },
-        })
-        const hasYandexData = existing && existing.pageviews > 0
-        const existingAffiliate = existing ? Number(existing.affiliateRevenue) : 0
-        const existingCosts = existing ? Number(existing.costs) : 0
-        const totalRevenue = adRevenue + existingAffiliate
-        const profit = totalRevenue - existingCosts
-        const romi = existingCosts > 0 ? ((totalRevenue - existingCosts) / existingCosts) * 100 : 0
+          // Calculate this day's share of total network metrics
+          const totalNetworkRevenue = dailyRows.reduce((s, r) => s + r.broker_income, 0)
+          const dayShare = totalNetworkRevenue > 0 ? dayRow.broker_income / totalNetworkRevenue : 1 / totalDays
 
-        await prisma.dailyMetric.upsert({
-          where: { siteId_date: { siteId: site.id, date } },
-          create: {
-            siteId: site.id,
-            date,
-            users: agg.hits, // fallback: use hits as users until Yandex syncs
-            hits: agg.hits,
-            impressions: agg.impressions,
-            clicks: agg.clicks,
-            adRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
-            totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
-            profit: new Prisma.Decimal(profit.toFixed(4)),
-            romi: new Prisma.Decimal(romi.toFixed(2)),
-            ctr: new Prisma.Decimal(ctr.toFixed(4)),
-            fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
-            ecpm: new Prisma.Decimal(ecpm.toFixed(4)),
-            rpm: new Prisma.Decimal(rpm.toFixed(4)),
-          },
-          update: {
-            // Don't overwrite users if Yandex already wrote real data
-            ...(hasYandexData ? {} : { users: agg.hits }),
-            hits: agg.hits,
-            impressions: agg.impressions,
-            clicks: agg.clicks,
-            adRevenue: new Prisma.Decimal(adRevenue.toFixed(4)),
-            totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
-            profit: new Prisma.Decimal(profit.toFixed(4)),
-            romi: new Prisma.Decimal(romi.toFixed(2)),
-            ctr: new Prisma.Decimal(ctr.toFixed(4)),
-            fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
-            ecpm: new Prisma.Decimal(ecpm.toFixed(4)),
-            rpm: new Prisma.Decimal(rpm.toFixed(4)),
-          },
-        })
-        totalRecords++
+          const dayHits = Math.round(agg.hits * dayShare)
+          const dayClicks = Math.round(agg.clicks * dayShare)
+          const dayImpressions = Math.round(agg.impressions * dayShare)
+          const dayRevenue = agg.revenue * dayShare
+
+          const ctr = dayImpressions > 0 ? (dayClicks / dayImpressions) * 100 : 0
+          const fillRate = dayHits > 0 ? (dayImpressions / dayHits) * 100 : 0
+          const ecpm = dayImpressions > 0 ? (dayRevenue / dayImpressions) * 1000 : 0
+          const rpm = dayImpressions > 0 ? (dayRevenue / dayImpressions) * 1000 : 0
+
+          // Check existing record for affiliate revenue and costs
+          const existing = await prisma.dailyMetric.findUnique({
+            where: { siteId_date: { siteId: site.id, date } },
+            select: { users: true, pageviews: true, affiliateRevenue: true, costs: true },
+          })
+          const hasYandexData = existing && existing.pageviews > 0
+          const existingAffiliate = existing ? Number(existing.affiliateRevenue) : 0
+          const existingCosts = existing ? Number(existing.costs) : 0
+          const totalRevenue = dayRevenue + existingAffiliate
+          const profit = totalRevenue - existingCosts
+          const romi = existingCosts > 0 ? ((totalRevenue - existingCosts) / existingCosts) * 100 : 0
+
+          await prisma.dailyMetric.upsert({
+            where: { siteId_date: { siteId: site.id, date } },
+            create: {
+              siteId: site.id,
+              date,
+              users: dayHits,
+              hits: dayHits,
+              impressions: dayImpressions,
+              clicks: dayClicks,
+              adRevenue: new Prisma.Decimal(dayRevenue.toFixed(4)),
+              totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
+              profit: new Prisma.Decimal(profit.toFixed(4)),
+              romi: new Prisma.Decimal(romi.toFixed(2)),
+              ctr: new Prisma.Decimal(ctr.toFixed(4)),
+              fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
+              ecpm: new Prisma.Decimal(ecpm.toFixed(4)),
+              rpm: new Prisma.Decimal(rpm.toFixed(4)),
+            },
+            update: {
+              ...(hasYandexData ? {} : { users: dayHits }),
+              hits: dayHits,
+              impressions: dayImpressions,
+              clicks: dayClicks,
+              adRevenue: new Prisma.Decimal(dayRevenue.toFixed(4)),
+              totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
+              profit: new Prisma.Decimal(profit.toFixed(4)),
+              romi: new Prisma.Decimal(romi.toFixed(2)),
+              ctr: new Prisma.Decimal(ctr.toFixed(4)),
+              fillRate: new Prisma.Decimal(fillRate.toFixed(4)),
+              ecpm: new Prisma.Decimal(ecpm.toFixed(4)),
+              rpm: new Prisma.Decimal(rpm.toFixed(4)),
+            },
+          })
+          totalRecords++
+        }
+
+        console.log(`[sync] ${domain}: ${dailyRows.length} daily records`)
       }
 
-      console.log(`[sync] ${dateStr}: ${domainAgg.size} domains, ${spotRows.length} spots`)
-    }
+      // ── Step 2: Fetch format data for entire period (1 API call) ──
+      console.log('[sync] Fetching format breakdown...')
+      const formatRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'ad_type' })
 
-    // ── Step 2: Fetch format data (ad_type) per date ──
-    console.log('[sync] Fetching format breakdown...')
-
-    for (const dayRow of dailyRows) {
-      const dateStr = dayRow.name
-      if (!dateStr) continue
-      const date = new Date(dateStr + 'T00:00:00.000Z')
-
-      const formatRows = await service.fetchReport({ from: dateStr, to: dateStr, group_by: 'ad_type' })
-      const totalHitsForDay = formatRows.reduce((sum, r) => sum + r.hits, 0)
+      // Store format metrics at network level, distributed to sites by revenue share
+      const totalNetworkHits = spotRows.reduce((s, r) => s + r.hits, 0)
+      const latestDate = dailyRows.length > 0 ? new Date((dailyRows[dailyRows.length - 1].name || toDate) + 'T00:00:00.000Z') : new Date(toDate + 'T00:00:00.000Z')
 
       for (const site of allSites) {
-        const dailyMetric = await prisma.dailyMetric.findUnique({
-          where: { siteId_date: { siteId: site.id, date } },
-        })
-        if (!dailyMetric || dailyMetric.hits === 0) continue
+        const siteData = domainAgg.get(site.domain)
+        if (!siteData || totalNetworkHits === 0) continue
 
-        const siteShare = dailyMetric.hits / (totalHitsForDay || 1)
+        const siteShare = siteData.hits / totalNetworkHits
 
         for (const fRow of formatRows) {
           if (!fRow.name || fRow.impressions === 0) continue
@@ -236,47 +244,38 @@ export async function POST(request: NextRequest) {
           const siteImpressions = Math.round(fRow.impressions * siteShare)
           const siteClicks = Math.round(fRow.clicks * siteShare)
           const siteRevenue = fRow.broker_income * siteShare
-          const siteCtr = siteImpressions > 0 ? (siteClicks / siteImpressions) * 100 : 0
-          const siteFillRate = fRow.fill_rate
-          const siteEcpm = siteImpressions > 0 ? (siteRevenue / siteImpressions) * 1000 : 0
-          const siteRpm = dailyMetric.hits > 0 ? (siteRevenue / Number(dailyMetric.hits)) * 1000 : 0
-
           if (siteImpressions === 0) continue
 
+          const siteCtr = siteImpressions > 0 ? (siteClicks / siteImpressions) * 100 : 0
+          const siteEcpm = siteImpressions > 0 ? (siteRevenue / siteImpressions) * 1000 : 0
+
           await prisma.formatMetric.upsert({
-            where: { siteId_date_format: { siteId: site.id, date, format: formatKey } },
+            where: { siteId_date_format: { siteId: site.id, date: latestDate, format: formatKey } },
             create: {
-              siteId: site.id, date, format: formatKey,
+              siteId: site.id, date: latestDate, format: formatKey,
               impressions: siteImpressions, clicks: siteClicks,
               revenue: new Prisma.Decimal(siteRevenue.toFixed(4)),
               ctr: new Prisma.Decimal(siteCtr.toFixed(4)),
-              fillRate: new Prisma.Decimal(siteFillRate.toFixed(4)),
+              fillRate: new Prisma.Decimal(fRow.fill_rate.toFixed(4)),
               ecpm: new Prisma.Decimal(siteEcpm.toFixed(4)),
-              rpm: new Prisma.Decimal(siteRpm.toFixed(4)),
+              rpm: new Prisma.Decimal(siteEcpm.toFixed(4)),
             },
             update: {
               impressions: siteImpressions, clicks: siteClicks,
               revenue: new Prisma.Decimal(siteRevenue.toFixed(4)),
               ctr: new Prisma.Decimal(siteCtr.toFixed(4)),
-              fillRate: new Prisma.Decimal(siteFillRate.toFixed(4)),
+              fillRate: new Prisma.Decimal(fRow.fill_rate.toFixed(4)),
               ecpm: new Prisma.Decimal(siteEcpm.toFixed(4)),
-              rpm: new Prisma.Decimal(siteRpm.toFixed(4)),
+              rpm: new Prisma.Decimal(siteEcpm.toFixed(4)),
             },
           })
           totalRecords++
         }
       }
-    }
 
-    // ── Step 3: Fetch country data for tier metrics ──
-    console.log('[sync] Fetching country/tier breakdown...')
-
-    for (const dayRow of dailyRows) {
-      const dateStr = dayRow.name
-      if (!dateStr) continue
-      const date = new Date(dateStr + 'T00:00:00.000Z')
-
-      const countryRows = await service.fetchReport({ from: dateStr, to: dateStr, group_by: 'country' })
+      // ── Step 3: Fetch country data for tier metrics (1 API call) ──
+      console.log('[sync] Fetching country/tier breakdown...')
+      const countryRows = await service.fetchReport({ from: fromDate, to: toDate, group_by: 'country' })
 
       // Aggregate countries into tiers
       const tierAgg = new Map<string, { hits: number; impressions: number; clicks: number; revenue: number }>()
@@ -302,12 +301,10 @@ export async function POST(request: NextRequest) {
       const totalHitsCountry = Array.from(tierAgg.values()).reduce((s, v) => s + v.hits, 0)
 
       for (const site of allSites) {
-        const dailyMetric = await prisma.dailyMetric.findUnique({
-          where: { siteId_date: { siteId: site.id, date } },
-        })
-        if (!dailyMetric || dailyMetric.hits === 0) continue
+        const siteData = domainAgg.get(site.domain)
+        if (!siteData || totalHitsCountry === 0) continue
 
-        const siteShare = dailyMetric.hits / (totalHitsCountry || 1)
+        const siteShare = siteData.hits / totalHitsCountry
 
         for (const [tier, agg] of tierAgg) {
           const siteUsers = Math.round(agg.hits * siteShare)
@@ -322,9 +319,9 @@ export async function POST(request: NextRequest) {
           const siteRpm = siteUsers > 0 ? (siteRevenue / siteUsers) * 1000 : 0
 
           await prisma.tierMetric.upsert({
-            where: { siteId_date_tier: { siteId: site.id, date, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
+            where: { siteId_date_tier: { siteId: site.id, date: latestDate, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
             create: {
-              siteId: site.id, date,
+              siteId: site.id, date: latestDate,
               tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4',
               users: siteUsers, impressions: siteImpressions,
               clicks: siteClicks,
@@ -345,14 +342,13 @@ export async function POST(request: NextRequest) {
           totalRecords++
         }
       }
-    }
 
+      console.log(`[sync] AdOK: done (4 API calls, ${totalRecords} records)`)
     } // end if (!skipAdspyglass)
 
-    // ── Step 4: Yandex Metrica — real users, pageviews, country tiers ──
+    // ── Step 4: Yandex Metrica — real users, pageviews ──
     let yandexSynced = 0
 
-    // Get token from env or settings
     let yandexToken = process.env.YANDEX_OAUTH_TOKEN || ''
     if (!yandexToken) {
       const setting = await prisma.setting.findUnique({ where: { key: 'yandex.oauth_token' } })
@@ -363,7 +359,6 @@ export async function POST(request: NextRequest) {
       console.log('[sync] Starting Yandex Metrica sync...')
       const ym = new YandexMetricaService(yandexToken)
 
-      // Get sites with mapped counter IDs
       const sitesWithCounters = allSites.filter(s => s.yandexCounterId)
 
       for (const site of sitesWithCounters) {
@@ -371,7 +366,6 @@ export async function POST(request: NextRequest) {
         if (!counterId) continue
 
         try {
-          // 4a. Daily stats (users, pageviews)
           const dailyStats = await ym.getDailyStats(counterId, fromDate, toDate)
 
           for (const day of dailyStats) {
@@ -393,69 +387,6 @@ export async function POST(request: NextRequest) {
               },
             })
             yandexSynced++
-          }
-
-          // 4b. Country breakdown → tier metrics (from Yandex, more accurate for visitors)
-          for (const dayRow of dailyRows) {
-            const dateStr = dayRow.name
-            if (!dateStr) continue
-            const date = new Date(dateStr + 'T00:00:00.000Z')
-
-            const countryStats = await ym.getDailyCountryStats(counterId, dateStr)
-
-            // Aggregate by tier
-            const tierAgg = new Map<string, { users: number; visits: number; pageviews: number }>()
-
-            for (const cs of countryStats) {
-              const tier = getGeoTierByCountryName(cs.countryName)
-              const existing = tierAgg.get(tier)
-              if (existing) {
-                existing.users += cs.users
-                existing.visits += cs.visits
-                existing.pageviews += cs.pageviews
-              } else {
-                tierAgg.set(tier, {
-                  users: cs.users,
-                  visits: cs.visits,
-                  pageviews: cs.pageviews,
-                })
-              }
-            }
-
-            // Update tier metrics with real user data from Yandex
-            for (const [tier, agg] of tierAgg) {
-              if (agg.users === 0) continue
-
-              // Check if we already have ad revenue data for this tier from AdSpyglass
-              const existingTier = await prisma.tierMetric.findUnique({
-                where: { siteId_date_tier: { siteId: site.id, date, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
-              })
-
-              await prisma.tierMetric.upsert({
-                where: { siteId_date_tier: { siteId: site.id, date, tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4' } },
-                create: {
-                  siteId: site.id, date,
-                  tier: tier as 'TIER_1' | 'TIER_2' | 'TIER_3' | 'TIER_4',
-                  users: agg.users,
-                  impressions: existingTier?.impressions ?? 0,
-                  clicks: existingTier?.clicks ?? 0,
-                  revenue: existingTier?.revenue ?? new Prisma.Decimal(0),
-                  ctr: existingTier?.ctr ?? new Prisma.Decimal(0),
-                  fillRate: existingTier?.fillRate ?? new Prisma.Decimal(0),
-                  rpm: existingTier
-                    ? new Prisma.Decimal((Number(existingTier.revenue) / agg.users * 1000).toFixed(4))
-                    : new Prisma.Decimal(0),
-                },
-                update: {
-                  users: agg.users,
-                  // Recalculate RPM with real user count
-                  rpm: existingTier
-                    ? new Prisma.Decimal((Number(existingTier.revenue) / agg.users * 1000).toFixed(4))
-                    : undefined,
-                },
-              })
-              yandexSynced++
-            }
           }
 
           console.log(`[sync:yandex] ${site.domain}: synced counter ${counterId}`)

@@ -51,7 +51,7 @@ export interface AdOkReportRow {
   iso?: string | null
 }
 
-export type GroupBy = 'date' | 'spot' | 'country' | 'ad_type' | 'device' | 'browser'
+export type GroupBy = 'date' | 'spot' | 'country' | 'ad_type' | 'device' | 'browser' | 'website'
 
 export interface AdOkReportParams {
   from: string // YYYY-MM-DD
