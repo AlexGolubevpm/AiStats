@@ -22,14 +22,15 @@ model Bundle {
 }
 
 model Site {
-  id         String  @id @default(cuid())
-  name       String
-  slug       String  @unique
-  domain     String  @unique
-  bundleId   String
-  externalId String?
-  sheetName  String?
-  isActive   Boolean @default(true)
+  id               String  @id @default(cuid())
+  name             String
+  slug             String  @unique
+  domain           String  @unique
+  bundleId         String
+  externalId       String?
+  sheetName        String?
+  metrikaCounterId String?
+  isActive         Boolean @default(true)
 
   bundle           Bundle             @relation(fields: [bundleId], references: [id])
   dailyMetrics     DailyMetric[]

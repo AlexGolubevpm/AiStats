@@ -51,7 +51,7 @@ export interface AdOkReportRow {
   iso?: string | null
 }
 
-export type GroupBy = 'date' | 'spot' | 'country' | 'ad_type' | 'device' | 'browser'
+export type GroupBy = 'date' | 'spot' | 'country' | 'ad_type' | 'device' | 'browser' | 'website'
 
 export interface AdOkReportParams {
   from: string // YYYY-MM-DD
@@ -59,19 +59,18 @@ export interface AdOkReportParams {
   group_by?: GroupBy
 }
 
-/** Aggregated per-site metrics derived from spot-level data */
+/** Per-site metrics from website-level grouping */
 export interface SiteAdMetrics {
   domain: string
-  hits: number
+  hits: number       // requests (ad script loads)
   clicks: number
   impressions: number
-  revenue: number // broker_income
+  revenue: number    // broker_income
   predictedRevenue: number
   ctr: number
   fillRate: number
   realCpm: number
   cpc: number
-  spotCount: number
 }
 
 /** Per-format metrics from ad_type grouping */
@@ -111,6 +110,16 @@ const AD_TYPE_TO_FORMAT: Record<string, string> = {
 
 export function mapAdTypeToFormat(adType: string): string {
   return AD_TYPE_TO_FORMAT[adType] || 'OTHER'
+}
+
+// ─── Helpers ───
+
+/** Strip protocol, www prefix and trailing slash from a domain string */
+export function cleanDomain(raw: string): string {
+  return raw
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/$/, '')
 }
 
 // ─── Service ───
@@ -179,38 +188,30 @@ export class AdOkService {
   }
 
   /**
-   * Get per-site metrics by aggregating spot data.
-   * Each spot name contains the domain: "123456. SpotName (domain.com)"
+   * Get per-site metrics using group_by=website.
+   * Returns real per-website data directly from AdOK — no spot parsing.
    */
   async fetchSiteMetrics(from: string, to: string): Promise<SiteAdMetrics[]> {
-    const rows = await this.fetchReport({ from, to, group_by: 'spot' })
-    return this.aggregateSpotsByDomain(rows)
+    const rows = await this.fetchReport({ from, to, group_by: 'website' })
+    return this.mapWebsiteRows(rows)
   }
 
   /**
-   * Get per-site metrics for a specific date range, grouped by date.
+   * Get per-site metrics for each day in a date range.
    * Returns a Map of date → SiteAdMetrics[].
-   * Requires two calls: date-level and spot-level.
+   * Uses group_by=date to list days, then group_by=website per day.
    */
   async fetchDailySiteMetrics(from: string, to: string): Promise<Map<string, SiteAdMetrics[]>> {
-    // The API doesn't support combined group_by, so we fetch spot-level data
-    // for each date separately, or fetch all spots and parse dates from names
-    // For efficiency, we'll fetch spot data for the entire range and then
-    // make individual date calls to get per-day breakdown
-
     const result = new Map<string, SiteAdMetrics[]>()
 
-    // Get the date list first
     const dailyRows = await this.fetchReport({ from, to, group_by: 'date' })
 
-    // For each date, fetch spot data
     for (const row of dailyRows) {
       const dateStr = row.name
       if (!dateStr) continue
 
-      const spotRows = await this.fetchReport({ from: dateStr, to: dateStr, group_by: 'spot' })
-      const siteMetrics = this.aggregateSpotsByDomain(spotRows)
-      result.set(dateStr, siteMetrics)
+      const websiteRows = await this.fetchReport({ from: dateStr, to: dateStr, group_by: 'website' })
+      result.set(dateStr, this.mapWebsiteRows(websiteRows))
     }
 
     return result
@@ -264,57 +265,34 @@ export class AdOkService {
 
   // ─── Helpers ───
 
-  private aggregateSpotsByDomain(rows: AdOkReportRow[]): SiteAdMetrics[] {
-    const sites = new Map<string, SiteAdMetrics>()
+  /**
+   * Map website-grouped rows directly to SiteAdMetrics.
+   * With group_by=website the `name` field is the domain — no regex needed.
+   */
+  private mapWebsiteRows(rows: AdOkReportRow[]): SiteAdMetrics[] {
+    return rows
+      .filter(r => r.name)
+      .map(r => {
+        const domain = cleanDomain(r.name!)
+        const ctr = r.impressions > 0 ? (r.clicks / r.impressions) * 100 : 0
+        const fillRate = r.hits > 0 ? (r.impressions / r.hits) * 100 : 0
+        const realCpm = r.hits > 0 ? (r.broker_income / r.hits) * 1000 : 0
+        const cpc = r.clicks > 0 ? r.broker_income / r.clicks : 0
 
-    for (const row of rows) {
-      const domain = this.extractDomainFromSpotName(row.name || '')
-      if (!domain) continue
-
-      const existing = sites.get(domain)
-      if (existing) {
-        existing.hits += row.hits
-        existing.clicks += row.clicks
-        existing.impressions += row.impressions
-        existing.revenue += row.broker_income
-        existing.predictedRevenue += row.predicted_income
-        existing.spotCount++
-      } else {
-        sites.set(domain, {
+        return {
           domain,
-          hits: row.hits,
-          clicks: row.clicks,
-          impressions: row.impressions,
-          revenue: row.broker_income,
-          predictedRevenue: row.predicted_income,
-          ctr: 0,
-          fillRate: 0,
-          realCpm: 0,
-          cpc: 0,
-          spotCount: 1,
-        })
-      }
-    }
-
-    // Calculate derived rates
-    for (const site of sites.values()) {
-      site.ctr = site.impressions > 0 ? (site.clicks / site.impressions) * 100 : 0
-      site.fillRate = site.hits > 0 ? (site.impressions / site.hits) * 100 : 0
-      site.realCpm = site.hits > 0 ? (site.revenue / site.hits) * 1000 : 0
-      site.cpc = site.clicks > 0 ? site.revenue / site.clicks : 0
-    }
-
-    return Array.from(sites.values()).sort((a, b) => b.revenue - a.revenue)
-  }
-
-  /** Extract domain from spot name like "486099. JW_POP_hard (japan-whores.com)" */
-  private extractDomainFromSpotName(name: string): string | null {
-    const match = name.match(/\(([^)]+)\)\s*$/)
-    if (!match) return null
-    return match[1]
-      .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .replace(/\/$/, '')
+          hits: r.hits,
+          clicks: r.clicks,
+          impressions: r.impressions,
+          revenue: r.broker_income,
+          predictedRevenue: r.predicted_income,
+          ctr,
+          fillRate,
+          realCpm,
+          cpc,
+        }
+      })
+      .sort((a, b) => b.revenue - a.revenue)
   }
 }
 

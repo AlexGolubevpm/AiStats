@@ -8,14 +8,18 @@
 
 | Источник | Что даёт | Воркер синхронизации | Хранилище |
 |----------|----------|---------------------|-----------|
-| **AdOK API** (`AdOkService`) | hits, impressions, clicks, broker_income (adRevenue), fill_rate + разбивки по форматам (`ad_type`), странам (`country`), спотам (`spot`) | `src/workers/sync-adspyglass.ts` | `DailyMetric`, `FormatMetric`, `TierMetric` |
+| **AdOK API** (`AdOkService`) | hits (requests), impressions, clicks, broker_income (adRevenue), fill_rate + разбивки по сайтам (`website`), форматам (`ad_type`), странам (`country`) | `src/workers/sync-adspyglass.ts` | `DailyMetric`, `FormatMetric`, `TierMetric` |
+| **Yandex Metrica** | users, pageviews (реальные данные посещаемости) | `src/workers/sync-metrika.ts` *(planned)* | `DailyMetric.users` |
 | **Google Sheets (Costs)** | Операционные расходы по сайтам | `src/workers/sync-costs.ts` | `Cost` |
 | **Google Sheets (Affiliate)** | Партнёрский доход по сайтам | `src/workers/sync-affiliate.ts` | `AffiliateRevenue` |
 
 ### Поток данных
 
 ```
-AdOK API ─────────────────────────► DailyMetric, FormatMetric, TierMetric
+AdOK API (group_by=website) ─────► DailyMetric (hits, impressions, clicks, adRevenue)
+AdOK API (group_by=ad_type) ─────► FormatMetric (network-wide, proportional by hits)
+AdOK API (group_by=country) ─────► TierMetric (network-wide, proportional by hits)
+Yandex Metrica ──────────────────► DailyMetric.users (planned)
                                          │
 Google Sheets (Costs) ──► Cost ──────────┤
 Google Sheets (Affiliate) ──► AffiliateRevenue ──┤
@@ -36,17 +40,26 @@ Google Sheets (Affiliate) ──► AffiliateRevenue ──┤
 
 ## 2. Базовые метрики (из AdOK API)
 
-Источник: `sync-adspyglass.ts`, отчёт с `group_by: 'spot'` → агрегация по домену.
+Источник: `sync-adspyglass.ts`, отчёт с `group_by: 'website'` — реальные per-site данные напрямую из AdOK.
 
 | Поле | Источник из API | Описание |
 |------|----------------|----------|
-| `users` | `hits` | Уникальные просмотры страниц (hits ≈ users) |
-| `hits` | `hits` | Просмотры страниц |
+| `hits` | `hits` | Количество запросов (ad script loads) — **не** просмотры страниц |
 | `impressions` | `impressions` | Показы рекламы |
 | `clicks` | `clicks` | Клики по рекламе |
 | `adRevenue` | `broker_income` | Доход от рекламной сети ($) |
 
-> **Важно**: В текущей реализации `users = hits` (page views). Это приближение, а не уникальные пользователи.
+> **Важно**: `hits` из AdOK — это requests (загрузки рекламного скрипта), а **не** page views и не users.
+
+## 2.1 Users / Pageviews (из Яндекс Метрики)
+
+| Поле | Источник | Описание |
+|------|----------|----------|
+| `users` | Yandex Metrica API | Уникальные посетители за день |
+
+Маппинг сайтов на счётчики Метрики: поле `Site.metrikaCounterId` в БД.
+
+> **Статус**: интеграция с Yandex Metrica запланирована. До подключения `users = 0` в DailyMetric.
 
 ---
 
@@ -70,11 +83,11 @@ Google Sheets (Affiliate) ──► AffiliateRevenue ──┤
 ```
 totalRevenue = adRevenue + affiliateRevenue
 profit       = totalRevenue - costs
-CTR          = (clicks / impressions) × 100          (%)
-eCPM         = (adRevenue / impressions) × 1000      ($)
-RPM          = (totalRevenue / users) × 1000          ($)
-ROMI         = ((totalRevenue - costs) / costs) × 100  (%)
-fillRate     = (impressions / hits) × 100              (%)
+CTR          = (clicks / impressions) × 100            (%)
+eCPM         = (adRevenue / impressions) × 1000        ($)
+RPM          = (totalRevenue / users) × 1000            ($)  ← users из Яндекс Метрики
+ROMI         = ((totalRevenue - costs) / costs) × 100    (%)
+fillRate     = (impressions / hits) × 100                (%)  ← hits = requests из AdOK
 ```
 
 Источник: `src/workers/calculate-metrics.ts:68-74`
@@ -328,7 +341,8 @@ KPIs + formatBreakdown + tierBreakdown + trend + health + anomalies + costs + af
 
 | Таблица | Назначение | Ключевые поля |
 |---------|-----------|---------------|
-| `daily_metrics` | Ежедневные метрики по сайту | users, hits, impressions, clicks, adRevenue, affiliateRevenue, totalRevenue, costs, profit, romi, rpm, ctr, fillRate, ecpm |
+| `sites` | Сайты | domain, bundleId, sheetName, **metrikaCounterId**, isActive |
+| `daily_metrics` | Ежедневные метрики по сайту | users (Metrica), hits (AdOK requests), impressions, clicks, adRevenue, affiliateRevenue, totalRevenue, costs, profit, romi, rpm, ctr, fillRate, ecpm |
 | `format_metrics` | Разбивка по формату рекламы | format, impressions, clicks, revenue, ctr, fillRate, ecpm, rpm |
 | `tier_metrics` | Разбивка по гео-тиру | tier, users, impressions, clicks, revenue, ctr, fillRate, rpm |
 | `costs` | Расходы | amount, source, mappingStatus |
