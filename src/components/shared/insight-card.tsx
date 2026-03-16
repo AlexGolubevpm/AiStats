@@ -79,15 +79,15 @@ export function InsightCard({
   return (
     <div
       className={cn(
-        'group rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] border-l-[3px] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)] transition-all duration-150',
+        'group rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] border-l-[3px] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
         config.border,
         config.bgHover,
-        isCritical && 'shadow-[var(--shadow-elevated)]',
+        isCritical && 'shadow-[var(--shadow-glow-danger)]',
         className
       )}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', config.badge)}>
+        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg group-hover:scale-110 transition-transform duration-200', config.badge)}>
           <Icon className={cn('h-3.5 w-3.5', config.iconColor)} />
         </div>
         <div className="flex-1 min-w-0">
@@ -120,7 +120,7 @@ export function InsightCard({
           {action && (
             <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-[var(--color-primary-600)]">
               <span>{action}</span>
-              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
             </div>
           )}
         </div>

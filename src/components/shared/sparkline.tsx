@@ -29,7 +29,9 @@ export function MiniSparkline({
             stroke={color}
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            isAnimationActive={true}
+            animationDuration={800}
+            animationEasing="ease-out"
           />
         </LineChart>
       </ResponsiveContainer>

@@ -51,10 +51,11 @@ export function KPICard({
     <div
       aria-label={`${label}: ${formattedValue}`}
       className={cn(
-        'group relative min-h-[144px] rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
+        'group overflow-hidden relative min-h-[144px] rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)] hover:border-[var(--color-border-default)]',
         className
       )}
     >
+      <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-[var(--color-primary-50)] opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-40" />
       {/* Label */}
       <p className="text-card-title uppercase tracking-wider">
         {label}

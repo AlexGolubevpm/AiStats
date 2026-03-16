@@ -1,5 +1,8 @@
+'use client'
+
 import { cn, formatPercent } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 interface MetricDeltaProps {
   value: number
@@ -13,7 +16,10 @@ export function MetricDelta({ value, size = 'sm', className }: MetricDeltaProps)
 
   if (!isFinite(value) || isNaN(value)) {
     return (
-      <span
+      <motion.span
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2 }}
         className={cn(
           'inline-flex items-center gap-1 font-medium tabular-nums',
           textSize,
@@ -23,12 +29,15 @@ export function MetricDelta({ value, size = 'sm', className }: MetricDeltaProps)
       >
         <Minus className={iconSize} />
         &mdash;
-      </span>
+      </motion.span>
     )
   }
 
   return (
-    <span
+    <motion.span
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
       className={cn(
         'inline-flex items-center gap-1 font-medium tabular-nums',
         textSize,
@@ -48,7 +57,7 @@ export function MetricDelta({ value, size = 'sm', className }: MetricDeltaProps)
         <Minus className={iconSize} />
       )}
       {formatPercent(value)}
-    </span>
+    </motion.span>
   )
 }
 

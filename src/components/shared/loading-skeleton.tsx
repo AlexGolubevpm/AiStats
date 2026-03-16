@@ -9,7 +9,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('block animate-pulse rounded-[var(--radius-control)] bg-[var(--color-border-subtle)]', className)}
+      className={cn('block animate-shimmer rounded-[var(--radius-control)] bg-[var(--color-border-subtle)]', className)}
     />
   )
 }

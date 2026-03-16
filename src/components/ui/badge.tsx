@@ -4,22 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2",
+  "inline-flex items-center rounded-[var(--radius-pill)] px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:shadow-[var(--shadow-glow-primary)]",
   {
     variants: {
       variant: {
         default:
-          "bg-[var(--color-accent)] text-white",
+          "bg-[var(--color-primary-600)] text-white",
         secondary:
-          "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
+          "bg-[var(--color-primary-50)] text-[var(--color-primary-700)]",
         destructive:
-          "bg-red-100 text-red-700",
+          "bg-[var(--color-danger-bg)] text-[var(--color-danger-dark)]",
         outline:
-          "border border-[var(--color-border)] text-[var(--color-text-secondary)]",
+          "border border-[var(--color-border-default)] text-[var(--color-text-secondary)]",
         success:
-          "bg-emerald-100 text-emerald-700",
+          "bg-[var(--color-success-bg)] text-[var(--color-success-dark)]",
         warning:
-          "bg-amber-100 text-amber-700",
+          "bg-[var(--color-warning-bg)] text-[var(--color-warning-dark)]",
       },
     },
     defaultVariants: {
