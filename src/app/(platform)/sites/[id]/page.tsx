@@ -9,6 +9,7 @@ import { ChartCard } from '@/components/shared/chart-card'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { InsightCard } from '@/components/shared/insight-card'
 import { KPICardSkeleton, ChartSkeleton, PageSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-chart'
 import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-chart'
 import { ProfitTrendChart } from '@/components/features/charts/profit-trend-chart'
@@ -46,10 +47,14 @@ const tierColumns: ColumnDef<TierRow, unknown>[] = [
 
 function SiteDetailContent({ id }: { id: string }) {
   const { period } = usePeriod()
-  const { data, isLoading } = useSite(id, period)
+  const { data, isLoading, error } = useSite(id, period)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return <PageSkeleton />
+  }
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const siteName = data.site?.name || 'Unknown'

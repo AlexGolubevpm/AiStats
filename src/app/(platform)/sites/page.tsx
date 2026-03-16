@@ -6,6 +6,7 @@ import { TopContextBar } from '@/components/layout/topbar'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { MetricDelta } from '@/components/shared/delta-indicator'
 import { TableSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { DataTable } from '@/components/features/data-table'
 import { useSites } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
@@ -102,10 +103,14 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
 function SitesContent() {
   const { period } = usePeriod()
   const { filters } = useFilters()
-  const { data: rawSites, isLoading } = useSites(period, filters.bundleId)
+  const { data: rawSites, isLoading, error } = useSites(period, filters.bundleId)
 
-  if (isLoading || !rawSites) {
+  if (isLoading) {
     return <div className="px-6 py-8"><TableSkeleton rows={10} /></div>
+  }
+
+  if (error || !rawSites) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string; color?: string }; health: { score: number } | null; users: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({

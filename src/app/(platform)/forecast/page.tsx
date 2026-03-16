@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { KPICardSkeleton, ChartSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { ForecastChart } from '@/components/features/charts/forecast-chart'
 import { useForecastBase } from '@/hooks/use-api'
 import { formatCurrency, formatPercent } from '@/lib/utils'
@@ -95,7 +96,7 @@ function ScenarioMetricCard({ label, current, projected }: { label: string; curr
 }
 
 function ForecastContent() {
-  const { data: baseData, isLoading } = useForecastBase()
+  const { data: baseData, isLoading, error } = useForecastBase()
 
   const [trafficChange, setTrafficChange] = useState(0)
   const [costChange, setCostChange] = useState(0)
@@ -104,7 +105,7 @@ function ForecastContent() {
   const [tierChange, setTierChange] = useState(0)
   const [formatChange, setFormatChange] = useState(0)
 
-  if (isLoading || !baseData) {
+  if (isLoading) {
     return (
       <div className="space-y-8 px-6 py-8">
         <ChartSkeleton />
@@ -113,6 +114,10 @@ function ForecastContent() {
         </div>
       </div>
     )
+  }
+
+  if (error || !baseData) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const baseRevenue = baseData.revenue || 0

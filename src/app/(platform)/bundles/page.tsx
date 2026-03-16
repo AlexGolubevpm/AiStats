@@ -6,6 +6,7 @@ import { TopContextBar } from '@/components/layout/topbar'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { MetricDelta } from '@/components/shared/delta-indicator'
 import { KPICardSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { useBundles } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact } from '@/lib/utils'
@@ -23,9 +24,9 @@ const fadeIn = {
 
 function BundlesContent() {
   const { period } = usePeriod()
-  const { data: bundles, isLoading } = useBundles(period)
+  const { data: bundles, isLoading, error } = useBundles(period)
 
-  if (isLoading || !bundles) {
+  if (isLoading) {
     return (
       <div className="px-6 py-8">
         <div className="grid grid-cols-2 gap-5">
@@ -33,6 +34,10 @@ function BundlesContent() {
         </div>
       </div>
     )
+  }
+
+  if (error || !bundles) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   if (bundles.length === 0) {

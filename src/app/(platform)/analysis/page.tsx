@@ -5,12 +5,13 @@ import { motion } from 'framer-motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { Button } from '@/components/ui/button'
 import { Brain, RefreshCw, Loader2 } from 'lucide-react'
 import { useAnalysis, useRunAnalysis } from '@/hooks/use-api'
 
 function AnalysisContent() {
-  const { data, isLoading } = useAnalysis()
+  const { data, isLoading, error } = useAnalysis()
   const runAnalysis = useRunAnalysis()
 
   if (isLoading) {
@@ -23,6 +24,10 @@ function AnalysisContent() {
         </div>
       </div>
     )
+  }
+
+  if (error) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   return (

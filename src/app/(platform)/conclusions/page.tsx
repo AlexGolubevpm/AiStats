@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { WinnerCard, LoserCard, RiskCard, OpportunityCard } from '@/components/shared/insight-card'
 import { KPICardSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { useConclusions } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { Trophy, TrendingDown, AlertTriangle, Lightbulb } from 'lucide-react'
@@ -74,9 +75,9 @@ function Section({
 
 function ConclusionsContent() {
   const { period } = usePeriod()
-  const { data, isLoading } = useConclusions(period)
+  const { data, isLoading, error } = useConclusions(period)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="space-y-10 px-6 py-8">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -87,6 +88,10 @@ function ConclusionsContent() {
         ))}
       </div>
     )
+  }
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const winners = data.winners || []

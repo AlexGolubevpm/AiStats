@@ -7,6 +7,7 @@ import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
 import { MetricDelta } from '@/components/shared/delta-indicator'
 import { KPICardSkeleton, ChartSkeleton, TableSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { CostTrendChart } from '@/components/features/charts/cost-trend-chart'
 import { DataTable } from '@/components/features/data-table'
 import { useCosts } from '@/hooks/use-api'
@@ -77,9 +78,9 @@ const fadeIn = {
 
 function CostsContent() {
   const { period } = usePeriod()
-  const { data, isLoading } = useCosts(period)
+  const { data, isLoading, error } = useCosts(period)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="space-y-8 px-6 py-8">
         <div className="grid grid-cols-4 gap-5">
@@ -89,6 +90,10 @@ function CostsContent() {
         <TableSkeleton />
       </div>
     )
+  }
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const summary = data.summary || {}

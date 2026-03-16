@@ -10,6 +10,7 @@ import { InsightCard } from '@/components/shared/insight-card'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { MetricDelta } from '@/components/shared/delta-indicator'
 import { KPICardSkeleton, ChartSkeleton, PageSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-chart'
 import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-chart'
 import { ProfitTrendChart } from '@/components/features/charts/profit-trend-chart'
@@ -98,10 +99,14 @@ function handleDashboardExport(data: { kpis?: { label: string; value: number }[]
 
 function DashboardContent() {
   const { period } = usePeriod()
-  const { data, isLoading } = useDashboard(period)
+  const { data, isLoading, error } = useDashboard(period)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return <PageSkeleton />
+  }
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const hasKpis = data.kpis && data.kpis.length > 0

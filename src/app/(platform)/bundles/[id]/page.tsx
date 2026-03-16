@@ -6,6 +6,7 @@ import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
 import { KPICardSkeleton, ChartSkeleton, TableSkeleton, PageSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { FormatBreakdownChart } from '@/components/features/charts/format-breakdown-chart'
 import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-chart'
 import { DataTable } from '@/components/features/data-table'
@@ -50,9 +51,13 @@ const siteColumns: ColumnDef<SiteRow, unknown>[] = [
 
 function BundleDetailContent({ id }: { id: string }) {
   const { period } = usePeriod()
-  const { data, isLoading } = useBundle(id, period)
+  const { data, isLoading, error } = useBundle(id, period)
 
-  if (isLoading || !data) return <PageSkeleton />
+  if (isLoading) return <PageSkeleton />
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
+  }
 
   const hasKpis = data.kpis && data.kpis.length > 0
   const hasSites = data.sites && data.sites.length > 0

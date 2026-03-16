@@ -6,6 +6,7 @@ import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
 import { KPICardSkeleton, ChartSkeleton, TableSkeleton } from '@/components/shared/loading-skeleton'
+import { ErrorState } from '@/components/shared/error-state'
 import { AffiliateComparisonChart } from '@/components/features/charts/affiliate-comparison-chart'
 import { DataTable } from '@/components/features/data-table'
 import { useAffiliate } from '@/hooks/use-api'
@@ -29,9 +30,9 @@ const columns: ColumnDef<AffiliateRow, unknown>[] = [
 
 function AffiliateContent() {
   const { period } = usePeriod()
-  const { data, isLoading } = useAffiliate(period)
+  const { data, isLoading, error } = useAffiliate(period)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="space-y-8 px-6 py-8">
         <div className="grid grid-cols-3 gap-5">
@@ -41,6 +42,10 @@ function AffiliateContent() {
         <TableSkeleton />
       </div>
     )
+  }
+
+  if (error || !data) {
+    return <div className="px-6 py-8"><ErrorState /></div>
   }
 
   const summary = data.summary || {}
