@@ -114,20 +114,11 @@ function DashboardContent() {
       initial="hidden"
       animate="visible"
     >
-      {/* KPI Row */}
+      {/* KPI Grid — unified responsive layout */}
       {hasKpis && (
-        <div className="grid grid-cols-3 gap-5 xl:grid-cols-5">
-          {data.kpis.slice(0, 5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
             <motion.div key={kpi.label} custom={i} variants={fadeIn}>
-              <KPICard {...kpi} />
-            </motion.div>
-          ))}
-        </div>
-      )}
-      {hasKpis && data.kpis.length > 5 && (
-        <div className="grid grid-cols-4 gap-5">
-          {data.kpis.slice(5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
-            <motion.div key={kpi.label} custom={i + 5} variants={fadeIn}>
               <KPICard {...kpi} />
             </motion.div>
           ))}
@@ -138,7 +129,7 @@ function DashboardContent() {
       {hasTrend && (
         <div>
           <h2 className="text-section-title mb-5">Trends</h2>
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             <motion.div custom={0} variants={fadeIn}>
               <ChartCard title="Revenue Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
                 <RevenueTrendChart data={data.trend} />
@@ -162,7 +153,7 @@ function DashboardContent() {
       {hasBundles && (
         <div>
           <h2 className="text-section-title mb-5">Bundles</h2>
-          <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
               <motion.div key={bundle.id} custom={i} variants={fadeIn}>
                 <BundleSummaryCard bundle={bundle} />
@@ -176,7 +167,7 @@ function DashboardContent() {
       {hasInsights && (
         <div>
           <h2 className="text-section-title mb-5">Operational Insights</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {data.insights.map((insight: { entity: string; entityType: string; metric: string; value: string; delta?: number; reason: string; action?: string; severity: 'low' | 'medium' | 'high' | 'critical'; type?: 'risk' | 'opportunity' | 'info' }, i: number) => (
               <motion.div key={i} custom={i} variants={fadeIn}>
                 <InsightCard {...insight} />

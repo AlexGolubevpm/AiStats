@@ -11,6 +11,22 @@ export function MetricDelta({ value, size = 'sm', className }: MetricDeltaProps)
   const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'
   const textSize = size === 'sm' ? 'text-xs' : 'text-sm'
 
+  if (!isFinite(value) || isNaN(value)) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 font-medium tabular-nums',
+          textSize,
+          'text-[var(--color-text-muted)]',
+          className
+        )}
+      >
+        <Minus className={iconSize} />
+        &mdash;
+      </span>
+    )
+  }
+
   return (
     <span
       className={cn(

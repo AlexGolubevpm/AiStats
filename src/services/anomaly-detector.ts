@@ -15,7 +15,12 @@ export async function detectAnomalies(siteId: string, date: Date) {
     where: { siteId_date: { siteId, date } },
   })
 
-  if (!today || !avgResult._avg.hits) return []
+  // Null safety: if today is null or avg hits is null/0, return empty
+  if (!today) return []
+  if (!avgResult._avg.hits || avgResult._avg.hits === 0) return []
+
+  // Missing data check: if both hits and impressions are 0, data likely not synced yet
+  if (today.hits === 0 && today.impressions === 0) return []
 
   const anomalies: Array<{
     type: string; severity: string; metric: string;
@@ -39,36 +44,44 @@ export async function detectAnomalies(siteId: string, date: Date) {
 
   // Revenue change > 15%
   const actualRevenue = Number(today.adRevenue)
-  const revenueDelta = ((actualRevenue - avgRevenue) / avgRevenue) * 100
-  if (Math.abs(revenueDelta) > 15) {
-    anomalies.push({
-      type: revenueDelta > 0 ? 'revenue_spike' : 'revenue_drop',
-      severity: 'high', metric: 'adRevenue',
-      expected: avgRevenue, actual: actualRevenue, delta: revenueDelta,
-      description: `Revenue ${revenueDelta > 0 ? 'spiked' : 'dropped'} ${Math.abs(revenueDelta).toFixed(1)}% vs 7-day average`
-    })
+  if (avgRevenue > 0) {
+    const revenueDelta = ((actualRevenue - avgRevenue) / avgRevenue) * 100
+    if (Math.abs(revenueDelta) > 15) {
+      const dollarDiff = Math.abs(actualRevenue - avgRevenue)
+      anomalies.push({
+        type: revenueDelta > 0 ? 'revenue_spike' : 'revenue_drop',
+        severity: 'high', metric: 'adRevenue',
+        expected: avgRevenue, actual: actualRevenue, delta: revenueDelta,
+        description: `Revenue ${revenueDelta > 0 ? 'spiked' : 'dropped'} ${Math.abs(revenueDelta).toFixed(1)}% vs 7-day average ($${dollarDiff.toFixed(2)} ${revenueDelta > 0 ? 'increase' : 'decrease'})`
+      })
+    }
   }
 
   // Cost spike > 25%
   const actualCosts = Number(today.costs)
-  const costDelta = ((actualCosts - avgCosts) / avgCosts) * 100
-  if (costDelta > 25) {
-    anomalies.push({
-      type: 'cost_spike', severity: 'high', metric: 'costs',
-      expected: avgCosts, actual: actualCosts, delta: costDelta,
-      description: `Costs spiked ${costDelta.toFixed(1)}% above 7-day average`
-    })
+  if (avgCosts > 0) {
+    const costDelta = ((actualCosts - avgCosts) / avgCosts) * 100
+    if (costDelta > 25) {
+      const dollarDiff = Math.abs(actualCosts - avgCosts)
+      anomalies.push({
+        type: 'cost_spike', severity: 'high', metric: 'costs',
+        expected: avgCosts, actual: actualCosts, delta: costDelta,
+        description: `Costs spiked ${costDelta.toFixed(1)}% above 7-day average ($${dollarDiff.toFixed(2)} increase)`
+      })
+    }
   }
 
   // Fill rate drop > 10%
-  const actualFillRate = Number(today.fillRate)
-  const fillRateDelta = ((actualFillRate - avgFillRate) / avgFillRate) * 100
-  if (fillRateDelta < -10) {
-    anomalies.push({
-      type: 'fill_rate_drop', severity: 'medium', metric: 'fillRate',
-      expected: avgFillRate, actual: actualFillRate, delta: fillRateDelta,
-      description: `Fill rate dropped ${Math.abs(fillRateDelta).toFixed(1)}% below 7-day average`
-    })
+  if (avgFillRate > 0) {
+    const actualFillRate = Number(today.fillRate)
+    const fillRateDelta = ((actualFillRate - avgFillRate) / avgFillRate) * 100
+    if (fillRateDelta < -10) {
+      anomalies.push({
+        type: 'fill_rate_drop', severity: 'medium', metric: 'fillRate',
+        expected: avgFillRate, actual: actualFillRate, delta: fillRateDelta,
+        description: `Fill rate dropped ${Math.abs(fillRateDelta).toFixed(1)}% below 7-day average`
+      })
+    }
   }
 
   // ROMI below 100%

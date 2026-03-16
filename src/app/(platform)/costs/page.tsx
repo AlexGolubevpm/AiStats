@@ -82,7 +82,7 @@ function CostsContent() {
   if (isLoading || !data) {
     return (
       <div className="space-y-8 px-6 py-8">
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         <ChartSkeleton />
@@ -110,7 +110,7 @@ function CostsContent() {
   return (
     <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeIn}>
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
         <KPICard label="7-Day Average" value={summary.sevenDayAvg || 0} format="currency" />
         <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
@@ -158,7 +158,7 @@ export default function CostsPage() {
   return (
     <div>
       <TopContextBar title="Costs" subtitle="Cost tracking and analysis" showExport />
-      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
         <CostsContent />
       </Suspense>
     </div>

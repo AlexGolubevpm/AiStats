@@ -22,7 +22,10 @@ export function KPICard({
   trend,
   className,
 }: KPICardProps) {
+  const isInvalidValue = isNaN(value)
+
   const formattedValue = (() => {
+    if (isInvalidValue) return '\u2014'
     switch (format) {
       case 'currency':
         return formatCurrency(value)
@@ -46,6 +49,7 @@ export function KPICard({
 
   return (
     <div
+      aria-label={`${label}: ${formattedValue}`}
       className={cn(
         'group relative min-h-[144px] rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]',
         className

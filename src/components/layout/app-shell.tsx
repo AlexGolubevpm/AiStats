@@ -8,7 +8,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[var(--color-app-bg)]">
       <Sidebar />
-      <main className="ml-[260px] min-h-screen">{children}</main>
+      <main className="min-h-screen lg:ml-[260px]">{children}</main>
     </div>
   )
 }

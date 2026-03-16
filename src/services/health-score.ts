@@ -27,7 +27,9 @@ export async function calculateHealthScore(siteId: string, date: Date) {
   const lastHalf = metrics.slice(-3)
   const avgFirst = firstHalf.reduce((s, m) => s + Number(m.totalRevenue), 0) / firstHalf.length
   const avgLast = lastHalf.reduce((s, m) => s + Number(m.totalRevenue), 0) / lastHalf.length
-  const revenueTrend = Math.min(100, Math.max(0, 50 + ((avgLast - avgFirst) / avgFirst) * 200))
+  const revenueTrend = avgFirst === 0
+    ? (avgLast > 0 ? 100 : 50)
+    : Math.min(100, Math.max(0, 50 + ((avgLast - avgFirst) / avgFirst) * 200))
 
   // Cost pressure: lower is better
   const costRatio = costs / (totalRevenue || 1)
@@ -47,13 +49,21 @@ export async function calculateHealthScore(siteId: string, date: Date) {
   const tier1Revenue = tierMetrics.find(t => t.tier === 'TIER_1')
   const totalTierRevenue = tierMetrics.reduce((s, t) => s + Number(t.revenue), 0)
   const tier1Share = tier1Revenue ? Number(tier1Revenue.revenue) / (totalTierRevenue || 1) : 0
-  const tierQuality = Math.min(100, Math.max(0, 30 + tier1Share * 100))
+  const tierQuality = tierMetrics.length === 0
+    ? 50  // Neutral score when no tier data available
+    : Math.min(100, Math.max(0, 30 + tier1Share * 100))
 
-  // Anomaly pressure
-  const recentAnomalies = await prisma.anomaly.count({
+  // Anomaly pressure: proportional to severity
+  const recentAnomalies = await prisma.anomaly.findMany({
     where: { siteId, date: { gte: sevenDaysAgo, lte: date }, resolved: false },
+    select: { severity: true },
   })
-  const anomalyPressure = Math.max(0, 100 - recentAnomalies * 15)
+  const anomalyPenalty = recentAnomalies.reduce((sum, a) => {
+    if (a.severity === 'critical') return sum + 25
+    if (a.severity === 'high') return sum + 15
+    return sum + 10 // medium and others
+  }, 0)
+  const anomalyPressure = Math.max(0, 100 - anomalyPenalty)
 
   // Stability: coefficient of variation of daily revenue
   const revenues = metrics.map(m => Number(m.totalRevenue))

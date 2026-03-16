@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -14,6 +15,8 @@ import {
   Brain,
   Settings,
   Activity,
+  Menu,
+  X,
 } from 'lucide-react'
 
 const primaryNav = [
@@ -34,7 +37,7 @@ const utilityNav = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
-function SidebarSection({ label, items }: { label?: string; items: typeof primaryNav }) {
+function SidebarSection({ label, items, onNavigate }: { label?: string; items: typeof primaryNav; onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
@@ -51,6 +54,7 @@ function SidebarSection({ label, items }: { label?: string; items: typeof primar
             <Link
               key={item.name}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150',
                 isActive
@@ -74,34 +78,74 @@ function SidebarSection({ label, items }: { label?: string; items: typeof primar
 }
 
 export function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const closeMobile = () => setMobileOpen(false)
+
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-sidebar-bg)]">
-      {/* Brand zone */}
-      <div className="flex h-[64px] items-center gap-2.5 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary-600)]">
-          <Activity className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-          AiStats
-        </span>
-      </div>
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface)] shadow-sm lg:hidden"
+        aria-label="Open sidebar"
+      >
+        <Menu className="h-5 w-5 text-[var(--color-text-secondary)]" />
+      </button>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-2">
-        <div className="space-y-6">
-          <SidebarSection items={primaryNav} />
-          <SidebarSection label="Analytics" items={analyticsNav} />
-          <SidebarSection items={utilityNav} />
-        </div>
-      </nav>
+      {/* Overlay backdrop for mobile */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={closeMobile}
+        />
+      )}
 
-      {/* Footer */}
-      <div className="border-t border-[var(--color-border-subtle)] px-5 py-3">
-        <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-disabled)]">
-          <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-          <span>System online</span>
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-sidebar-bg)] transition-transform duration-200',
+          'lg:z-40 lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {/* Brand zone */}
+        <div className="flex h-[64px] items-center justify-between px-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary-600)]">
+              <Activity className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+              AiStats
+            </span>
+          </div>
+          {/* Close button on mobile */}
+          <button
+            onClick={closeMobile}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </div>
-    </aside>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-4 py-2">
+          <div className="space-y-6">
+            <SidebarSection items={primaryNav} onNavigate={closeMobile} />
+            <SidebarSection label="Analytics" items={analyticsNav} onNavigate={closeMobile} />
+            <SidebarSection items={utilityNav} onNavigate={closeMobile} />
+          </div>
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-[var(--color-border-subtle)] px-5 py-3">
+          <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-disabled)]">
+            <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+            <span>System online</span>
+          </div>
+        </div>
+      </aside>
+    </>
   )
 }

@@ -108,7 +108,7 @@ function ForecastContent() {
     return (
       <div className="space-y-8 px-6 py-8">
         <ChartSkeleton />
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
       </div>
@@ -167,7 +167,7 @@ function ForecastContent() {
           <SlidersHorizontal className="h-4 w-4 text-[var(--color-primary-600)]" />
           <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)]">Scenario Controls</h2>
         </div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
           {params.map(({ label, value, setter, min, max }) => (
             <ScenarioSlider key={label} label={label} value={value} onChange={setter} min={min} max={max} />
           ))}

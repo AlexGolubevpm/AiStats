@@ -31,6 +31,7 @@ export function HealthBadge({ score, showLabel = true, size = 'sm', className }:
 
   return (
     <span
+      aria-label={`Health score ${score}: ${status}`}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] font-semibold tabular-nums',
         styles.bg,
@@ -40,7 +41,7 @@ export function HealthBadge({ score, showLabel = true, size = 'sm', className }:
       )}
     >
       <span className={cn('h-1.5 w-1.5 rounded-full', styles.dot)} />
-      <span>{score}</span>
+      <span>{score}/100</span>
       {showLabel && <span className="capitalize font-medium">{status}</span>}
     </span>
   )

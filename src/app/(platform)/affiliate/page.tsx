@@ -34,7 +34,7 @@ function AffiliateContent() {
   if (isLoading || !data) {
     return (
       <div className="space-y-8 px-6 py-8">
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         <ChartSkeleton />
@@ -61,7 +61,7 @@ function AffiliateContent() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22 }}
     >
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KPICard label="Affiliate Revenue" value={summary.totalAffiliateRevenue || 0} format="currency" />
         <KPICard label="Ad Revenue" value={summary.totalAdRevenue || 0} format="currency" />
         <KPICard label="Total Revenue" value={summary.totalRevenue || 0} format="currency" />
@@ -92,7 +92,7 @@ export default function AffiliatePage() {
   return (
     <div>
       <TopContextBar title="Affiliate" subtitle="Affiliate and SPA revenue tracking" showExport />
-      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-3 gap-5">{Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-1 gap-4 sm:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
         <AffiliateContent />
       </Suspense>
     </div>

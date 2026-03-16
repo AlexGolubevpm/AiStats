@@ -61,7 +61,7 @@ function Section({
           <span className="text-meta">{items.length} item{items.length > 1 ? 's' : ''}</span>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {sorted.map((item, i) => (
           <motion.div key={i} custom={i} variants={fadeIn}>
             <CardComponent {...item} />
@@ -80,7 +80,7 @@ function ConclusionsContent() {
     return (
       <div className="space-y-10 px-6 py-8">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-2 gap-4">
+          <div key={i} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <KPICardSkeleton />
             <KPICardSkeleton />
           </div>
@@ -152,7 +152,7 @@ export default function ConclusionsPage() {
       <Suspense fallback={
         <div className="space-y-10 px-6 py-8">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="grid grid-cols-2 gap-4">
+            <div key={i} className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <KPICardSkeleton />
               <KPICardSkeleton />
             </div>

@@ -132,7 +132,7 @@ function SiteDetailContent({ id }: { id: string }) {
 
         {/* Quick KPI metrics in header */}
         {hasKpis && (
-          <div className="mt-5 grid grid-cols-5 gap-4 border-t border-[var(--color-border-subtle)] pt-5">
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--color-border-subtle)] pt-5 sm:grid-cols-3 lg:grid-cols-5">
             {data.kpis.slice(0, 5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
               <div key={kpi.label}>
                 <span className="text-meta">{kpi.label}</span>
@@ -169,7 +169,7 @@ function SiteDetailContent({ id }: { id: string }) {
 
         <TabsContent value="overview" className="mt-6">
           {hasTrend ? (
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <ChartCard title="Revenue Trend" description="Daily revenue">
                 <RevenueTrendChart data={data.trend} />
               </ChartCard>

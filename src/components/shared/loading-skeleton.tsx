@@ -9,7 +9,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-[var(--radius-control)] bg-[var(--color-border-subtle)]', className)}
+      className={cn('block animate-pulse rounded-[var(--radius-control)] bg-[var(--color-border-subtle)]', className)}
     />
   )
 }
@@ -67,7 +67,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 export function PageSkeleton() {
   return (
     <div className="space-y-8 px-6 py-8">
-      <div className="grid grid-cols-3 gap-5 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
       </div>
       <div className="grid grid-cols-2 gap-5">

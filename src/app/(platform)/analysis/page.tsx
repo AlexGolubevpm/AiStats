@@ -17,7 +17,7 @@ function AnalysisContent() {
     return (
       <div className="space-y-8 px-6 py-8">
         <ChartSkeleton />
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <ChartSkeleton />
           <ChartSkeleton />
         </div>
@@ -63,7 +63,7 @@ function AnalysisContent() {
         </div>
       </ChartCard>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <ChartCard title="Top Risks" description="Issues requiring immediate attention">
           <div className="space-y-3">
             {data?.risks && Array.isArray(data.risks) ? (
