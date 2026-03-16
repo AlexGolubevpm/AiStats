@@ -7,15 +7,15 @@ interface FormatBreakdownChartProps {
 }
 
 const FORMAT_COLORS: Record<string, string> = {
-  POP: '#4F46E5',
-  PUSH: '#EF4444',
-  BANNER: '#10B981',
-  SLIDER: '#F59E0B',
-  OUTSTREAM: '#8B5CF6',
-  VAST: '#EC4899',
-  IN_VIDEO: '#06B6D4',
-  IN_PAGE_PUSH: '#3B82F6',
-  OTHER: '#94A3B8',
+  POP: 'var(--color-format-pop)',
+  PUSH: 'var(--color-format-push)',
+  BANNER: 'var(--color-format-banner)',
+  SLIDER: 'var(--color-format-slider)',
+  OUTSTREAM: 'var(--color-format-outstream)',
+  VAST: 'var(--color-format-vast)',
+  IN_VIDEO: 'var(--color-format-in-video)',
+  IN_PAGE_PUSH: 'var(--color-format-in-page-push)',
+  OTHER: 'var(--color-format-other)',
 }
 
 const tooltipStyle = {
@@ -54,7 +54,7 @@ export function FormatBreakdownChart({ data }: FormatBreakdownChartProps) {
         />
         <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out">
           {data.map((entry) => (
-            <Cell key={entry.format} fill={FORMAT_COLORS[entry.format] || '#94A3B8'} />
+            <Cell key={entry.format} fill={FORMAT_COLORS[entry.format] || 'var(--color-format-other)'} />
           ))}
         </Bar>
       </BarChart>

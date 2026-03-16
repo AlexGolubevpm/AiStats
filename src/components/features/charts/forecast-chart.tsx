@@ -70,8 +70,8 @@ export function ForecastChart({ currentValues, projectedValues }: ForecastChartP
         />
         <Tooltip content={<ForecastTooltip />} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="current" name="Current" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="projected" name="Projected" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="current" name="Current" fill="var(--color-chart-blue)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
+        <Bar dataKey="projected" name="Projected" fill="var(--color-chart-green)" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={600} animationEasing="ease-out" />
       </BarChart>
     </ResponsiveContainer>
   )
