@@ -48,10 +48,28 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
   })
 
   try {
-    const service = new AdOkService()
+    // Read credentials from Settings DB, fall back to env vars
+    let authEmail = process.env.ADOK_AUTH_EMAIL || ''
+    let authToken = process.env.ADOK_AUTH_TOKEN || ''
+    let apiUrl = process.env.ADOK_API_URL || ''
+    try {
+      const settings = await prisma.setting.findMany({
+        where: { key: { in: ['adok_auth_email', 'adok_auth_token', 'adspyglass_url'] } },
+      })
+      for (const s of settings) {
+        const val = typeof s.value === 'string' ? s.value : JSON.stringify(s.value)
+        const cleaned = val.replace(/^"|"$/g, '')
+        if (!cleaned) continue
+        if (s.key === 'adok_auth_email') authEmail = cleaned
+        if (s.key === 'adok_auth_token') authToken = cleaned
+        if (s.key === 'adspyglass_url') apiUrl = cleaned
+      }
+    } catch { /* ignore, use env */ }
+
+    const service = new AdOkService(apiUrl || undefined, authEmail, authToken)
 
     if (!service.isConfigured) {
-      throw new Error('AdOK API not configured. Set ADOK_AUTH_EMAIL and ADOK_AUTH_TOKEN.')
+      throw new Error('AdOK API not configured. Set ADOK_AUTH_EMAIL and ADOK_AUTH_TOKEN in Settings → API Config.')
     }
 
     await job.updateProgress(5)

@@ -81,17 +81,21 @@ function SettingsContent() {
       </TabsList>
 
       <TabsContent value="api" className="mt-6">
-        <ChartCard title="API Configuration" description="AdSpyglass and AdOK connection settings">
+        <ChartCard title="AdOK / AdSpyglass" description="API credentials for fetching ad revenue data. Get them from your AdSpyglass dashboard.">
           <div className="space-y-4">
             <div>
-              <Label>AdSpyglass API URL</Label>
-              <Input type="text" value={getValue('adspyglass_url')} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} className="mt-1.5" />
+              <Label>API URL</Label>
+              <Input type="text" value={getValue('adspyglass_url') || 'https://api.adok.ai'} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} placeholder="https://api.adok.ai" className="mt-1.5" />
             </div>
             <div>
-              <Label>API Key</Label>
-              <Input type="password" value={getValue('adspyglass_api_key')} onChange={(e) => setFormData({ ...formData, adspyglass_api_key: e.target.value })} className="mt-1.5" />
+              <Label>Auth Email</Label>
+              <Input type="email" value={getValue('adok_auth_email')} onChange={(e) => setFormData({ ...formData, adok_auth_email: e.target.value })} placeholder="your@email.com" className="mt-1.5" />
             </div>
-            <Button onClick={() => handleSave(['adspyglass_url', 'adspyglass_api_key'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
+            <div>
+              <Label>Auth Token</Label>
+              <Input type="password" value={getValue('adok_auth_token')} onChange={(e) => setFormData({ ...formData, adok_auth_token: e.target.value })} placeholder="YctjS1JB..." className="mt-1.5" />
+            </div>
+            <Button onClick={() => handleSave(['adspyglass_url', 'adok_auth_email', 'adok_auth_token'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
           </div>
         </ChartCard>
 
