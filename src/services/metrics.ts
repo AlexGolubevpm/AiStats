@@ -48,8 +48,9 @@ export function getDateRange(
         const days = parseInt(match[1], 10)
         return { from: startOfDay(subDays(today, days - 1)), to: endOfDay(now) }
       }
-      // Fallback to 7d
-      return { from: startOfDay(subDays(today, 6)), to: endOfDay(now) }
+      // Fallback to yesterday
+      const yesterday = subDays(today, 1)
+      return { from: startOfDay(yesterday), to: endOfDay(yesterday) }
     }
   }
 }

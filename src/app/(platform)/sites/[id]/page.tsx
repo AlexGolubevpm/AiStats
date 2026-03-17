@@ -38,7 +38,7 @@ const formatColumns: ColumnDef<FormatRow, unknown>[] = [
 
 const tierColumns: ColumnDef<TierRow, unknown>[] = [
   { accessorKey: 'tier', header: 'Tier', cell: ({ row }) => <span className="font-semibold">{row.original.tier.replace('TIER_', 'Tier ')}</span> },
-  { accessorKey: 'users', header: 'Requests', cell: ({ row }) => <span className="tabular-nums">{(row.original.users || 0).toLocaleString()}</span> },
+  { accessorKey: 'users', header: 'Ad Requests', cell: ({ row }) => <span className="tabular-nums">{(row.original.users || 0).toLocaleString()}</span> },
   { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => <span className="tabular-nums">{(row.original.impressions || 0).toLocaleString()}</span> },
   { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.revenue || 0)}</span> },
   { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => <span className="tabular-nums">{(row.original.ctr || 0).toFixed(2)}%</span> },

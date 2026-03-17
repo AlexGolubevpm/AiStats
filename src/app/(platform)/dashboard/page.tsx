@@ -50,7 +50,7 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
       {/* Metrics */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <span className="text-meta">Requests</span>
+          <span className="text-meta">Ad Requests</span>
           <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCompact(bundle.hits || 0)}</p>
         </div>
         <div>

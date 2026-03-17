@@ -8,54 +8,77 @@ async function fetchApi(url: string) {
   return res.json()
 }
 
+function buildPeriodParams(period: string, extraParams?: Record<string, string>): string {
+  const params = new URLSearchParams({ period })
+  // For custom period, read from/to from the URL
+  if (period === 'custom' && typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search)
+    const from = urlParams.get('from')
+    const to = urlParams.get('to')
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+  }
+  if (extraParams) {
+    for (const [key, value] of Object.entries(extraParams)) {
+      if (value) params.set(key, value)
+    }
+  }
+  return params.toString()
+}
+
 export function useDashboard(period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['dashboard', period],
-    queryFn: () => fetchApi(`/api/dashboard?period=${period}`),
+    queryKey: ['dashboard', qs],
+    queryFn: () => fetchApi(`/api/dashboard?${qs}`),
   })
 }
 
 export function useBundles(period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['bundles', period],
-    queryFn: () => fetchApi(`/api/bundles?period=${period}`),
+    queryKey: ['bundles', qs],
+    queryFn: () => fetchApi(`/api/bundles?${qs}`),
   })
 }
 
 export function useBundle(id: string, period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['bundle', id, period],
-    queryFn: () => fetchApi(`/api/bundles/${id}?period=${period}`),
+    queryKey: ['bundle', id, qs],
+    queryFn: () => fetchApi(`/api/bundles/${id}?${qs}`),
   })
 }
 
 export function useSites(period: string, bundleId?: string) {
-  const params = new URLSearchParams({ period })
-  if (bundleId) params.set('bundleId', bundleId)
+  const qs = buildPeriodParams(period, bundleId ? { bundleSlug: bundleId } : undefined)
   return useQuery({
-    queryKey: ['sites', period, bundleId],
-    queryFn: () => fetchApi(`/api/sites?${params}`),
+    queryKey: ['sites', qs],
+    queryFn: () => fetchApi(`/api/sites?${qs}`),
   })
 }
 
 export function useSite(id: string, period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['site', id, period],
-    queryFn: () => fetchApi(`/api/sites/${id}?period=${period}`),
+    queryKey: ['site', id, qs],
+    queryFn: () => fetchApi(`/api/sites/${id}?${qs}`),
   })
 }
 
 export function useCosts(period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['costs', period],
-    queryFn: () => fetchApi(`/api/costs?period=${period}`),
+    queryKey: ['costs', qs],
+    queryFn: () => fetchApi(`/api/costs?${qs}`),
   })
 }
 
 export function useAffiliate(period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['affiliate', period],
-    queryFn: () => fetchApi(`/api/affiliate?period=${period}`),
+    queryKey: ['affiliate', qs],
+    queryFn: () => fetchApi(`/api/affiliate?${qs}`),
   })
 }
 
@@ -67,9 +90,10 @@ export function useForecastBase() {
 }
 
 export function useConclusions(period: string) {
+  const qs = buildPeriodParams(period)
   return useQuery({
-    queryKey: ['conclusions', period],
-    queryFn: () => fetchApi(`/api/conclusions?period=${period}`),
+    queryKey: ['conclusions', qs],
+    queryFn: () => fetchApi(`/api/conclusions?${qs}`),
   })
 }
 

@@ -101,11 +101,22 @@ export interface CountryAdMetrics {
 
 const AD_TYPE_TO_FORMAT: Record<string, string> = {
   'Popunder': 'POP',
+  'Pop': 'POP',
+  'Push Notification': 'PUSH',
+  'Push': 'PUSH',
+  'Web Push': 'PUSH',
   'Banner': 'BANNER',
+  'Display': 'BANNER',
   'Slider (VAST Link URL)': 'SLIDER',
+  'Slider': 'SLIDER',
   'Outstream (VAST Link URL)': 'OUTSTREAM',
+  'Outstream': 'OUTSTREAM',
+  'VAST': 'VAST',
+  'VAST Link URL': 'VAST',
   'In-Video (VAST Link URL)': 'IN_VIDEO',
+  'In-Video': 'IN_VIDEO',
   'In-Page Push': 'IN_PAGE_PUSH',
+  'InPage Push': 'IN_PAGE_PUSH',
 }
 
 export function mapAdTypeToFormat(adType: string): string {

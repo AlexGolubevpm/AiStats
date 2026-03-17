@@ -10,7 +10,7 @@ export function parsePeriodParam(searchParams: URLSearchParams) {
     return getDateRange('custom', from, to)
   }
 
-  const period = searchParams.get('period') || '7d'
+  const period = searchParams.get('period') || 'yesterday'
   return getDateRange(period)
 }
 

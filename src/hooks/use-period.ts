@@ -17,7 +17,7 @@ export function usePeriod() {
   const router = useRouter()
   const pathname = usePathname()
 
-  const period = searchParams.get('period') || '7d'
+  const period = searchParams.get('period') || 'yesterday'
   const customFrom = searchParams.get('from') || ''
   const customTo = searchParams.get('to') || ''
 
