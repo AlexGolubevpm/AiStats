@@ -56,15 +56,16 @@ const columns: ColumnDef<CostRow, unknown>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
-      const matched = row.original.status === 'matched'
+      const status = row.original.status
+      const config = status === 'matched'
+        ? { bg: 'bg-[var(--color-success-bg)]', text: 'text-[var(--color-success-dark)]', dot: 'bg-[var(--color-success)]', label: 'Matched' }
+        : status === 'no_data'
+        ? { bg: 'bg-[var(--color-bg-subtle)]', text: 'text-[var(--color-text-muted)]', dot: 'bg-[var(--color-text-muted)]', label: 'No Data' }
+        : { bg: 'bg-[var(--color-warning-bg)]', text: 'text-[var(--color-warning-dark)]', dot: 'bg-[var(--color-warning)]', label: 'Unmatched' }
       return (
-        <span className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[11px] font-semibold ${
-          matched
-            ? 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]'
-            : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-dark)]'
-        }`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${matched ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'}`} />
-          {matched ? 'Matched' : 'Unmatched'}
+        <span className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[11px] font-semibold ${config.bg} ${config.text}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+          {config.label}
         </span>
       )
     },
@@ -92,17 +93,18 @@ function CostsContent() {
   const sites = data.sites || []
   const trend = data.trend || []
 
-  const tableRows: CostRow[] = sites.map((s: { name: string; bundle: { name: string }; yesterdayCost: number; sevenDayAvg: number; thirtyDayTotal: number; changePercent: number; mappingStatus: string | null }) => ({
+  const tableRows: CostRow[] = sites.map((s: { name: string; bundle: { name: string }; yesterdayCost: number; sevenDayAvg: number; thirtyDayTotal: number; changePercent: number; mappingStatus: string | null; hasCostData: boolean }) => ({
     site: s.name,
     bundle: s.bundle?.name || '',
     yesterday: s.yesterdayCost || 0,
     avg7d: s.sevenDayAvg || 0,
     total30d: s.thirtyDayTotal || 0,
     change: s.changePercent || 0,
-    status: s.mappingStatus || 'unmatched',
+    status: s.hasCostData ? (s.mappingStatus || 'unmatched') : 'no_data',
   }))
 
-  const unmatchedCount = tableRows.filter(r => r.status !== 'matched').length
+  const unmatchedCount = tableRows.filter(r => r.status === 'unmatched').length
+  const noDataCount = tableRows.filter(r => r.status === 'no_data').length
 
   return (
     <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeInUp}>
@@ -111,7 +113,7 @@ function CostsContent() {
         <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
         <KPICard label="7-Day Average" value={summary.sevenDayAvg || 0} format="currency" />
         <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
-        <KPICard label="Missing Mappings" value={unmatchedCount} format="number" />
+        <KPICard label="No Cost Data" value={noDataCount} format="number" />
       </div>
 
       {/* Cost Trend */}
@@ -144,6 +146,20 @@ function CostsContent() {
           </div>
           <p className="mt-1 text-[12px] text-[var(--color-warning-dark)]/70">
             Check site mappings in Settings to ensure cost data is correctly attributed.
+          </p>
+        </div>
+      )}
+
+      {/* No Data Info Banner */}
+      {noDataCount > 0 && unmatchedCount === 0 && (
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-border-default)] bg-[var(--color-bg-subtle)] p-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[14px] font-semibold text-[var(--color-text-secondary)]">
+              {noDataCount} site{noDataCount > 1 ? 's' : ''} awaiting cost data
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+            Cost data will appear after syncing from Google Sheets. Configure the sheet in Settings → Google Sheets.
           </p>
         </div>
       )}
