@@ -33,7 +33,7 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
-      className="group rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
+      className="group overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -103,7 +103,7 @@ function DashboardContent() {
 
   return (
     <motion.div
-      className="space-y-8 px-6 py-8"
+      className="space-y-8 overflow-hidden px-6 py-8"
       initial="hidden"
       animate="visible"
     >
@@ -148,7 +148,7 @@ function DashboardContent() {
           <h2 className="text-section-title mb-5">Bundles</h2>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
-              <motion.div key={bundle.id} custom={i} variants={fadeInUp}>
+              <motion.div key={bundle.id} custom={i} variants={fadeInUp} className="min-w-0">
                 <BundleSummaryCard bundle={bundle} />
               </motion.div>
             ))}
