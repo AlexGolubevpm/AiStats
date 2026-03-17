@@ -129,7 +129,9 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
           continue
         }
 
-        const adRevenue = row.broker_income
+        // Use predicted_income for website-level data (broker_income is only confirmed/partial)
+        // At date-level, broker_income ≈ sum of website predicted_income
+        const adRevenue = row.predicted_income || row.broker_income
         const ctr = row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0
         const fillRate = row.hits > 0 ? (row.impressions / row.hits) * 100 : 0
         const ecpm = row.impressions > 0 ? (adRevenue / row.impressions) * 1000 : 0
