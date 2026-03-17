@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, Group, Text, Badge, Box, ThemeIcon } from '@mantine/core'
-import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight } from 'lucide-react'
+import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight, TrendingUp as TrendingUpIcon } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
 interface InsightCardProps {
@@ -23,25 +23,25 @@ interface InsightCardProps {
 const typeConfig = {
   winner: {
     icon: Trophy,
-    borderColor: '#12B76A',
-    iconColor: '#039855',
-    iconBg: '#ECFDF3',
+    borderColor: '#16A34A',
+    iconColor: '#16A34A',
+    iconBg: '#F0FDF4',
   },
   loser: {
     icon: TrendingDown,
-    borderColor: '#F04438',
-    iconColor: '#D92D20',
-    iconBg: '#FEF3F2',
+    borderColor: '#DC2626',
+    iconColor: '#DC2626',
+    iconBg: '#FEF2F2',
   },
   risk: {
     icon: AlertTriangle,
-    borderColor: '#F79009',
-    iconColor: '#DC6803',
-    iconBg: '#FFFAEB',
+    borderColor: '#D97706',
+    iconColor: '#D97706',
+    iconBg: '#FFFBEB',
   },
   opportunity: {
-    icon: Lightbulb,
-    borderColor: '#6366F1',
+    icon: TrendingUpIcon,
+    borderColor: '#4F46E5',
     iconColor: '#4F46E5',
     iconBg: '#EEF2FF',
   },
@@ -49,15 +49,8 @@ const typeConfig = {
     icon: Lightbulb,
     borderColor: '#06B6D4',
     iconColor: '#06B6D4',
-    iconBg: '#F9FAFB',
+    iconBg: '#F0F9FF',
   },
-}
-
-const severityWeight: Record<AnomalySeverity, number> = {
-  critical: 4,
-  high: 3,
-  medium: 2,
-  low: 1,
 }
 
 export function InsightCard({
@@ -75,47 +68,46 @@ export function InsightCard({
 }: InsightCardProps) {
   const config = typeConfig[type]
   const Icon = config.icon
-  const isCritical = severityWeight[severity] >= 3
   const href = actionHref || (entitySlug && entityType === 'site' ? `/sites/${entitySlug}` : undefined)
 
   return (
     <Card
-      padding="md"
-      radius="xl"
-      shadow="sm"
-      withBorder
+      padding={0}
+      radius={18}
       styles={{
         root: {
-          borderColor: '#E5E7EB',
-          borderLeft: `3px solid ${config.borderColor}`,
+          background: '#FFFFFF',
+          border: '1px solid #E6EAF0',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
           transition: 'all 0.15s ease',
           '&:hover': {
             transform: 'translateY(-1px)',
-            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
           },
         },
       }}
     >
-      <Group align="flex-start" gap="sm" wrap="nowrap">
+      <Box style={{ padding: 20, display: 'flex', gap: 14 }}>
         <ThemeIcon
-          size={28}
-          radius="md"
+          size={36}
+          radius={10}
           variant="light"
           styles={{
             root: {
               backgroundColor: config.iconBg,
               color: config.iconColor,
               flexShrink: 0,
+              border: 'none',
             },
           }}
         >
-          <Icon size={14} />
+          <Icon size={18} />
         </ThemeIcon>
 
-        <Box flex={1} miw={0}>
-          <Group gap="xs" align="center">
-            <Text size="sm" fw={600} c="#111827" truncate>
-              {entity}
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          <Group gap={8} align="center">
+            <Text fw={600} c="#0F172A" truncate style={{ fontSize: 15 }}>
+              {metric}
             </Text>
             <Badge
               size="xs"
@@ -126,31 +118,37 @@ export function InsightCard({
             >
               {entityType}
             </Badge>
-            {isCritical && (
-              <Badge size="xs" color="red" variant="light" radius="xl" tt="uppercase" fw={600}>
-                {severity}
-              </Badge>
-            )}
           </Group>
 
-          <Group gap="xs" mt={6} align="baseline">
-            <Text size="xs" c="#6B7280">{metric}:</Text>
-            <Text size="sm" fw={600} style={{ fontVariantNumeric: 'tabular-nums' }} c="#111827">
+          <Group gap={8} mt={6} align="baseline">
+            <Text fw={600} c="#0F172A" style={{ fontSize: 15 }}>
+              {entity}
+            </Text>
+            <Text
+              fw={600}
+              style={{
+                fontVariantNumeric: 'tabular-nums',
+                fontSize: 14,
+                color: '#4B5563',
+              }}
+            >
               {value}
             </Text>
             {delta !== undefined && (
               <Text
-                size="xs"
                 fw={600}
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-                c={delta >= 0 ? '#039855' : '#D92D20'}
+                style={{
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: 13,
+                  color: delta >= 0 ? '#16A34A' : '#DC2626',
+                }}
               >
                 {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
               </Text>
             )}
           </Group>
 
-          <Text size="xs" c="#6B7280" mt={6} lh={1.6}>
+          <Text c="#64748B" mt={8} style={{ fontSize: 13, lineHeight: 1.6 }}>
             {reason}
           </Text>
 
@@ -158,30 +156,35 @@ export function InsightCard({
             <Text
               component={Link}
               href={href}
-              size="xs"
               fw={600}
               c="#4F46E5"
-              mt={8}
+              mt={10}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
                 textDecoration: 'none',
                 transition: 'color 0.15s',
+                fontSize: 13,
               }}
             >
               {action}
-              <ArrowRight size={12} />
+              <ArrowRight size={13} />
             </Text>
           )}
           {action && !href && (
-            <Text size="xs" fw={600} c="#4F46E5" mt={8} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Text
+              fw={600}
+              c="#4F46E5"
+              mt={10}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}
+            >
               {action}
-              <ArrowRight size={12} />
+              <ArrowRight size={13} />
             </Text>
           )}
         </Box>
-      </Group>
+      </Box>
     </Card>
   )
 }

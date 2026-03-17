@@ -1,9 +1,9 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import { Group, Box, Text, ActionIcon, Menu, Skeleton, Badge } from '@mantine/core'
 import { motion } from 'framer-motion'
-import { RefreshCw, Loader2, Download, GitCompare, Check } from 'lucide-react'
+import { RefreshCw, Download, GitCompare, Check } from 'lucide-react'
 import { PeriodSelector } from '@/components/features/period-selector'
 import { useSyncStatus } from '@/hooks/use-sync-status'
 import { usePeriod } from '@/hooks/use-period'
@@ -25,11 +25,12 @@ function SyncStatusBadge() {
           textTransform: 'none',
           fontWeight: 500,
           fontSize: 12,
-          color: '#6B7280',
-          paddingLeft: 8,
-          paddingRight: 8,
-          height: 24,
-          background: 'transparent',
+          color: '#64748B',
+          paddingLeft: 10,
+          paddingRight: 10,
+          height: 28,
+          background: 'rgba(255,255,255,0.6)',
+          border: '1px solid #E7EAF0',
         },
       }}
     >
@@ -61,13 +62,17 @@ function SyncButton() {
       aria-label="Sync data"
       styles={{
         root: {
-          border: '1px solid #E5E7EB',
+          border: '1px solid #E7EAF0',
           height: 36,
           width: 36,
+          transition: 'all 0.14s ease',
+          '&:hover': {
+            backgroundColor: '#F1F5F9',
+          },
         },
       }}
     >
-      <RefreshCw size={15} />
+      <RefreshCw size={15} color="#64748B" />
     </ActionIcon>
   )
 }
@@ -93,9 +98,13 @@ function CompareModeSelect() {
           aria-label="Compare mode"
           styles={{
             root: {
-              border: isCustom ? '1px solid rgba(79,70,229,0.3)' : '1px solid #E5E7EB',
+              border: isCustom ? '1px solid rgba(79,70,229,0.3)' : '1px solid #E7EAF0',
               height: 36,
               width: 36,
+              transition: 'all 0.14s ease',
+              '&:hover': {
+                backgroundColor: isCustom ? undefined : '#F1F5F9',
+              },
             },
           }}
         >
@@ -149,24 +158,23 @@ export function TopContextBar({
       top={0}
       style={{
         zIndex: 100,
-        borderBottom: '1px solid #E5E7EB',
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        minHeight: 72,
+        borderBottom: '1px solid #E7EAF0',
+        background: 'rgba(255,255,255,0.82)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        height: 72,
       }}
-      px={{ base: 'md', sm: 'xl' }}
-      py={{ base: 'sm', sm: 0 }}
+      px={24}
     >
       <Group
         justify="space-between"
         wrap="wrap"
-        gap="sm"
-        style={{ minHeight: 72 }}
+        gap={12}
+        style={{ height: 72 }}
         align="center"
       >
         {/* Left: Title */}
-        <Box maw="50%" style={{ paddingLeft: 'var(--burger-offset, 0)' }}>
+        <Box style={{ paddingLeft: 'var(--burger-offset, 0)' }}>
           <motion.div
             key={title}
             initial={{ opacity: 0, x: -8 }}
@@ -174,25 +182,37 @@ export function TopContextBar({
             transition={{ duration: 0.2 }}
           >
             <Text
-              size="xl"
               fw={700}
-              c="#111827"
+              c="#0F172A"
               truncate
-              style={{ fontSize: 24, lineHeight: '32px' }}
+              style={{
+                fontSize: 32,
+                lineHeight: '38px',
+                fontFamily: 'Inter, sans-serif',
+              }}
             >
               {title}
             </Text>
           </motion.div>
           {subtitle && (
-            <Text size="sm" c="#6B7280" fw={500} mt={2} visibleFrom="sm">
+            <Text
+              c="#64748B"
+              fw={500}
+              mt={2}
+              visibleFrom="sm"
+              style={{
+                fontSize: 14,
+                lineHeight: '20px',
+              }}
+            >
               {subtitle}
             </Text>
           )}
         </Box>
 
         {/* Right: Controls */}
-        <Group gap="xs" wrap="wrap">
-          <Suspense fallback={<Skeleton h={24} w={100} radius="xl" />}>
+        <Group gap={12} wrap="wrap">
+          <Suspense fallback={<Skeleton h={28} w={100} radius="xl" />}>
             <SyncStatusBadge />
           </Suspense>
 
@@ -216,13 +236,17 @@ export function TopContextBar({
               aria-label="Export"
               styles={{
                 root: {
-                  border: '1px solid #E5E7EB',
+                  border: '1px solid #E7EAF0',
                   height: 36,
                   width: 36,
+                  transition: 'all 0.14s ease',
+                  '&:hover': {
+                    backgroundColor: '#F1F5F9',
+                  },
                 },
               }}
             >
-              <Download size={15} />
+              <Download size={15} color="#64748B" />
             </ActionIcon>
           )}
 
