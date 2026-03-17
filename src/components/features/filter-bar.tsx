@@ -40,10 +40,10 @@ export function FilterBar({ showBundle = true, showFormat = false, showTier = fa
   const hasFilters = filters.bundleId || filters.format || filters.tier
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
       {showBundle && (
         <Select value={filters.bundleId || ''} onValueChange={(v) => setFilter('bundleId', v || undefined)}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="All Bundles" />
           </SelectTrigger>
           <SelectContent>
@@ -56,7 +56,7 @@ export function FilterBar({ showBundle = true, showFormat = false, showTier = fa
 
       {showFormat && (
         <Select value={filters.format || ''} onValueChange={(v) => setFilter('format', v || undefined)}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-full sm:w-[130px]">
             <SelectValue placeholder="All Formats" />
           </SelectTrigger>
           <SelectContent>
@@ -69,7 +69,7 @@ export function FilterBar({ showBundle = true, showFormat = false, showTier = fa
 
       {showTier && (
         <Select value={filters.tier || ''} onValueChange={(v) => setFilter('tier', v || undefined)}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-full sm:w-[120px]">
             <SelectValue placeholder="All Tiers" />
           </SelectTrigger>
           <SelectContent>

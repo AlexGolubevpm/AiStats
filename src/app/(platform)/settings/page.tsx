@@ -70,13 +70,13 @@ function SettingsContent() {
 
   return (
     <Tabs defaultValue="api">
-      <TabsList className="h-11 gap-1 rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-1">
-        <TabsTrigger value="api" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">API Config</TabsTrigger>
-        <TabsTrigger value="sheets" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
-        <TabsTrigger value="sync" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
-        <TabsTrigger value="thresholds" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
-        <TabsTrigger value="health" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
-        <TabsTrigger value="ai" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
+      <TabsList className="flex h-auto w-full gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-1 sm:h-11 sm:w-auto sm:overflow-visible">
+        <TabsTrigger value="api" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">API Config</TabsTrigger>
+        <TabsTrigger value="sheets" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
+        <TabsTrigger value="sync" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
+        <TabsTrigger value="thresholds" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
+        <TabsTrigger value="health" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
+        <TabsTrigger value="ai" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
       </TabsList>
 
       <TabsContent value="api" className="mt-6">
