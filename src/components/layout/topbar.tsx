@@ -73,12 +73,12 @@ export function TopContextBar({
   actions,
 }: TopContextBarProps) {
   return (
-    <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between shadow-[0_1px_0_rgba(0,0,0,0.04)] bg-white/80 px-6 py-3 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex min-h-[64px] flex-col gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)] bg-white/80 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-6">
       {/* Left: Title */}
-      <div>
+      <div className="min-w-0">
         <motion.h1
           key={title}
-          className="text-page-title"
+          className="text-page-title truncate"
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
@@ -86,12 +86,12 @@ export function TopContextBar({
           {title}
         </motion.h1>
         {subtitle && (
-          <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">{subtitle}</p>
+          <p className="mt-0.5 hidden text-[13px] text-[var(--color-text-muted)] sm:block">{subtitle}</p>
         )}
       </div>
 
       {/* Right: Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <Suspense fallback={<Skeleton className="h-5 w-24" />}>
           <SyncStatusBadge />
         </Suspense>
@@ -109,7 +109,7 @@ export function TopContextBar({
             className="h-9 rounded-[var(--radius-control)] border-[var(--color-border-default)] text-[13px]"
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </Button>
         )}
 

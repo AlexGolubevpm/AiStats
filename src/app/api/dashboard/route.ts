@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { subDays, startOfDay, differenceInDays } from 'date-fns'
 import { prisma } from '@/lib/db'
 import { parsePeriodParam, parsePreviousPeriod, jsonResponse, errorResponse } from '@/lib/api-utils'
 import {
@@ -18,9 +19,10 @@ export async function GET(request: NextRequest) {
     const current = await aggregateNetworkMetrics(from, to)
     const previous = await aggregateNetworkMetrics(prevFrom, prevTo)
 
-    // Trend data for sparklines (last 7 days)
-    const trend = await getNetworkTrend(from, to)
-    const last7 = trend.slice(-7)
+    // Trend data: minimum 7 days for sparklines, full range for longer periods
+    const periodDays = differenceInDays(to, from) + 1
+    const trendFrom = periodDays < 7 ? startOfDay(subDays(to, 6)) : from
+    const trend = await getNetworkTrend(trendFrom, to)
 
     // Build KPI cards
     const kpis = [
@@ -29,49 +31,49 @@ export async function GET(request: NextRequest) {
         value: current.users,
         delta: calculateDelta(current.users, previous.users),
         format: 'number',
-        trend: last7.map((d) => d.users),
+        trend: trend.map((d) => d.users),
       },
       {
         label: 'Ad Requests',
         value: current.hits,
         delta: calculateDelta(current.hits, previous.hits),
         format: 'number',
-        trend: last7.map((d) => d.hits),
+        trend: trend.map((d) => d.hits),
       },
       {
         label: 'Ad Revenue',
         value: current.adRevenue,
         delta: calculateDelta(current.adRevenue, previous.adRevenue),
         format: 'currency',
-        trend: last7.map((d) => d.adRevenue),
+        trend: trend.map((d) => d.adRevenue),
       },
       {
         label: 'Affiliate Revenue',
         value: current.affiliateRevenue,
         delta: calculateDelta(current.affiliateRevenue, previous.affiliateRevenue),
         format: 'currency',
-        trend: last7.map((d) => d.affiliateRevenue),
+        trend: trend.map((d) => d.affiliateRevenue),
       },
       {
         label: 'Total Revenue',
         value: current.totalRevenue,
         delta: calculateDelta(current.totalRevenue, previous.totalRevenue),
         format: 'currency',
-        trend: last7.map((d) => d.totalRevenue),
+        trend: trend.map((d) => d.totalRevenue),
       },
       {
         label: 'Costs',
         value: current.costs,
         delta: calculateDelta(current.costs, previous.costs),
         format: 'currency',
-        trend: last7.map((d) => d.costs),
+        trend: trend.map((d) => d.costs),
       },
       {
         label: 'Profit',
         value: current.profit,
         delta: calculateDelta(current.profit, previous.profit),
         format: 'currency',
-        trend: last7.map((d) => d.profit),
+        trend: trend.map((d) => d.profit),
       },
       {
         label: 'ROMI',

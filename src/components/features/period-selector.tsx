@@ -25,9 +25,9 @@ export function PeriodSelector() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Select value={period} onValueChange={handlePeriodChange}>
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[140px] sm:w-[160px]">
           <CalendarDays className="mr-1.5 h-4 w-4 text-[var(--color-text-muted)]" />
           <SelectValue />
         </SelectTrigger>
@@ -41,19 +41,19 @@ export function PeriodSelector() {
       </Select>
 
       {period === 'custom' && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={localFrom}
             onChange={(e) => setLocalFrom(e.target.value)}
-            className="rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
+            className="w-[130px] rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
           />
           <span className="text-sm text-[var(--color-text-muted)]">to</span>
           <input
             type="date"
             value={localTo}
             onChange={(e) => setLocalTo(e.target.value)}
-            className="rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
+            className="w-[130px] rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] px-2 py-1.5 text-[13px] transition-all focus:border-[var(--color-primary-500)] focus:shadow-[var(--shadow-glow-primary)] outline-none"
           />
           <button
             onClick={handleApplyCustomRange}

@@ -5,6 +5,7 @@ import {
   syncAdspyglassQueue,
   syncCostsQueue,
   syncAffiliateQueue,
+  syncYandexMetricaQueue,
 } from '@/lib/queue'
 
 export async function GET() {
@@ -53,6 +54,11 @@ export async function POST(request: NextRequest) {
     if (source === 'all' || source === 'affiliate' || source === 'google_sheets_affiliate') {
       await syncAffiliateQueue.add('sync', { from, to })
       jobs.push('affiliate')
+    }
+
+    if (source === 'all' || source === 'yandex_metrica') {
+      await syncYandexMetricaQueue.add('sync', { from, to })
+      jobs.push('yandex_metrica')
     }
 
     return jsonResponse({

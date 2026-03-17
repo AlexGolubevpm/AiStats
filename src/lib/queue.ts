@@ -10,5 +10,6 @@ const opts = { connection: redisConnection }
 export const syncAdspyglassQueue = new Queue('sync-adspyglass', opts)
 export const syncCostsQueue = new Queue('sync-costs', opts)
 export const syncAffiliateQueue = new Queue('sync-affiliate', opts)
+export const syncYandexMetricaQueue = new Queue('sync-yandex-metrica', opts)
 export const calculateMetricsQueue = new Queue('calculate-metrics', opts)
 export const runAnalysisQueue = new Queue('run-analysis', opts)

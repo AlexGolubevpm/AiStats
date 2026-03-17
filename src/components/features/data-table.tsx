@@ -69,7 +69,7 @@ export function DataTable<TData>({
     <div>
       {/* Toolbar */}
       {searchKey && (
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-disabled)]" />
             <input
@@ -86,8 +86,8 @@ export function DataTable<TData>({
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-[var(--radius-card)] border border-[var(--color-border-subtle)]">
-        <table className="w-full text-[13px]">
+      <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-[var(--radius-card)] sm:border sm:border-[var(--color-border-subtle)]">
+        <table className="w-full min-w-[640px] text-[13px]">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]">
@@ -152,7 +152,7 @@ export function DataTable<TData>({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
           <span className="text-meta">
             Showing {pageStart}-{pageEnd} of {filteredTotal}
           </span>

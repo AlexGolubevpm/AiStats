@@ -124,17 +124,17 @@ function DashboardContent() {
           <h2 className="text-section-title mb-5">Trends</h2>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             <motion.div custom={0} variants={fadeInUp}>
-              <ChartCard title="Revenue Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
+              <ChartCard title="Revenue Trend" description={`${data.trend.length} days`}>
                 <RevenueTrendChart data={data.trend} />
               </ChartCard>
             </motion.div>
             <motion.div custom={1} variants={fadeInUp}>
-              <ChartCard title="Traffic Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
+              <ChartCard title="Traffic Trend" description={`${data.trend.length} days`}>
                 <TrafficTrendChart data={data.trend} />
               </ChartCard>
             </motion.div>
             <motion.div custom={2} variants={fadeInUp}>
-              <ChartCard title="Profit Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
+              <ChartCard title="Profit Trend" description={`${data.trend.length} days`}>
                 <ProfitTrendChart data={data.trend} />
               </ChartCard>
             </motion.div>

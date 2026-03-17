@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast'
 
 const SYNC_SOURCE_MAP: Record<string, string> = {
   'AdSpyglass': 'adspyglass',
+  'Yandex Metrica': 'yandex_metrica',
   'Google Sheets (Costs)': 'google_sheets_costs',
   'Google Sheets (Affiliate)': 'google_sheets_affiliate',
 }
@@ -70,27 +71,42 @@ function SettingsContent() {
 
   return (
     <Tabs defaultValue="api">
-      <TabsList className="h-11 gap-1 rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-1">
-        <TabsTrigger value="api" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">API Config</TabsTrigger>
-        <TabsTrigger value="sheets" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
-        <TabsTrigger value="sync" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
-        <TabsTrigger value="thresholds" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
-        <TabsTrigger value="health" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
-        <TabsTrigger value="ai" className="rounded-[var(--radius-control)] px-4 py-2 text-[13px] font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
+      <TabsList className="flex h-auto w-full gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-1 sm:h-11 sm:w-auto sm:overflow-visible">
+        <TabsTrigger value="api" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">API Config</TabsTrigger>
+        <TabsTrigger value="sheets" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Google Sheets</TabsTrigger>
+        <TabsTrigger value="sync" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Sync</TabsTrigger>
+        <TabsTrigger value="thresholds" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Thresholds</TabsTrigger>
+        <TabsTrigger value="health" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">Health Score</TabsTrigger>
+        <TabsTrigger value="ai" className="shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-[12px] font-medium sm:px-4 sm:text-[13px] data-[state=active]:bg-white data-[state=active]:shadow-sm">AI Settings</TabsTrigger>
       </TabsList>
 
       <TabsContent value="api" className="mt-6">
-        <ChartCard title="API Configuration" description="AdSpyglass and AdOK connection settings">
+        <ChartCard title="AdOK / AdSpyglass" description="API credentials for fetching ad revenue data. Get them from your AdSpyglass dashboard.">
           <div className="space-y-4">
             <div>
-              <Label>AdSpyglass API URL</Label>
-              <Input type="text" value={getValue('adspyglass_url')} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} className="mt-1.5" />
+              <Label>API URL</Label>
+              <Input type="text" value={getValue('adspyglass_url') || 'https://api.adok.ai'} onChange={(e) => setFormData({ ...formData, adspyglass_url: e.target.value })} placeholder="https://api.adok.ai" className="mt-1.5" />
             </div>
             <div>
-              <Label>API Key</Label>
-              <Input type="password" value={getValue('adspyglass_api_key')} onChange={(e) => setFormData({ ...formData, adspyglass_api_key: e.target.value })} className="mt-1.5" />
+              <Label>Auth Email</Label>
+              <Input type="email" value={getValue('adok_auth_email')} onChange={(e) => setFormData({ ...formData, adok_auth_email: e.target.value })} placeholder="your@email.com" className="mt-1.5" />
             </div>
-            <Button onClick={() => handleSave(['adspyglass_url', 'adspyglass_api_key'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
+            <div>
+              <Label>Auth Token</Label>
+              <Input type="password" value={getValue('adok_auth_token')} onChange={(e) => setFormData({ ...formData, adok_auth_token: e.target.value })} placeholder="YctjS1JB..." className="mt-1.5" />
+            </div>
+            <Button onClick={() => handleSave(['adspyglass_url', 'adok_auth_email', 'adok_auth_token'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Yandex Metrica" description="OAuth token for fetching visitor data. Counter IDs are set per-site on the Sites page." className="mt-6">
+          <div className="space-y-4">
+            <div>
+              <Label>OAuth Token</Label>
+              <Input type="password" value={getValue('yandex_metrika_oauth_token')} onChange={(e) => setFormData({ ...formData, yandex_metrika_oauth_token: e.target.value })} placeholder="y0_AgAAAA..." className="mt-1.5" />
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Get token at <a href="https://oauth.yandex.ru" target="_blank" rel="noopener noreferrer" className="underline">oauth.yandex.ru</a> with metrika:read scope</p>
+            </div>
+            <Button onClick={() => handleSave(['yandex_metrika_oauth_token'])} className="rounded-[var(--radius-control)]">Save Token</Button>
           </div>
         </ChartCard>
       </TabsContent>

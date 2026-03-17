@@ -125,12 +125,14 @@ export function mapAdTypeToFormat(adType: string): string {
 
 // ─── Helpers ───
 
-/** Strip protocol, www prefix and trailing slash from a domain string */
+/** Strip protocol, www prefix, trailing slash and AdOK numeric prefix from a domain string */
 export function cleanDomain(raw: string): string {
   return raw
+    .replace(/^\d+\.\s*/, '')   // strip AdOK "137648. " prefix
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
     .replace(/\/$/, '')
+    .toLowerCase()
 }
 
 // ─── Service ───
