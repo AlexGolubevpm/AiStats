@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
 import { GoogleSheetsService } from '../services/google-sheets'
+import { cleanDomain } from '../services/adspyglass'
 
 const connection = {
   host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
@@ -29,27 +30,92 @@ async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
 
   try {
     await job.updateProgress(10)
+    await job.log('Loading Google Sheets settings...')
+
+    const affiliateSetting = await prisma.setting.findUnique({ where: { key: 'affiliate_sheet_id' } })
+    const affiliateSheetId = affiliateSetting?.value as string | undefined
+
+    if (!affiliateSheetId) {
+      throw new Error('Affiliate sheet ID not configured. Go to Settings → Google Sheets and save the sheet URL.')
+    }
+
+    const service = new GoogleSheetsService(undefined, affiliateSheetId)
+
+    await job.updateProgress(20)
     await job.log('Fetching affiliate revenue from Google Sheets...')
 
-    const service = new GoogleSheetsService()
     const affiliateData = await service.fetchAffiliateRevenue(fromDate, toDate)
+    await job.log(`Fetched ${affiliateData.length} affiliate rows from sheet`)
 
     await job.updateProgress(50)
-    await job.log('Processing affiliate revenue records...')
+    await job.log('Matching sites and upserting affiliate records...')
 
-    // TODO: Parse and upsert affiliate revenue records
-    // Map sheet rows to site IDs using site.sheetName
-    // For each row:
-    //   const site = await prisma.site.findFirst({ where: { sheetName: row.siteName } })
-    //   if (site) {
-    //     await prisma.affiliateRevenue.upsert({
-    //       where: { siteId_date_source: { siteId: site.id, date: row.date, source: row.source || 'google_sheets' } },
-    //       create: { siteId: site.id, date: row.date, amount: row.amount, source: row.source || 'google_sheets' },
-    //       update: { amount: row.amount },
-    //     })
-    //   }
+    const sites = await prisma.site.findMany({
+      select: { id: true, name: true, domain: true, sheetName: true, slug: true },
+    })
+
+    const sitesWithNorm = sites.map(s => ({
+      ...s,
+      norm: cleanDomain(s.domain.toLowerCase()),
+      normName: s.name.toLowerCase().trim(),
+      normSheet: s.sheetName?.toLowerCase().trim() || '',
+      normSlug: s.slug.toLowerCase().trim(),
+    }))
 
     let recordsProcessed = 0
+    let skipped = 0
+
+    for (const row of affiliateData) {
+      const rawName = row.siteName.toLowerCase().trim()
+      const normInput = cleanDomain(rawName)
+
+      const site = sitesWithNorm.find(s =>
+        (s.normSheet && s.normSheet === rawName) ||
+        s.normName === rawName ||
+        s.norm === normInput ||
+        s.normSlug === rawName ||
+        s.norm.includes(normInput) ||
+        normInput.includes(s.norm)
+      )
+
+      if (!site) {
+        skipped++
+        if (skipped <= 5) {
+          await job.log(`Warning: no matching site for "${row.siteName}", skipping`)
+        }
+        continue
+      }
+
+      const date = new Date(row.date + 'T00:00:00.000Z')
+      if (date < fromDate || date > toDate) continue
+
+      const source = row.source || 'google_sheets'
+
+      await prisma.affiliateRevenue.upsert({
+        where: {
+          siteId_date_source: { siteId: site.id, date, source },
+        },
+        create: {
+          siteId: site.id,
+          date,
+          amount: new Prisma.Decimal(row.amount.toFixed(4)),
+          source,
+        },
+        update: {
+          amount: new Prisma.Decimal(row.amount.toFixed(4)),
+        },
+      })
+
+      recordsProcessed++
+    }
+
+    if (skipped > 0) {
+      await job.log(`Skipped ${skipped} rows with no matching site`)
+    }
+
+    await job.updateProgress(85)
+    await job.log('Updating daily metrics with affiliate revenue...')
+    await recalcDailyMetricsAffiliate(fromDate, toDate)
 
     await job.updateProgress(90)
 
@@ -79,6 +145,45 @@ async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
     })
 
     throw error
+  }
+}
+
+/**
+ * After upserting affiliate revenue, recalculate affiliateRevenue/totalRevenue/profit in DailyMetric
+ */
+async function recalcDailyMetricsAffiliate(from: Date, to: Date) {
+  const revenues = await prisma.affiliateRevenue.groupBy({
+    by: ['siteId', 'date'],
+    where: {
+      date: { gte: from, lte: to },
+    },
+    _sum: { amount: true },
+  })
+
+  for (const r of revenues) {
+    const totalAffiliate = Number(r._sum.amount || 0)
+
+    const daily = await prisma.dailyMetric.findUnique({
+      where: { siteId_date: { siteId: r.siteId, date: r.date } },
+    })
+
+    if (daily) {
+      const adRev = Number(daily.adRevenue)
+      const totalRevenue = adRev + totalAffiliate
+      const costs = Number(daily.costs)
+      const profit = totalRevenue - costs
+      const romi = costs > 0 ? ((totalRevenue - costs) / costs) * 100 : 0
+
+      await prisma.dailyMetric.update({
+        where: { siteId_date: { siteId: r.siteId, date: r.date } },
+        data: {
+          affiliateRevenue: new Prisma.Decimal(totalAffiliate.toFixed(4)),
+          totalRevenue: new Prisma.Decimal(totalRevenue.toFixed(4)),
+          profit: new Prisma.Decimal(profit.toFixed(4)),
+          romi: new Prisma.Decimal(romi.toFixed(2)),
+        },
+      })
+    }
   }
 }
 

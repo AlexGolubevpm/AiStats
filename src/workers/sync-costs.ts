@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq'
 import { PrismaClient, Prisma } from '@prisma/client'
 import { GoogleSheetsService } from '../services/google-sheets'
+import { cleanDomain } from '../services/adspyglass'
 
 const connection = {
   host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
@@ -58,16 +59,29 @@ async function processSyncCosts(job: Job<SyncCostsJobData>) {
     let recordsProcessed = 0
     let skipped = 0
 
+    // Pre-compute normalized domains for matching
+    const sitesWithNorm = sites.map(s => ({
+      ...s,
+      norm: cleanDomain(s.domain.toLowerCase()),
+      normName: s.name.toLowerCase().trim(),
+      normSheet: s.sheetName?.toLowerCase().trim() || '',
+      normSlug: s.slug.toLowerCase().trim(),
+    }))
+
     for (const row of costsData) {
-      // Match site by sheetName, name, domain, or slug (case-insensitive)
-      const siteName = row.siteName.toLowerCase().trim()
-      const site = sites.find(s =>
-        (s.sheetName && s.sheetName.toLowerCase() === siteName) ||
-        s.name.toLowerCase() === siteName ||
-        s.domain.toLowerCase() === siteName ||
-        s.slug.toLowerCase() === siteName ||
-        s.domain.toLowerCase().includes(siteName) ||
-        siteName.includes(s.domain.toLowerCase())
+      // Normalize the input domain the same way
+      const rawName = row.siteName.toLowerCase().trim()
+      const normInput = cleanDomain(rawName)
+
+      const site = sitesWithNorm.find(s =>
+        // Exact matches (normalized)
+        (s.normSheet && s.normSheet === rawName) ||
+        s.normName === rawName ||
+        s.norm === normInput ||
+        s.normSlug === rawName ||
+        // Substring matches on normalized domains
+        s.norm.includes(normInput) ||
+        normInput.includes(s.norm)
       )
 
       if (!site) {
