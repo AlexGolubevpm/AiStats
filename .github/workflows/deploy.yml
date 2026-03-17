@@ -1,0 +1,39 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd ~/apps/AiStats
+            echo "=== Pulling latest code ==="
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "=== Installing dependencies ==="
+            npm ci --prefer-offline
+
+            echo "=== Prisma generate + migrate ==="
+            npx prisma generate
+            npx prisma migrate deploy
+
+            echo "=== Building ==="
+            npm run build
+
+            echo "=== Restarting ==="
+            pm2 restart all --update-env
+
+            echo "=== Deploy complete ==="
+            pm2 status
