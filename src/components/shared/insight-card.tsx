@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { Card, Group, Text, Badge, Box, ThemeIcon } from '@mantine/core'
 import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
@@ -23,38 +23,33 @@ interface InsightCardProps {
 const typeConfig = {
   winner: {
     icon: Trophy,
-    border: 'border-l-[#12B76A]',
-    iconColor: 'text-[#039855]',
-    bgHover: 'hover:bg-[#ECFDF3]/30',
-    badge: 'bg-[#ECFDF3] text-[#039855]',
+    borderColor: '#12B76A',
+    iconColor: '#039855',
+    iconBg: '#ECFDF3',
   },
   loser: {
     icon: TrendingDown,
-    border: 'border-l-[#F04438]',
-    iconColor: 'text-[#D92D20]',
-    bgHover: 'hover:bg-[#FEF3F2]/30',
-    badge: 'bg-[#FEF3F2] text-[#D92D20]',
+    borderColor: '#F04438',
+    iconColor: '#D92D20',
+    iconBg: '#FEF3F2',
   },
   risk: {
     icon: AlertTriangle,
-    border: 'border-l-[#F79009]',
-    iconColor: 'text-[#DC6803]',
-    bgHover: 'hover:bg-[#FFFAEB]/30',
-    badge: 'bg-[#FFFAEB] text-[#DC6803]',
+    borderColor: '#F79009',
+    iconColor: '#DC6803',
+    iconBg: '#FFFAEB',
   },
   opportunity: {
     icon: Lightbulb,
-    border: 'border-l-[#6366F1]',
-    iconColor: 'text-[#4F46E5]',
-    bgHover: 'hover:bg-[#EEF2FF]/30',
-    badge: 'bg-[#EEF2FF] text-[#4338CA]',
+    borderColor: '#6366F1',
+    iconColor: '#4F46E5',
+    iconBg: '#EEF2FF',
   },
   info: {
     icon: Lightbulb,
-    border: 'border-l-[#06B6D4]',
-    iconColor: 'text-[#06B6D4]',
-    bgHover: 'hover:bg-[#F9FAFB]',
-    badge: 'bg-[#F9FAFB] text-[#4B5563]',
+    borderColor: '#06B6D4',
+    iconColor: '#06B6D4',
+    iconBg: '#F9FAFB',
   },
 }
 
@@ -77,75 +72,117 @@ export function InsightCard({
   actionHref,
   severity,
   type = 'info',
-  className,
 }: InsightCardProps) {
   const config = typeConfig[type]
   const Icon = config.icon
   const isCritical = severityWeight[severity] >= 3
-
-  // Auto-generate href for sites if entitySlug is available
   const href = actionHref || (entitySlug && entityType === 'site' ? `/sites/${entitySlug}` : undefined)
 
   return (
-    <div
-      className={cn(
-        'group rounded-[16px] border border-[#E5E7EB] border-l-[3px] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08),0_2px_4px_rgba(16,24,40,0.04)]',
-        config.border,
-        config.bgHover,
-        isCritical && 'shadow-[0_0_0_3px_rgba(240,68,56,0.15)]',
-        className
-      )}
+    <Card
+      padding="md"
+      radius="xl"
+      shadow="sm"
+      withBorder
+      styles={{
+        root: {
+          borderColor: '#E5E7EB',
+          borderLeft: `3px solid ${config.borderColor}`,
+          transition: 'all 0.15s ease',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+          },
+        },
+      }}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110', config.badge)}>
-          <Icon className={cn('h-3.5 w-3.5', config.iconColor)} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-[#111827] truncate">{entity}</span>
-            <span className="shrink-0 rounded-[999px] bg-[#F9FAFB] px-2 py-0.5 text-[10px] font-medium text-[#6B7280]">
+      <Group align="flex-start" gap="sm" wrap="nowrap">
+        <ThemeIcon
+          size={28}
+          radius="md"
+          variant="light"
+          styles={{
+            root: {
+              backgroundColor: config.iconBg,
+              color: config.iconColor,
+              flexShrink: 0,
+            },
+          }}
+        >
+          <Icon size={14} />
+        </ThemeIcon>
+
+        <Box flex={1} miw={0}>
+          <Group gap="xs" align="center">
+            <Text size="sm" fw={600} c="#111827" truncate>
+              {entity}
+            </Text>
+            <Badge
+              size="xs"
+              variant="light"
+              color="gray"
+              radius="xl"
+              styles={{ root: { textTransform: 'none', fontWeight: 500, fontSize: 10 } }}
+            >
               {entityType}
-            </span>
+            </Badge>
             {isCritical && (
-              <span className="shrink-0 rounded-[999px] bg-[#FEF3F2] px-2 py-0.5 text-[10px] font-semibold uppercase text-[#D92D20]">
+              <Badge size="xs" color="red" variant="light" radius="xl" tt="uppercase" fw={600}>
                 {severity}
-              </span>
+              </Badge>
             )}
-          </div>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-[12px] text-[#6B7280]">{metric}:</span>
-            <span className="text-[13px] font-semibold tabular-nums text-[#111827]">{value}</span>
+          </Group>
+
+          <Group gap="xs" mt={6} align="baseline">
+            <Text size="xs" c="#6B7280">{metric}:</Text>
+            <Text size="sm" fw={600} style={{ fontVariantNumeric: 'tabular-nums' }} c="#111827">
+              {value}
+            </Text>
             {delta !== undefined && (
-              <span
-                className={cn(
-                  'text-[12px] font-semibold tabular-nums',
-                  delta >= 0 ? 'text-[#039855]' : 'text-[#D92D20]'
-                )}
+              <Text
+                size="xs"
+                fw={600}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                c={delta >= 0 ? '#039855' : '#D92D20'}
               >
                 {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-              </span>
+              </Text>
             )}
-          </div>
-          <p className="mt-1.5 text-[12px] leading-relaxed text-[#6B7280]">{reason}</p>
-          {action && (
-            href ? (
-              <Link
-                href={href}
-                className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338CA] transition-colors"
-              >
-                <span>{action}</span>
-                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
-              </Link>
-            ) : (
-              <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-[#4F46E5]">
-                <span>{action}</span>
-                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
-              </div>
-            )
+          </Group>
+
+          <Text size="xs" c="#6B7280" mt={6} lh={1.6}>
+            {reason}
+          </Text>
+
+          {action && href && (
+            <Text
+              component={Link}
+              href={href}
+              size="xs"
+              fw={600}
+              c="#4F46E5"
+              mt={8}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                textDecoration: 'none',
+                transition: 'color 0.15s',
+              }}
+            >
+              {action}
+              <ArrowRight size={12} />
+            </Text>
           )}
-        </div>
-      </div>
-    </div>
+          {action && !href && (
+            <Text size="xs" fw={600} c="#4F46E5" mt={8} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {action}
+              <ArrowRight size={12} />
+            </Text>
+          )}
+        </Box>
+      </Group>
+    </Card>
   )
 }
 

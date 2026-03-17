@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { Box, Card, SimpleGrid, Group, Text, Stack } from '@mantine/core'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
@@ -20,97 +21,116 @@ function BundlesContent() {
 
   if (isLoading || !bundles) {
     return (
-      <div className="px-6 py-8">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <Box px="xl" py="xl">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
-        </div>
-      </div>
+        </SimpleGrid>
+      </Box>
     )
   }
 
   if (bundles.length === 0) {
     return (
-      <div className="px-6 py-8">
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-20">
-          <p className="text-[14px] text-[var(--color-text-muted)]">No bundles configured</p>
-          <p className="mt-1.5 text-meta">Add bundles in Settings to get started</p>
-        </div>
-      </div>
+      <Box px="xl" py="xl">
+        <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: '#D7DCE5', borderStyle: 'dashed' } }}>
+          <Stack align="center" py="xl" gap="xs">
+            <Text size="sm" c="#6B7280">No bundles configured</Text>
+            <Text size="xs" c="#6B7280" fw={500}>Add bundles in Settings to get started</Text>
+          </Stack>
+        </Card>
+      </Box>
     )
   }
 
   return (
-    <motion.div className="px-6 py-8" initial="hidden" animate="visible">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; traffic: number; adRevenue: number; affiliateRevenue: number; totalRevenue: number; costs: number; profit: number; romi: number; rpm: number; health: number | null; delta: number }, i: number) => (
-          <motion.div key={bundle.id} custom={i} variants={fadeInUp}>
-            <Link
-              href={`/bundles/${bundle.slug}`}
-              className="group block rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-4 w-4 rounded-full" style={{ backgroundColor: bundle.color }} />
-                  <h3 className="text-[18px] font-bold">{bundle.name}</h3>
-                  <span className="text-meta">{bundle.sitesCount || 0} sites</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {bundle.health != null && <HealthBadge score={bundle.health} />}
-                  <ChevronRight className="h-4 w-4 text-[var(--color-text-disabled)] transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
+    <motion.div initial="hidden" animate="visible">
+      <Box px="xl" py="xl">
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+          {bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; traffic: number; adRevenue: number; affiliateRevenue: number; totalRevenue: number; costs: number; profit: number; romi: number; rpm: number; health: number | null; delta: number }, i: number) => (
+            <motion.div key={bundle.id} custom={i} variants={fadeInUp}>
+              <Card
+                component={Link}
+                href={`/bundles/${bundle.slug}`}
+                padding="lg"
+                radius="xl"
+                shadow="sm"
+                withBorder
+                styles={{
+                  root: {
+                    borderColor: '#E5E7EB',
+                    textDecoration: 'none',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+                    },
+                  },
+                }}
+              >
+                <Group justify="space-between">
+                  <Group gap="sm">
+                    <Box style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: bundle.color }} />
+                    <Text size="lg" fw={700}>{bundle.name}</Text>
+                    <Text size="xs" c="#6B7280" fw={500}>{bundle.sitesCount || 0} sites</Text>
+                  </Group>
+                  <Group gap="xs">
+                    {bundle.health != null && <HealthBadge score={bundle.health} />}
+                    <ChevronRight size={16} color="#9CA3AF" />
+                  </Group>
+                </Group>
 
-              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {[
-                  { label: 'Requests', value: formatCompact(bundle.traffic || 0) },
-                  { label: 'Ad Revenue', value: formatCurrency(bundle.adRevenue || 0) },
-                  { label: 'Affiliate', value: formatCurrency(bundle.affiliateRevenue || 0) },
-                  { label: 'Total Revenue', value: formatCurrency(bundle.totalRevenue || 0) },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <p className="text-meta">{label}</p>
-                    <p className="mt-1 text-[14px] font-semibold tabular-nums">{value}</p>
-                  </div>
-                ))}
-              </div>
+                <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" mt="lg">
+                  {[
+                    { label: 'Requests', value: formatCompact(bundle.traffic || 0) },
+                    { label: 'Ad Revenue', value: formatCurrency(bundle.adRevenue || 0) },
+                    { label: 'Affiliate', value: formatCurrency(bundle.affiliateRevenue || 0) },
+                    { label: 'Total Revenue', value: formatCurrency(bundle.totalRevenue || 0) },
+                  ].map(({ label, value }) => (
+                    <Box key={label}>
+                      <Text size="xs" c="#6B7280" fw={500}>{label}</Text>
+                      <Text size="sm" fw={600} mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</Text>
+                    </Box>
+                  ))}
+                </SimpleGrid>
 
-              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div>
-                  <p className="text-meta">Costs</p>
-                  <p className="mt-1 text-[14px] font-semibold tabular-nums">{formatCurrency(bundle.costs || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-meta">Profit</p>
-                  <p className="mt-1 text-[14px] font-semibold tabular-nums text-[var(--color-success-dark)]">{formatCurrency(bundle.profit || 0)}</p>
-                </div>
-                <div>
-                  <p className="text-meta">ROMI</p>
-                  <p className="mt-1 text-[14px] font-semibold tabular-nums">{(bundle.romi || 0).toFixed(1)}%</p>
-                </div>
-                <div>
-                  <p className="text-meta">RPM</p>
-                  <p className="mt-1 text-[14px] font-semibold tabular-nums">{formatCurrency(bundle.rpm || 0)}</p>
-                </div>
-              </div>
+                <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" mt="sm">
+                  <Box>
+                    <Text size="xs" c="#6B7280" fw={500}>Costs</Text>
+                    <Text size="sm" fw={600} mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(bundle.costs || 0)}</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="#6B7280" fw={500}>Profit</Text>
+                    <Text size="sm" fw={600} mt={4} c="#039855" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(bundle.profit || 0)}</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="#6B7280" fw={500}>ROMI</Text>
+                    <Text size="sm" fw={600} mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>{(bundle.romi || 0).toFixed(1)}%</Text>
+                  </Box>
+                  <Box>
+                    <Text size="xs" c="#6B7280" fw={500}>RPM</Text>
+                    <Text size="sm" fw={600} mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(bundle.rpm || 0)}</Text>
+                  </Box>
+                </SimpleGrid>
 
-              <div className="mt-4 flex items-center justify-end border-t border-[var(--color-border-subtle)] pt-4">
-                <MetricDelta value={bundle.delta || 0} />
-              </div>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
+                <Group justify="flex-end" mt="md" pt="md" style={{ borderTop: '1px solid #E5E7EB' }}>
+                  <MetricDelta value={bundle.delta || 0} />
+                </Group>
+              </Card>
+            </motion.div>
+          ))}
+        </SimpleGrid>
+      </Box>
     </motion.div>
   )
 }
 
 export default function BundlesPage() {
   return (
-    <div>
+    <Box>
       <TopContextBar title="Bundles" subtitle="Performance by bundle group" />
-      <Suspense fallback={<div className="px-6 py-8"><div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={<Box px="xl" py="xl"><SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</SimpleGrid></Box>}>
         <BundlesContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }

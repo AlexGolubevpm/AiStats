@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, Suspense } from 'react'
+import { Box, Stack, SimpleGrid, Group, Text, Card } from '@mantine/core'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
@@ -25,35 +26,46 @@ function ScenarioSlider({ label, value, onChange, min, max }: { label: string; v
   const pct = ((value - min) / (max - min)) * 100
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">{label}</span>
-        <span className={cn(
-          'rounded-[var(--radius-control)] px-2.5 py-1 text-[13px] font-semibold tabular-nums',
-          value > 0 ? 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]'
-            : value < 0 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-dark)]'
-            : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]'
-        )}>
+    <Stack gap="xs">
+      <Group justify="space-between">
+        <Text size="sm" fw={500} c="var(--color-text-secondary)">{label}</Text>
+        <Box
+          component="span"
+          style={{
+            borderRadius: 'var(--radius-control)',
+            padding: '4px 10px',
+            fontSize: 13,
+            fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums',
+            backgroundColor: value > 0 ? 'var(--color-success-bg)' : value < 0 ? 'var(--color-danger-bg)' : 'var(--color-surface-secondary)',
+            color: value > 0 ? 'var(--color-success-dark)' : value < 0 ? 'var(--color-danger-dark)' : 'var(--color-text-muted)',
+          }}
+        >
           {value >= 0 ? '+' : ''}{value}%
-        </span>
-      </div>
-      <div className="relative">
-        <div className="h-1.5 w-full rounded-full bg-[var(--color-border-subtle)]">
-          <div
-            className="absolute h-1.5 rounded-full bg-[var(--color-primary-500)]"
-            style={{ width: `${pct}%` }}
+        </Box>
+      </Group>
+      <Box style={{ position: 'relative' }}>
+        <Box style={{ height: 6, width: '100%', borderRadius: 9999, backgroundColor: 'var(--color-border-subtle)' }}>
+          <Box
+            style={{
+              position: 'absolute',
+              height: 6,
+              borderRadius: 9999,
+              backgroundColor: 'var(--color-primary-500)',
+              width: `${pct}%`,
+            }}
           />
-        </div>
+        </Box>
         <input
           type="range"
           min={min}
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute inset-0 h-1.5 w-full cursor-pointer opacity-0"
+          style={{ position: 'absolute', inset: 0, height: 6, width: '100%', cursor: 'pointer', opacity: 0 }}
         />
-      </div>
-    </div>
+      </Box>
+    </Stack>
   )
 }
 
@@ -64,34 +76,48 @@ function ScenarioMetricCard({ label, current, projected }: { label: string; curr
   const isRomi = label.includes('ROMI')
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]">
-      <p className="text-card-title uppercase tracking-wider">{label}</p>
-      <div className="mt-3 grid grid-cols-2 gap-4">
-        <div>
-          <span className="text-meta">Current</span>
-          <p className="mt-1 text-[20px] font-bold tabular-nums text-[var(--color-text-primary)]">
+    <Card padding="lg" radius="xl" shadow="sm" withBorder styles={{ root: { borderColor: 'var(--color-border-subtle)' } }}>
+      <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>{label}</Text>
+      <SimpleGrid cols={2} spacing="md" mt="sm">
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>Current</Text>
+          <Text size="lg" fw={700} c="var(--color-text-primary)" mt={4} style={{ fontVariantNumeric: 'tabular-nums', fontSize: 20 }}>
             {isRomi ? `${current.toFixed(1)}%` : formatCurrency(current)}
-          </p>
-        </div>
-        <div>
-          <span className="text-meta">Projected</span>
-          <p className={cn(
-            'mt-1 text-[20px] font-bold tabular-nums',
-            isPositive ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-danger-dark)]'
-          )}>
+          </Text>
+        </Box>
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>Projected</Text>
+          <Text
+            size="lg"
+            fw={700}
+            c={isPositive ? 'var(--color-success-dark)' : 'var(--color-danger-dark)'}
+            mt={4}
+            style={{ fontVariantNumeric: 'tabular-nums', fontSize: 20 }}
+          >
             {isRomi ? `${projected.toFixed(1)}%` : formatCurrency(projected)}
-          </p>
-        </div>
-      </div>
+          </Text>
+        </Box>
+      </SimpleGrid>
       {current > 0 && (
-        <div className={cn(
-          'mt-3 flex items-center gap-1 rounded-[var(--radius-control)] px-2.5 py-1.5 text-[12px] font-semibold tabular-nums',
-          isPositive ? 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]' : 'bg-[var(--color-danger-bg)] text-[var(--color-danger-dark)]'
-        )}>
+        <Box
+          mt="sm"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            borderRadius: 'var(--radius-control)',
+            padding: '6px 10px',
+            fontSize: 12,
+            fontWeight: 600,
+            fontVariantNumeric: 'tabular-nums',
+            backgroundColor: isPositive ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
+            color: isPositive ? 'var(--color-success-dark)' : 'var(--color-danger-dark)',
+          }}
+        >
           {delta >= 0 ? '+' : ''}{delta.toFixed(1)}% change
-        </div>
+        </Box>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -107,12 +133,12 @@ function ForecastContent() {
 
   if (isLoading || !baseData) {
     return (
-      <div className="space-y-8 px-6 py-8">
+      <Stack gap="xl" px="xl" py="xl">
         <ChartSkeleton />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SimpleGrid cols={{ base: 2, lg: 4 }} spacing="md">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
-        </div>
-      </div>
+        </SimpleGrid>
+      </Stack>
     )
   }
 
@@ -125,12 +151,14 @@ function ForecastContent() {
 
   if (!hasData) {
     return (
-      <div className="px-6 py-8">
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-20">
-          <p className="text-[14px] text-[var(--color-text-muted)]">No baseline data available for forecasting</p>
-          <p className="mt-1.5 text-meta">Forecast will be available after syncing metric data from AdSpyglass</p>
-        </div>
-      </div>
+      <Box px="xl" py="xl">
+        <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: 'var(--color-border-default)', borderStyle: 'dashed' } }}>
+          <Stack align="center" py="xl" gap="xs">
+            <Text size="sm" c="var(--color-text-muted)">No baseline data available for forecasting</Text>
+            <Text size="xs" fw={500} c="#6B7280">Forecast will be available after syncing metric data from AdSpyglass</Text>
+          </Stack>
+        </Card>
+      </Box>
     )
   }
 
@@ -157,81 +185,90 @@ function ForecastContent() {
 
   return (
     <motion.div
-      className="space-y-8 px-6 py-8"
       initial="hidden"
       animate="visible"
       variants={fadeInUp}
       custom={0}
     >
-      {/* Section 1: Scenario Controls */}
-      <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]">
-        <div className="mb-5 flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-[var(--color-primary-600)]" />
-          <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)]">Scenario Controls</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
-          {params.map(({ label, value, setter, min, max }) => (
-            <ScenarioSlider key={label} label={label} value={value} onChange={setter} min={min} max={max} />
-          ))}
-        </div>
-        <div className="mt-5 flex justify-end">
-          <button
-            onClick={() => {
-              setTrafficChange(0); setCostChange(0); setRpmChange(0)
-              setAffiliateChange(0); setTierChange(0); setFormatChange(0)
-            }}
-            className="text-[12px] font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
-          >
-            Reset all to baseline
-          </button>
-        </div>
-      </div>
+      <Stack gap="xl" px="xl" py="xl">
+        {/* Section 1: Scenario Controls */}
+        <Card padding="lg" radius="xl" shadow="sm" withBorder styles={{ root: { borderColor: 'var(--color-border-subtle)' } }}>
+          <Group gap="xs" mb="md">
+            <SlidersHorizontal className="h-4 w-4" style={{ color: 'var(--color-primary-600)' }} />
+            <Text size="sm" fw={600} c="var(--color-text-primary)" style={{ fontSize: 15 }}>Scenario Controls</Text>
+          </Group>
+          <SimpleGrid cols={{ base: 1, sm: 2, xl: 3 }} spacing="lg">
+            {params.map(({ label, value, setter, min, max }) => (
+              <ScenarioSlider key={label} label={label} value={value} onChange={setter} min={min} max={max} />
+            ))}
+          </SimpleGrid>
+          <Group justify="flex-end" mt="md">
+            <Text
+              component="button"
+              size="xs"
+              fw={500}
+              c="var(--color-primary-600)"
+              style={{ cursor: 'pointer', border: 'none', background: 'none', padding: 0 }}
+              onClick={() => {
+                setTrafficChange(0); setCostChange(0); setRpmChange(0)
+                setAffiliateChange(0); setTierChange(0); setFormatChange(0)
+              }}
+            >
+              Reset all to baseline
+            </Text>
+          </Group>
+        </Card>
 
-      {/* Section 2: Baseline vs Projected Metrics */}
-      <div>
-        <h2 className="text-section-title mb-5">Baseline vs Projected</h2>
-        <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-          <ScenarioMetricCard label="Revenue" current={baseTotalRevenue} projected={projTotalRevenue} />
-          <ScenarioMetricCard label="Costs" current={baseCosts} projected={projCosts} />
-          <ScenarioMetricCard label="Profit" current={baseProfit} projected={projProfit} />
-          <ScenarioMetricCard label="ROMI" current={baseRomi} projected={projRomi} />
-        </div>
-      </div>
+        {/* Section 2: Baseline vs Projected Metrics */}
+        <Box>
+          <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>Baseline vs Projected</Text>
+          <SimpleGrid cols={{ base: 2, xl: 4 }} spacing="md">
+            <ScenarioMetricCard label="Revenue" current={baseTotalRevenue} projected={projTotalRevenue} />
+            <ScenarioMetricCard label="Costs" current={baseCosts} projected={projCosts} />
+            <ScenarioMetricCard label="Profit" current={baseProfit} projected={projProfit} />
+            <ScenarioMetricCard label="ROMI" current={baseRomi} projected={projRomi} />
+          </SimpleGrid>
+        </Box>
 
-      {/* Section 3: Forecast Chart */}
-      <ChartCard title="Forecast Comparison" description="Current vs projected values">
-        <ForecastChart
-          currentValues={{ revenue: baseRevenue, affiliate: baseAffiliate, costs: baseCosts, profit: baseProfit }}
-          projectedValues={{ revenue: projAdRevenue, affiliate: projAffiliate, costs: projCosts, profit: projProfit }}
-        />
-      </ChartCard>
+        {/* Section 3: Forecast Chart */}
+        <ChartCard title="Forecast Comparison" description="Current vs projected values">
+          <ForecastChart
+            currentValues={{ revenue: baseRevenue, affiliate: baseAffiliate, costs: baseCosts, profit: baseProfit }}
+            projectedValues={{ revenue: projAdRevenue, affiliate: projAffiliate, costs: projCosts, profit: projProfit }}
+          />
+        </ChartCard>
 
-      {/* Section 4: Assumptions */}
-      <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Info className="h-4 w-4 text-[var(--color-text-muted)]" />
-          <h3 className="text-[13px] font-semibold text-[var(--color-text-secondary)]">Assumptions & Notes</h3>
-        </div>
-        <ul className="space-y-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
-          <li>Projections are based on the most recent 30-day baseline data from AdSpyglass.</li>
-          <li>Traffic change impacts ad revenue proportionally through RPM calculations.</li>
-          <li>Format contribution change applies as a multiplier on ad revenue from format distribution shifts.</li>
-          <li>Tier performance change models geographic traffic quality shifts.</li>
-          <li>ROMI is calculated as (Total Revenue - Costs) / Costs x 100.</li>
-          <li>These projections assume linear scaling and do not account for market saturation or seasonality.</li>
-        </ul>
-      </div>
+        {/* Section 4: Assumptions */}
+        <Card padding="lg" radius="xl" withBorder styles={{ root: { borderColor: 'var(--color-border-subtle)', backgroundColor: 'var(--color-surface-secondary)' } }}>
+          <Group gap="xs" mb="sm">
+            <Info className="h-4 w-4" style={{ color: 'var(--color-text-muted)' }} />
+            <Text size="sm" fw={600} c="var(--color-text-secondary)" style={{ fontSize: 13 }}>Assumptions &amp; Notes</Text>
+          </Group>
+          <Stack gap={6}>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>Projections are based on the most recent 30-day baseline data from AdSpyglass.</Text>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>Traffic change impacts ad revenue proportionally through RPM calculations.</Text>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>Format contribution change applies as a multiplier on ad revenue from format distribution shifts.</Text>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>Tier performance change models geographic traffic quality shifts.</Text>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>ROMI is calculated as (Total Revenue - Costs) / Costs x 100.</Text>
+            <Text size="xs" c="var(--color-text-muted)" lh={1.6}>These projections assume linear scaling and do not account for market saturation or seasonality.</Text>
+          </Stack>
+        </Card>
+      </Stack>
     </motion.div>
   )
 }
 
 export default function ForecastPage() {
   return (
-    <div>
+    <Box>
       <TopContextBar title="Forecast" subtitle="Scenario modeling and projections" showPeriod={false} showSync={false} />
-      <Suspense fallback={<div className="space-y-8 px-6 py-8"><ChartSkeleton /></div>}>
+      <Suspense fallback={
+        <Stack gap="xl" px="xl" py="xl">
+          <ChartSkeleton />
+        </Stack>
+      }>
         <ForecastContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }

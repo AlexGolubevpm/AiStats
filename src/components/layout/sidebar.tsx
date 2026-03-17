@@ -1,11 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
-import { slideInLeft } from '@/lib/motion'
+import { Box, NavLink, ScrollArea, Text, Divider } from '@mantine/core'
 import {
   LayoutDashboard,
   Layers,
@@ -17,8 +14,6 @@ import {
   Brain,
   Settings,
   Activity,
-  Menu,
-  X,
 } from 'lucide-react'
 
 const primaryNav = [
@@ -39,164 +34,177 @@ const utilityNav = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
-function SidebarSection({ label, items, onNavigate }: { label?: string; items: typeof primaryNav; onNavigate?: () => void }) {
+export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <div>
-      {label && (
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-disabled)]">
-          {label}
-        </p>
-      )}
-      <div className="space-y-[6px]">
-        {items.map((item) => {
+    <Box
+      h="100%"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#F7F8FC',
+      }}
+    >
+      {/* Brand zone */}
+      <Box
+        px="lg"
+        style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+        }}
+      >
+        <Box
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: '#4F46E5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Activity size={16} color="white" />
+        </Box>
+        <Text fw={700} size="sm" c="#111827" style={{ letterSpacing: '-0.01em' }}>
+          AiStats
+        </Text>
+      </Box>
+
+      {/* Navigation */}
+      <ScrollArea flex={1} px="sm" py={4}>
+        {primaryNav.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
-            <Link
+            <NavLink
               key={item.name}
+              component={Link}
               href={item.href}
-              onClick={onNavigate}
-              className={cn(
-                'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150',
-                isActive
-                  ? 'text-[var(--color-primary-700)]'
-                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]'
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-xl bg-[var(--color-primary-50)]"
-                  transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                />
-              )}
-              <item.icon
-                className={cn(
-                  'relative z-10 h-[18px] w-[18px] shrink-0',
-                  isActive ? 'text-[var(--color-primary-600)]' : ''
-                )}
-              />
-              <span className="relative z-10">{item.name}</span>
-            </Link>
+              label={item.name}
+              leftSection={<item.icon size={18} />}
+              active={isActive}
+              variant="light"
+              color="indigo"
+              style={{
+                borderRadius: 12,
+                fontWeight: 500,
+                fontSize: 13,
+                marginBottom: 2,
+              }}
+              styles={{
+                root: {
+                  '&[dataActive]': {
+                    backgroundColor: '#EEF2FF',
+                    color: '#4338CA',
+                    fontWeight: 600,
+                  },
+                },
+                label: {
+                  fontSize: 13,
+                },
+              }}
+            />
           )
         })}
-      </div>
-    </div>
-  )
-}
 
-export function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false)
+        <Divider my="sm" color="#E5E7EB" />
 
-  const closeMobile = () => setMobileOpen(false)
-
-  return (
-    <>
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface)] shadow-sm lg:hidden"
-        aria-label="Open sidebar"
-      >
-        <Menu className="h-5 w-5 text-[var(--color-text-secondary)]" />
-      </button>
-
-      {/* Mobile sidebar with AnimatePresence */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            {/* Overlay backdrop for mobile */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={closeMobile}
+        <Text
+          size="xs"
+          fw={600}
+          tt="uppercase"
+          c="#9CA3AF"
+          px="sm"
+          mb={4}
+          style={{ letterSpacing: '0.06em', fontSize: 11 }}
+        >
+          Analytics
+        </Text>
+        {analyticsNav.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          return (
+            <NavLink
+              key={item.name}
+              component={Link}
+              href={item.href}
+              label={item.name}
+              leftSection={<item.icon size={18} />}
+              active={isActive}
+              variant="light"
+              color="indigo"
+              style={{
+                borderRadius: 12,
+                fontWeight: 500,
+                fontSize: 13,
+                marginBottom: 2,
+              }}
+              styles={{
+                label: {
+                  fontSize: 13,
+                },
+              }}
             />
+          )
+        })}
 
-            {/* Mobile sidebar */}
-            <motion.aside
-              variants={slideInLeft}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-sidebar-bg)] lg:hidden"
-            >
-              {/* Brand zone */}
-              <div className="flex h-[64px] items-center justify-between px-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary-600)] hover:shadow-[var(--shadow-glow-primary)]">
-                    <Activity className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                    AiStats
-                  </span>
-                </div>
-                <button
-                  onClick={closeMobile}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] lg:hidden"
-                  aria-label="Close sidebar"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+        <Divider my="sm" color="#E5E7EB" />
 
-              {/* Navigation */}
-              <nav className="flex-1 overflow-y-auto px-4 py-2">
-                <div className="space-y-6">
-                  <SidebarSection items={primaryNav} onNavigate={closeMobile} />
-                  <SidebarSection label="Analytics" items={analyticsNav} onNavigate={closeMobile} />
-                  <SidebarSection items={utilityNav} onNavigate={closeMobile} />
-                </div>
-              </nav>
+        {utilityNav.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          return (
+            <NavLink
+              key={item.name}
+              component={Link}
+              href={item.href}
+              label={item.name}
+              leftSection={<item.icon size={18} />}
+              active={isActive}
+              variant="light"
+              color="indigo"
+              style={{
+                borderRadius: 12,
+                fontWeight: 500,
+                fontSize: 13,
+                marginBottom: 2,
+              }}
+              styles={{
+                label: {
+                  fontSize: 13,
+                },
+              }}
+            />
+          )
+        })}
+      </ScrollArea>
 
-              {/* Footer */}
-              <div className="border-t border-[var(--color-border-subtle)] px-5 py-3">
-                <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-disabled)]">
-                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-success)]" />
-                  <span>System online</span>
-                </div>
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Desktop sidebar (always visible on lg+) */}
-      <aside
-        className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-sidebar-bg)] lg:flex"
+      {/* Footer */}
+      <Box
+        px="lg"
+        py="sm"
+        style={{
+          borderTop: '1px solid #E5E7EB',
+          flexShrink: 0,
+        }}
       >
-        {/* Brand zone */}
-        <div className="flex h-[64px] items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary-600)] hover:shadow-[var(--shadow-glow-primary)]">
-              <Activity className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-              AiStats
-            </span>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 py-2">
-          <div className="space-y-6">
-            <SidebarSection items={primaryNav} onNavigate={closeMobile} />
-            <SidebarSection label="Analytics" items={analyticsNav} onNavigate={closeMobile} />
-            <SidebarSection items={utilityNav} onNavigate={closeMobile} />
-          </div>
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-[var(--color-border-subtle)] px-5 py-3">
-          <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-disabled)]">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-success)]" />
-            <span>System online</span>
-          </div>
-        </div>
-      </aside>
-    </>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Box
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#12B76A',
+              animation: 'pulse 2s infinite',
+            }}
+          />
+          <Text size="xs" c="#9CA3AF" fw={500}>
+            System online
+          </Text>
+        </Box>
+      </Box>
+    </Box>
   )
 }

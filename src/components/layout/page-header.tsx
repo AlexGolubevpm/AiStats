@@ -1,3 +1,5 @@
+import { Group, Box, Text } from '@mantine/core'
+
 interface PageHeaderProps {
   title: string
   description?: string
@@ -6,16 +8,18 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, children }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+    <Group justify="space-between">
+      <Box>
+        <Text size="xl" fw={600} c="var(--color-text-primary)" style={{ letterSpacing: '-0.01em' }}>
           {title}
-        </h2>
+        </Text>
         {description && (
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">{description}</p>
+          <Text size="sm" c="var(--color-text-muted)" mt={4}>
+            {description}
+          </Text>
         )}
-      </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
-    </div>
+      </Box>
+      {children && <Group gap="sm">{children}</Group>}
+    </Group>
   )
 }

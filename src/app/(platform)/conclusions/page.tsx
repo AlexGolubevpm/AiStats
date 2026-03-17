@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { Box, Stack, SimpleGrid, Text, Card, Group, ThemeIcon } from '@mantine/core'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
@@ -39,29 +40,28 @@ function Section({
 }) {
   if (!items || items.length === 0) return null
 
-  // Sort by severity - critical first
   const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
   const sorted = [...items].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
 
   return (
-    <section>
-      <div className="mb-4 flex items-center gap-3">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bgColor}`}>
-          <Icon className={`h-4 w-4 ${iconColor}`} />
-        </div>
-        <div>
-          <h3 className="text-[16px] font-semibold text-[var(--color-text-primary)]">{title}</h3>
-          <span className="text-meta">{items.length} item{items.length > 1 ? 's' : ''}</span>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <Box component="section">
+      <Group gap="sm" mb="md">
+        <ThemeIcon size={32} radius="md" variant="light" style={{ backgroundColor: bgColor }}>
+          <Icon size={16} style={{ color: iconColor }} />
+        </ThemeIcon>
+        <Box>
+          <Text size="md" fw={600} c="#111827">{title}</Text>
+          <Text size="xs" c="#6B7280" fw={500}>{items.length} item{items.length > 1 ? 's' : ''}</Text>
+        </Box>
+      </Group>
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         {sorted.map((item, i) => (
           <motion.div key={i} custom={i} variants={fadeInUp}>
             <CardComponent {...item} />
           </motion.div>
         ))}
-      </div>
-    </section>
+      </SimpleGrid>
+    </Box>
   )
 }
 
@@ -71,14 +71,14 @@ function ConclusionsContent() {
 
   if (isLoading || !data) {
     return (
-      <div className="space-y-10 px-6 py-8">
+      <Stack gap="xl" px="xl" py="xl">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <SimpleGrid key={i} cols={{ base: 1, md: 2 }} spacing="md">
             <KPICardSkeleton />
             <KPICardSkeleton />
-          </div>
+          </SimpleGrid>
         ))}
-      </div>
+      </Stack>
     )
   }
 
@@ -91,69 +91,73 @@ function ConclusionsContent() {
 
   if (!hasAny) {
     return (
-      <div className="px-6 py-8">
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-20">
-          <p className="text-[14px] text-[var(--color-text-muted)]">No conclusions available</p>
-          <p className="mt-1.5 text-meta">Conclusions will be generated once metric data is synced</p>
-        </div>
-      </div>
+      <Box px="xl" py="xl">
+        <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: '#D7DCE5', borderStyle: 'dashed' } }}>
+          <Stack align="center" py="xl" gap="xs">
+            <Text size="sm" c="#6B7280">No conclusions available</Text>
+            <Text size="xs" fw={500} c="#6B7280">Conclusions will be generated once metric data is synced</Text>
+          </Stack>
+        </Card>
+      </Box>
     )
   }
 
   return (
-    <motion.div className="space-y-10 px-6 py-8" initial="hidden" animate="visible">
-      <Section
-        title="Winners"
-        icon={Trophy}
-        iconColor="text-[var(--color-success-dark)]"
-        bgColor="bg-[var(--color-success-bg)]"
-        items={winners}
-        CardComponent={WinnerCard}
-      />
-      <Section
-        title="Losers"
-        icon={TrendingDown}
-        iconColor="text-[var(--color-danger-dark)]"
-        bgColor="bg-[var(--color-danger-bg)]"
-        items={losers}
-        CardComponent={LoserCard}
-      />
-      <Section
-        title="Risks"
-        icon={AlertTriangle}
-        iconColor="text-[var(--color-warning-dark)]"
-        bgColor="bg-[var(--color-warning-bg)]"
-        items={risks}
-        CardComponent={RiskCard}
-      />
-      <Section
-        title="Opportunities"
-        icon={Lightbulb}
-        iconColor="text-[var(--color-primary-700)]"
-        bgColor="bg-[var(--color-primary-50)]"
-        items={opportunities}
-        CardComponent={OpportunityCard}
-      />
+    <motion.div initial="hidden" animate="visible">
+      <Stack gap="xl" px="xl" py="xl">
+        <Section
+          title="Winners"
+          icon={Trophy}
+          iconColor="var(--color-success-dark)"
+          bgColor="var(--color-success-bg)"
+          items={winners}
+          CardComponent={WinnerCard}
+        />
+        <Section
+          title="Losers"
+          icon={TrendingDown}
+          iconColor="var(--color-danger-dark)"
+          bgColor="var(--color-danger-bg)"
+          items={losers}
+          CardComponent={LoserCard}
+        />
+        <Section
+          title="Risks"
+          icon={AlertTriangle}
+          iconColor="var(--color-warning-dark)"
+          bgColor="var(--color-warning-bg)"
+          items={risks}
+          CardComponent={RiskCard}
+        />
+        <Section
+          title="Opportunities"
+          icon={Lightbulb}
+          iconColor="var(--color-primary-700)"
+          bgColor="var(--color-primary-50)"
+          items={opportunities}
+          CardComponent={OpportunityCard}
+        />
+      </Stack>
     </motion.div>
   )
 }
 
 export default function ConclusionsPage() {
   return (
-    <div>
+    <Box>
       <TopContextBar title="Conclusions" subtitle="Daily executive summary" showExport />
       <Suspense fallback={
-        <div className="space-y-10 px-6 py-8">
+        <Stack gap="xl" px="xl" py="xl">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <SimpleGrid key={i} cols={{ base: 1, md: 2 }} spacing="md">
               <KPICardSkeleton />
               <KPICardSkeleton />
-            </div>
+            </SimpleGrid>
           ))}
-        </div>
+        </Stack>
       }>
         <ConclusionsContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }

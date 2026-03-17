@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { Box, Stack, SimpleGrid, Group, Text, Card } from '@mantine/core'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
@@ -29,23 +30,23 @@ const columns: ColumnDef<CostRow, unknown>[] = [
   {
     accessorKey: 'site',
     header: 'Site',
-    cell: ({ row }) => <span className="font-semibold text-[var(--color-text-primary)]">{row.original.site}</span>,
+    cell: ({ row }) => <Text fw={600} size="sm" c="var(--color-text-primary)">{row.original.site}</Text>,
   },
   { accessorKey: 'bundle', header: 'Bundle' },
   {
     accessorKey: 'yesterday',
     header: 'Yesterday',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.yesterday || 0)}</span>,
+    cell: ({ row }) => <Text size="sm" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.yesterday || 0)}</Text>,
   },
   {
     accessorKey: 'avg7d',
     header: '7d Avg',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.avg7d || 0)}</span>,
+    cell: ({ row }) => <Text size="sm" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.avg7d || 0)}</Text>,
   },
   {
     accessorKey: 'total30d',
     header: '30d Total',
-    cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.total30d || 0)}</span>,
+    cell: ({ row }) => <Text fw={600} size="sm" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.total30d || 0)}</Text>,
   },
   {
     accessorKey: 'change',
@@ -58,15 +59,28 @@ const columns: ColumnDef<CostRow, unknown>[] = [
     cell: ({ row }) => {
       const status = row.original.status
       const config = status === 'matched'
-        ? { bg: 'bg-[var(--color-success-bg)]', text: 'text-[var(--color-success-dark)]', dot: 'bg-[var(--color-success)]', label: 'Matched' }
+        ? { bg: 'var(--color-success-bg)', text: 'var(--color-success-dark)', dot: 'var(--color-success)', label: 'Matched' }
         : status === 'no_data'
-        ? { bg: 'bg-[var(--color-bg-subtle)]', text: 'text-[var(--color-text-muted)]', dot: 'bg-[var(--color-text-muted)]', label: 'No Data' }
-        : { bg: 'bg-[var(--color-warning-bg)]', text: 'text-[var(--color-warning-dark)]', dot: 'bg-[var(--color-warning)]', label: 'Unmatched' }
+        ? { bg: 'var(--color-bg-subtle)', text: 'var(--color-text-muted)', dot: 'var(--color-text-muted)', label: 'No Data' }
+        : { bg: 'var(--color-warning-bg)', text: 'var(--color-warning-dark)', dot: 'var(--color-warning)', label: 'Unmatched' }
       return (
-        <span className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2.5 py-1 text-[11px] font-semibold ${config.bg} ${config.text}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+        <Box
+          component="span"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 'var(--radius-pill)',
+            padding: '4px 10px',
+            fontSize: 11,
+            fontWeight: 600,
+            backgroundColor: config.bg,
+            color: config.text,
+          }}
+        >
+          <Box component="span" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: config.dot }} />
           {config.label}
-        </span>
+        </Box>
       )
     },
   },
@@ -79,13 +93,13 @@ function CostsContent() {
 
   if (isLoading || !data) {
     return (
-      <div className="space-y-8 px-6 py-8">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Stack gap="xl" px="xl" py="xl">
+        <SimpleGrid cols={{ base: 2, sm: 2, lg: 4 }} spacing="md">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
-        </div>
+        </SimpleGrid>
         <ChartSkeleton />
         <TableSkeleton />
-      </div>
+      </Stack>
     )
   }
 
@@ -107,73 +121,93 @@ function CostsContent() {
   const noDataCount = tableRows.filter(r => r.status === 'no_data').length
 
   return (
-    <motion.div className="space-y-8 px-6 py-8" initial="hidden" animate="visible" variants={fadeInUp}>
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
-        <KPICard label="7-Day Average" value={summary.sevenDayAvg || 0} format="currency" />
-        <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
-        <KPICard label="No Cost Data" value={noDataCount} format="number" />
-      </div>
+    <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
+      <Stack gap="xl" px="xl" py="xl">
+        {/* KPI Row */}
+        <SimpleGrid cols={{ base: 2, sm: 2, lg: 4 }} spacing="md">
+          <KPICard label="Yesterday Total" value={summary.yesterdayTotal || 0} format="currency" />
+          <KPICard label="7-Day Average" value={summary.sevenDayAvg || 0} format="currency" />
+          <KPICard label="30-Day Total" value={summary.thirtyDayTotal || 0} format="currency" />
+          <KPICard label="No Cost Data" value={noDataCount} format="number" />
+        </SimpleGrid>
 
-      {/* Cost Trend */}
-      {trend.length > 0 && (
-        <ChartCard title="Cost Trend" description="Daily cost breakdown">
-          <CostTrendChart data={trend} />
-        </ChartCard>
-      )}
+        {/* Cost Trend */}
+        {trend.length > 0 && (
+          <ChartCard title="Cost Trend" description="Daily cost breakdown">
+            <CostTrendChart data={trend} />
+          </ChartCard>
+        )}
 
-      {/* Table */}
-      {tableRows.length > 0 ? (
-        <div>
-          <h2 className="text-section-title mb-5">Cost Breakdown</h2>
-          <DataTable columns={columns} data={tableRows} searchKey="site" searchPlaceholder="Search sites..." />
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-16">
-          <p className="text-[14px] text-[var(--color-text-muted)]">No cost data available</p>
-          <p className="mt-1.5 text-meta">Cost data will appear after syncing</p>
-        </div>
-      )}
+        {/* Table */}
+        {tableRows.length > 0 ? (
+          <Box>
+            <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>Cost Breakdown</Text>
+            <DataTable columns={columns} data={tableRows} searchKey="site" searchPlaceholder="Search sites..." />
+          </Box>
+        ) : (
+          <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: 'var(--color-border-default)', borderStyle: 'dashed' } }}>
+            <Stack align="center" py="xl" gap="xs">
+              <Text size="sm" c="var(--color-text-muted)">No cost data available</Text>
+              <Text size="xs" fw={500} c="#6B7280">Cost data will appear after syncing</Text>
+            </Stack>
+          </Card>
+        )}
 
-      {/* Mapping Issues Banner */}
-      {unmatchedCount > 0 && (
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-warning)] bg-[var(--color-warning-bg)] p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] font-semibold text-[var(--color-warning-dark)]">
+        {/* Mapping Issues Banner */}
+        {unmatchedCount > 0 && (
+          <Box
+            p="md"
+            style={{
+              borderRadius: 'var(--radius-card)',
+              border: '1px solid var(--color-warning)',
+              backgroundColor: 'var(--color-warning-bg)',
+            }}
+          >
+            <Text size="sm" fw={600} c="var(--color-warning-dark)">
               {unmatchedCount} site{unmatchedCount > 1 ? 's' : ''} with unmatched cost mapping
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] text-[var(--color-warning-dark)]/70">
-            Check site mappings in Settings to ensure cost data is correctly attributed.
-          </p>
-        </div>
-      )}
+            </Text>
+            <Text size="xs" c="var(--color-warning-dark)" mt={4} style={{ opacity: 0.7 }}>
+              Check site mappings in Settings to ensure cost data is correctly attributed.
+            </Text>
+          </Box>
+        )}
 
-      {/* No Data Info Banner */}
-      {noDataCount > 0 && unmatchedCount === 0 && (
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border-default)] bg-[var(--color-bg-subtle)] p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] font-semibold text-[var(--color-text-secondary)]">
+        {/* No Data Info Banner */}
+        {noDataCount > 0 && unmatchedCount === 0 && (
+          <Box
+            p="md"
+            style={{
+              borderRadius: 'var(--radius-card)',
+              border: '1px solid var(--color-border-default)',
+              backgroundColor: 'var(--color-bg-subtle)',
+            }}
+          >
+            <Text size="sm" fw={600} c="var(--color-text-secondary)">
               {noDataCount} site{noDataCount > 1 ? 's' : ''} awaiting cost data
-            </span>
-          </div>
-          <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-            Cost data will appear after syncing from Google Sheets. Configure the sheet in Settings → Google Sheets.
-          </p>
-        </div>
-      )}
+            </Text>
+            <Text size="xs" c="var(--color-text-muted)" mt={4}>
+              Cost data will appear after syncing from Google Sheets. Configure the sheet in Settings &rarr; Google Sheets.
+            </Text>
+          </Box>
+        )}
+      </Stack>
     </motion.div>
   )
 }
 
 export default function CostsPage() {
   return (
-    <div>
+    <Box>
       <TopContextBar title="Costs" subtitle="Cost tracking and analysis" showExport />
-      <Suspense fallback={<div className="space-y-8 px-6 py-8"><div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={
+        <Stack gap="xl" px="xl" py="xl">
+          <SimpleGrid cols={{ base: 2, sm: 2, lg: 4 }} spacing="md">
+            {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
+          </SimpleGrid>
+        </Stack>
+      }>
         <CostsContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }
