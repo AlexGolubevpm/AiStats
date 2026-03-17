@@ -33,7 +33,7 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
-      className="group overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
+      className="block overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border-default)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
