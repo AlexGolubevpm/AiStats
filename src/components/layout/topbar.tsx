@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { motion } from 'framer-motion'
 import { RefreshCw, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,20 +36,22 @@ function SyncButton() {
   const { triggerSync, isSyncing } = useSyncStatus()
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => triggerSync()}
-      disabled={isSyncing}
-      className="h-9 rounded-[var(--radius-control)] border-[var(--color-border-default)] text-[13px]"
-    >
-      {isSyncing ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-      )}
-      {isSyncing ? 'Syncing...' : 'Sync'}
-    </Button>
+    <motion.div whileTap={{ scale: 0.97 }}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => triggerSync()}
+        disabled={isSyncing}
+        className="h-9 rounded-[var(--radius-control)] border-[var(--color-border-default)] text-[13px]"
+      >
+        {isSyncing ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        {isSyncing ? 'Syncing...' : 'Sync'}
+      </Button>
+    </motion.div>
   )
 }
 
@@ -70,10 +73,18 @@ export function TopContextBar({
   actions,
 }: TopContextBarProps) {
   return (
-    <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between border-b border-[var(--color-border-subtle)] bg-white/90 px-6 py-3 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between shadow-[0_1px_0_rgba(0,0,0,0.04)] bg-white/80 px-6 py-3 backdrop-blur-md">
       {/* Left: Title */}
       <div>
-        <h1 className="text-page-title">{title}</h1>
+        <motion.h1
+          key={title}
+          className="text-page-title"
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {title}
+        </motion.h1>
         {subtitle && (
           <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">{subtitle}</p>
         )}

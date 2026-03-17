@@ -10,7 +10,21 @@ import { Prisma } from '@prisma/client'
 
 // ─── DATE HELPERS ───
 
-export function getDateRange(period: string): { from: Date; to: Date } {
+export function getDateRange(
+  period: string,
+  customFrom?: string,
+  customTo?: string
+): { from: Date; to: Date } {
+  // Support custom date range: from=YYYY-MM-DD&to=YYYY-MM-DD
+  if (period === 'custom' && customFrom && customTo) {
+    const from = startOfDay(new Date(customFrom))
+    const to = endOfDay(new Date(customTo))
+    if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && from <= to) {
+      return { from, to }
+    }
+    // Fall through to default if invalid
+  }
+
   const now = new Date()
   const today = startOfDay(now)
 
@@ -199,7 +213,8 @@ export async function aggregateSiteMetrics(
 
 interface TrendPoint {
   date: string
-  users: number
+  hits: number      // ad requests from AdOK
+  users: number     // real users from Yandex Metrica (0 until connected)
   adRevenue: number
   affiliateRevenue: number
   totalRevenue: number
@@ -214,6 +229,7 @@ async function buildTrend(
     by: ['date'],
     where,
     _sum: {
+      hits: true,
       users: true,
       adRevenue: true,
       affiliateRevenue: true,
@@ -226,6 +242,7 @@ async function buildTrend(
 
   return rows.map((row) => ({
     date: format(row.date, 'yyyy-MM-dd'),
+    hits: row._sum.hits ?? 0,
     users: row._sum.users ?? 0,
     adRevenue: sumNum(row._sum.adRevenue),
     affiliateRevenue: sumNum(row._sum.affiliateRevenue),
@@ -274,7 +291,6 @@ interface FormatBreakdownItem {
   ctr: number
   fillRate: number
   ecpm: number
-  rpm: number
 }
 
 export async function getFormatBreakdown(
@@ -293,6 +309,9 @@ export async function getFormatBreakdown(
       clicks: true,
       revenue: true,
     },
+    _avg: {
+      fillRate: true,
+    },
   })
 
   return rows.map((row) => {
@@ -301,6 +320,7 @@ export async function getFormatBreakdown(
     const revenue = sumNum(row._sum.revenue)
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
     const ecpm = impressions > 0 ? (revenue / impressions) * 1000 : 0
+    const fillRate = toNum(row._avg.fillRate)
 
     return {
       format: row.format,
@@ -308,9 +328,8 @@ export async function getFormatBreakdown(
       clicks,
       revenue,
       ctr,
-      fillRate: 0, // Fill rate needs total available impressions - not summable
+      fillRate,
       ecpm,
-      rpm: ecpm, // RPM and eCPM are equivalent at format level
     }
   })
 }
@@ -331,6 +350,9 @@ export async function getBundleFormatBreakdown(
       clicks: true,
       revenue: true,
     },
+    _avg: {
+      fillRate: true,
+    },
   })
 
   return rows.map((row) => {
@@ -339,6 +361,7 @@ export async function getBundleFormatBreakdown(
     const revenue = sumNum(row._sum.revenue)
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
     const ecpm = impressions > 0 ? (revenue / impressions) * 1000 : 0
+    const fillRate = toNum(row._avg.fillRate)
 
     return {
       format: row.format,
@@ -346,9 +369,8 @@ export async function getBundleFormatBreakdown(
       clicks,
       revenue,
       ctr,
-      fillRate: 0,
+      fillRate,
       ecpm,
-      rpm: ecpm,
     }
   })
 }

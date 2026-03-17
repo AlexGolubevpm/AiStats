@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import { getDateRange, getPreviousDateRange } from '@/services/metrics'
 
 export function parsePeriodParam(searchParams: URLSearchParams) {
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
+
+  // Support ?from=YYYY-MM-DD&to=YYYY-MM-DD as alternative to ?period=7d
+  if (from && to) {
+    return getDateRange('custom', from, to)
+  }
+
   const period = searchParams.get('period') || '7d'
   return getDateRange(period)
 }

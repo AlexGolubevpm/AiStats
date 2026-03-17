@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import Link from 'next/link'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
@@ -18,14 +19,6 @@ import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 8 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.18, delay: i * 0.04 },
-  }),
-}
 
 function EmptyState({ message }: { message: string }) {
   return (
@@ -36,7 +29,7 @@ function EmptyState({ message }: { message: string }) {
   )
 }
 
-function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number } }) {
+function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number } }) {
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
@@ -57,8 +50,8 @@ function BundleSummaryCard({ bundle }: { bundle: { id: string; name: string; slu
       {/* Metrics */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <span className="text-meta">Traffic</span>
-          <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCompact(bundle.users || 0)}</p>
+          <span className="text-meta">Requests</span>
+          <p className="mt-0.5 text-[16px] font-semibold tabular-nums">{formatCompact(bundle.hits || 0)}</p>
         </div>
         <div>
           <span className="text-meta">Revenue</span>
@@ -114,20 +107,11 @@ function DashboardContent() {
       initial="hidden"
       animate="visible"
     >
-      {/* KPI Row */}
+      {/* KPI Grid — unified responsive layout */}
       {hasKpis && (
-        <div className="grid grid-cols-3 gap-5 xl:grid-cols-5">
-          {data.kpis.slice(0, 5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
-            <motion.div key={kpi.label} custom={i} variants={fadeIn}>
-              <KPICard {...kpi} />
-            </motion.div>
-          ))}
-        </div>
-      )}
-      {hasKpis && data.kpis.length > 5 && (
-        <div className="grid grid-cols-4 gap-5">
-          {data.kpis.slice(5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
-            <motion.div key={kpi.label} custom={i + 5} variants={fadeIn}>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }, i: number) => (
+            <motion.div key={kpi.label} custom={i} variants={fadeInUp}>
               <KPICard {...kpi} />
             </motion.div>
           ))}
@@ -138,18 +122,18 @@ function DashboardContent() {
       {hasTrend && (
         <div>
           <h2 className="text-section-title mb-5">Trends</h2>
-          <div className="grid grid-cols-3 gap-5">
-            <motion.div custom={0} variants={fadeIn}>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <motion.div custom={0} variants={fadeInUp}>
               <ChartCard title="Revenue Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
                 <RevenueTrendChart data={data.trend} />
               </ChartCard>
             </motion.div>
-            <motion.div custom={1} variants={fadeIn}>
+            <motion.div custom={1} variants={fadeInUp}>
               <ChartCard title="Traffic Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
                 <TrafficTrendChart data={data.trend} />
               </ChartCard>
             </motion.div>
-            <motion.div custom={2} variants={fadeIn}>
+            <motion.div custom={2} variants={fadeInUp}>
               <ChartCard title="Profit Trend" description={`Last ${period === '30d' ? '30' : '7'} days`}>
                 <ProfitTrendChart data={data.trend} />
               </ChartCard>
@@ -162,9 +146,9 @@ function DashboardContent() {
       {hasBundles && (
         <div>
           <h2 className="text-section-title mb-5">Bundles</h2>
-          <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; users: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
-              <motion.div key={bundle.id} custom={i} variants={fadeIn}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {data.bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; hits: number; totalRevenue: number; profit: number; romi: number; healthScore?: number; delta?: number }, i: number) => (
+              <motion.div key={bundle.id} custom={i} variants={fadeInUp}>
                 <BundleSummaryCard bundle={bundle} />
               </motion.div>
             ))}
@@ -176,9 +160,9 @@ function DashboardContent() {
       {hasInsights && (
         <div>
           <h2 className="text-section-title mb-5">Operational Insights</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {data.insights.map((insight: { entity: string; entityType: string; metric: string; value: string; delta?: number; reason: string; action?: string; severity: 'low' | 'medium' | 'high' | 'critical'; type?: 'risk' | 'opportunity' | 'info' }, i: number) => (
-              <motion.div key={i} custom={i} variants={fadeIn}>
+              <motion.div key={i} custom={i} variants={fadeInUp}>
                 <InsightCard {...insight} />
               </motion.div>
             ))}

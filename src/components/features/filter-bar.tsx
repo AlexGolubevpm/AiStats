@@ -1,5 +1,6 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { useFilters } from '@/hooks/use-filters'
@@ -79,12 +80,21 @@ export function FilterBar({ showBundle = true, showFormat = false, showTier = fa
         </Select>
       )}
 
-      {hasFilters && (
-        <Button variant="ghost" size="sm" onClick={clearFilters}>
-          <X className="mr-1 h-3 w-3" />
-          Clear
-        </Button>
-      )}
+      <AnimatePresence>
+        {hasFilters && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

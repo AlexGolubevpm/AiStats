@@ -2,6 +2,7 @@
 
 import { use, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
@@ -37,7 +38,7 @@ const formatColumns: ColumnDef<FormatRow, unknown>[] = [
 
 const tierColumns: ColumnDef<TierRow, unknown>[] = [
   { accessorKey: 'tier', header: 'Tier', cell: ({ row }) => <span className="font-semibold">{row.original.tier.replace('TIER_', 'Tier ')}</span> },
-  { accessorKey: 'users', header: 'Users', cell: ({ row }) => <span className="tabular-nums">{(row.original.users || 0).toLocaleString()}</span> },
+  { accessorKey: 'users', header: 'Requests', cell: ({ row }) => <span className="tabular-nums">{(row.original.users || 0).toLocaleString()}</span> },
   { accessorKey: 'impressions', header: 'Impressions', cell: ({ row }) => <span className="tabular-nums">{(row.original.impressions || 0).toLocaleString()}</span> },
   { accessorKey: 'revenue', header: 'Revenue', cell: ({ row }) => <span className="font-semibold tabular-nums">{formatCurrency(row.original.revenue || 0)}</span> },
   { accessorKey: 'ctr', header: 'CTR', cell: ({ row }) => <span className="tabular-nums">{(row.original.ctr || 0).toFixed(2)}%</span> },
@@ -79,9 +80,10 @@ function SiteDetailContent({ id }: { id: string }) {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       {/* Site Header — Control Center */}
       <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]">
@@ -132,7 +134,7 @@ function SiteDetailContent({ id }: { id: string }) {
 
         {/* Quick KPI metrics in header */}
         {hasKpis && (
-          <div className="mt-5 grid grid-cols-5 gap-4 border-t border-[var(--color-border-subtle)] pt-5">
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--color-border-subtle)] pt-5 sm:grid-cols-3 lg:grid-cols-5">
             {data.kpis.slice(0, 5).map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
               <div key={kpi.label}>
                 <span className="text-meta">{kpi.label}</span>
@@ -169,11 +171,11 @@ function SiteDetailContent({ id }: { id: string }) {
 
         <TabsContent value="overview" className="mt-6">
           {hasTrend ? (
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <ChartCard title="Revenue Trend" description="Daily revenue">
                 <RevenueTrendChart data={data.trend} />
               </ChartCard>
-              <ChartCard title="Traffic Trend" description="Daily users">
+              <ChartCard title="Traffic Trend" description="Daily requests">
                 <TrafficTrendChart data={data.trend} />
               </ChartCard>
             </div>
@@ -202,7 +204,7 @@ function SiteDetailContent({ id }: { id: string }) {
         <TabsContent value="tiers" className="mt-6 space-y-6">
           {hasTiers ? (
             <>
-              <ChartCard title="Tier Distribution" description="Revenue and users by GEO tier">
+              <ChartCard title="Tier Distribution" description="Revenue and requests by GEO tier">
                 <TierBreakdownChart data={data.tierBreakdown} />
               </ChartCard>
               <DataTable columns={tierColumns} data={data.tierBreakdown} />

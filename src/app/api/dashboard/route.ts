@@ -25,11 +25,11 @@ export async function GET(request: NextRequest) {
     // Build KPI cards
     const kpis = [
       {
-        label: 'Users',
-        value: current.users,
-        delta: calculateDelta(current.users, previous.users),
+        label: 'Requests',
+        value: current.hits,
+        delta: calculateDelta(current.hits, previous.hits),
         format: 'number',
-        trend: last7.map((d) => d.users),
+        trend: last7.map((d) => d.hits),
       },
       {
         label: 'Ad Revenue',

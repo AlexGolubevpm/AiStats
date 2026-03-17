@@ -59,23 +59,28 @@ export function DataTable<TData>({
 
   const totalPages = table.getPageCount()
   const currentPage = table.getState().pagination.pageIndex
+  const filteredTotal = table.getFilteredRowModel().rows.length
+  const pageStart = currentPage * pageSize + 1
+  const pageEnd = Math.min((currentPage + 1) * pageSize, filteredTotal)
+  const hasActiveFilter = globalFilter.length > 0
+  const hasNoResults = table.getRowModel().rows.length === 0
 
   return (
     <div>
       {/* Toolbar */}
       {searchKey && (
         <div className="mb-4 flex items-center justify-between">
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-disabled)]" />
             <input
               placeholder={searchPlaceholder}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="h-9 w-72 rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-[var(--color-text-disabled)] focus:border-[var(--color-primary-500)] focus:ring-1 focus:ring-[var(--color-primary-500)]/20"
+              className="h-9 w-full rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-[var(--color-text-disabled)] focus:border-[var(--color-primary-500)] focus-visible:shadow-[var(--shadow-glow-primary)] sm:w-72"
             />
           </div>
-          <span className="text-meta">
-            {table.getFilteredRowModel().rows.length} results
+          <span className="hidden text-meta sm:inline">
+            {filteredTotal} results
           </span>
         </div>
       )}
@@ -117,21 +122,21 @@ export function DataTable<TData>({
             ))}
           </thead>
           <tbody className="divide-y divide-[var(--color-border-subtle)]">
-            {table.getRowModel().rows.length === 0 ? (
+            {hasNoResults ? (
               <tr>
                 <td colSpan={columns.length} className="py-12 text-center text-[13px] text-[var(--color-text-muted)]">
-                  No data available
+                  {hasActiveFilter ? 'No results found' : 'No data available'}
                 </td>
               </tr>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="transition-colors duration-100 hover:bg-[var(--color-surface-hover)]">
+                <tr key={row.id} className="group border-l-2 border-transparent hover:border-l-[var(--color-primary-500)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)]">
                   {row.getVisibleCells().map((cell, idx) => (
                     <td
                       key={cell.id}
                       className={cn(
                         'px-4 py-3',
-                        idx === 0 ? 'sticky left-0 z-10 bg-[var(--color-surface)] font-medium' : '',
+                        idx === 0 ? 'sticky left-0 z-10 bg-[var(--color-surface)] font-medium group-hover:bg-[var(--color-surface-hover)]' : '',
                         idx > 1 ? 'text-right tabular-nums' : ''
                       )}
                     >
@@ -149,20 +154,20 @@ export function DataTable<TData>({
       {totalPages > 1 && (
         <div className="mt-3 flex items-center justify-between">
           <span className="text-meta">
-            Page {currentPage + 1} of {totalPages}
+            Showing {pageStart}-{pageEnd} of {filteredTotal}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] active:scale-95 focus-visible:shadow-[var(--shadow-glow-primary)] disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] active:scale-95 focus-visible:shadow-[var(--shadow-glow-primary)] disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

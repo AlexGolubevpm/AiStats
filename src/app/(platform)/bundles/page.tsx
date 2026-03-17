@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { MetricDelta } from '@/components/shared/delta-indicator'
@@ -12,14 +13,6 @@ import { formatCurrency, formatCompact } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 8 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.18, delay: i * 0.05 },
-  }),
-}
 
 function BundlesContent() {
   const { period } = usePeriod()
@@ -28,7 +21,7 @@ function BundlesContent() {
   if (isLoading || !bundles) {
     return (
       <div className="px-6 py-8">
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
       </div>
@@ -48,9 +41,9 @@ function BundlesContent() {
 
   return (
     <motion.div className="px-6 py-8" initial="hidden" animate="visible">
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {bundles.map((bundle: { id: string; name: string; slug: string; color: string; sitesCount: number; traffic: number; adRevenue: number; affiliateRevenue: number; totalRevenue: number; costs: number; profit: number; romi: number; rpm: number; health: number | null; delta: number }, i: number) => (
-          <motion.div key={bundle.id} custom={i} variants={fadeIn}>
+          <motion.div key={bundle.id} custom={i} variants={fadeInUp}>
             <Link
               href={`/bundles/${bundle.slug}`}
               className="group block rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)] transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-elevated)]"
@@ -67,9 +60,9 @@ function BundlesContent() {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-4 gap-4">
+              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {[
-                  { label: 'Traffic', value: formatCompact(bundle.traffic || 0) },
+                  { label: 'Requests', value: formatCompact(bundle.traffic || 0) },
                   { label: 'Ad Revenue', value: formatCurrency(bundle.adRevenue || 0) },
                   { label: 'Affiliate', value: formatCurrency(bundle.affiliateRevenue || 0) },
                   { label: 'Total Revenue', value: formatCurrency(bundle.totalRevenue || 0) },
@@ -81,7 +74,7 @@ function BundlesContent() {
                 ))}
               </div>
 
-              <div className="mt-3 grid grid-cols-4 gap-4">
+              <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
                   <p className="text-meta">Costs</p>
                   <p className="mt-1 text-[14px] font-semibold tabular-nums">{formatCurrency(bundle.costs || 0)}</p>
@@ -115,7 +108,7 @@ export default function BundlesPage() {
   return (
     <div>
       <TopContextBar title="Bundles" subtitle="Performance by bundle group" />
-      <Suspense fallback={<div className="px-6 py-8"><div className="grid grid-cols-2 gap-5">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
+      <Suspense fallback={<div className="px-6 py-8"><div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}</div></div>}>
         <BundlesContent />
       </Suspense>
     </div>

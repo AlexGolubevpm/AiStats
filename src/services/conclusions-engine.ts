@@ -44,14 +44,14 @@ interface EntityMetrics {
     profit: number
     romi: number
     costs: number
-    users: number
+    hits: number   // ad requests from AdOK (traffic proxy)
   }
   previous: {
     totalRevenue: number
     profit: number
     romi: number
     costs: number
-    users: number
+    hits: number
   }
   revenueDelta: number
   profitDelta: number
@@ -91,14 +91,14 @@ export async function generateConclusions(
           profit: current.profit,
           romi: current.romi,
           costs: current.costs,
-          users: current.users,
+          hits: current.hits,
         },
         previous: {
           totalRevenue: previous.totalRevenue,
           profit: previous.profit,
           romi: previous.romi,
           costs: previous.costs,
-          users: previous.users,
+          hits: previous.hits,
         },
         revenueDelta: calculateDelta(current.totalRevenue, previous.totalRevenue),
         profitDelta: calculateDelta(current.profit, previous.profit),
@@ -124,14 +124,14 @@ export async function generateConclusions(
           profit: current.profit,
           romi: current.romi,
           costs: current.costs,
-          users: current.users,
+          hits: current.hits,
         },
         previous: {
           totalRevenue: previous.totalRevenue,
           profit: previous.profit,
           romi: previous.romi,
           costs: previous.costs,
-          users: previous.users,
+          hits: previous.hits,
         },
         revenueDelta: calculateDelta(current.totalRevenue, previous.totalRevenue),
         profitDelta: calculateDelta(current.profit, previous.profit),
@@ -280,28 +280,28 @@ export async function generateConclusions(
   // ─── OPPORTUNITIES: positive trends ───
   const opportunities: ConclusionItem[] = []
 
-  // Entities with growing traffic and decent ROMI
+  // Entities with growing traffic (hits/requests) and decent ROMI
   const growingTraffic = entityMetrics
     .filter((e) => {
-      const trafficDelta = calculateDelta(e.current.users, e.previous.users)
+      const trafficDelta = calculateDelta(e.current.hits, e.previous.hits)
       return trafficDelta > 10 && e.current.romi > 50
     })
     .sort((a, b) => {
-      const aDelta = calculateDelta(a.current.users, a.previous.users)
-      const bDelta = calculateDelta(b.current.users, b.previous.users)
+      const aDelta = calculateDelta(a.current.hits, a.previous.hits)
+      const bDelta = calculateDelta(b.current.hits, b.previous.hits)
       return bDelta - aDelta
     })
     .slice(0, 3)
 
   for (const e of growingTraffic) {
-    const trafficDelta = calculateDelta(e.current.users, e.previous.users)
+    const trafficDelta = calculateDelta(e.current.hits, e.previous.hits)
     opportunities.push({
       entity: e.name,
       entityType: e.entityType,
-      metric: 'users',
-      value: e.current.users,
+      metric: 'hits',
+      value: e.current.hits,
       delta: trafficDelta,
-      reason: `Traffic up ${trafficDelta.toFixed(1)}% with ROMI at ${e.current.romi.toFixed(1)}% - scaling potential`,
+      reason: `Requests up ${trafficDelta.toFixed(1)}% with ROMI at ${e.current.romi.toFixed(1)}% - scaling potential`,
       action: 'Increase traffic budget while maintaining ROMI targets',
       severity: trafficDelta > 30 ? 'high' : 'medium',
       type: 'opportunity',

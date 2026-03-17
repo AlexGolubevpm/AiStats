@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
@@ -17,7 +18,7 @@ function AnalysisContent() {
     return (
       <div className="space-y-8 px-6 py-8">
         <ChartSkeleton />
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <ChartSkeleton />
           <ChartSkeleton />
         </div>
@@ -28,9 +29,10 @@ function AnalysisContent() {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       <ChartCard
         title="Executive Summary"
@@ -63,7 +65,7 @@ function AnalysisContent() {
         </div>
       </ChartCard>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <ChartCard title="Top Risks" description="Issues requiring immediate attention">
           <div className="space-y-3">
             {data?.risks && Array.isArray(data.risks) ? (

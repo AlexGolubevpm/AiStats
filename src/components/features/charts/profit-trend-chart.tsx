@@ -1,30 +1,58 @@
 'use client'
 
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts'
+import { useId } from 'react'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend } from 'recharts'
 
 interface ProfitTrendChartProps {
   data: { date: string; profit: number }[]
 }
 
+const tooltipStyle = {
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border-subtle)',
+  borderRadius: 'var(--radius-control)',
+  boxShadow: 'var(--shadow-modal)',
+  backdropFilter: 'blur(8px)',
+  fontSize: '12px',
+  padding: '8px 12px',
+}
+
 export function ProfitTrendChart({ data }: ProfitTrendChartProps) {
+  const id = useId()
+  const gradientId = `profitGrad-${id}`
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[260px] text-sm text-[var(--color-text-muted)]">
+        No profit data available.
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height={260}>
       <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
         <defs>
-          <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--color-chart-green)" stopOpacity={0.12} />
             <stop offset="95%" stopColor="var(--color-chart-green)" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-chart-grid)" />
+        <CartesianGrid strokeDasharray="3 6" strokeOpacity={0.5} stroke="var(--color-chart-grid)" />
         <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+        <YAxis
+          tick={{ fontSize: 11, fill: 'var(--color-chart-label)' }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`}
+        />
         <Tooltip
-          contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid var(--color-border-default)', boxShadow: 'var(--shadow-elevated)', background: 'white' }}
+          contentStyle={tooltipStyle}
           formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Profit']}
         />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
         <ReferenceLine y={0} stroke="var(--color-border-default)" strokeDasharray="3 3" />
-        <Area type="monotone" dataKey="profit" stroke="var(--color-chart-green)" fill="url(#profitGrad)" strokeWidth={2} />
+        <Area type="monotone" dataKey="profit" name="Profit" stroke="var(--color-chart-green)" fill={`url(#${gradientId})`} strokeWidth={2} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>
     </ResponsiveContainer>
   )

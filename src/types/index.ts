@@ -30,7 +30,7 @@ export interface BundleOverview {
   slug: string
   color: string
   sitesCount: number
-  traffic: number
+  requests: number
   adRevenue: number
   affiliateRevenue: number
   totalRevenue: number
@@ -56,7 +56,7 @@ export interface SiteOverview {
   bundleId: string
   healthScore: number
   healthStatus: HealthStatus
-  traffic: number
+  requests: number
   adRevenue: number
   affiliateRevenue: number
   totalRevenue: number

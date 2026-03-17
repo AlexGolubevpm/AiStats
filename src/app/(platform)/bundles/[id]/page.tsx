@@ -2,6 +2,7 @@
 
 import { use, Suspense } from 'react'
 import { motion } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
@@ -19,7 +20,7 @@ interface SiteRow {
   id: string
   name: string
   slug: string
-  users: number
+  hits: number
   totalRevenue: number
   profit: number
   romi: number
@@ -35,7 +36,7 @@ const siteColumns: ColumnDef<SiteRow, unknown>[] = [
       </Link>
     ),
   },
-  { accessorKey: 'users', header: 'Traffic', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.users || 0)}</span> },
+  { accessorKey: 'hits', header: 'Requests', cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || 0)}</span> },
   { accessorKey: 'totalRevenue', header: 'Revenue', cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.totalRevenue || 0)}</span> },
   {
     accessorKey: 'profit',
@@ -60,12 +61,13 @@ function BundleDetailContent({ id }: { id: string }) {
   return (
     <motion.div
       className="space-y-8 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
+      initial="hidden"
+      animate="visible"
+      variants={fadeInUp}
+      custom={0}
     >
       {hasKpis && (
-        <div className="grid grid-cols-5 gap-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {data.kpis.map((kpi: { label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact' }) => (
             <KPICard key={kpi.label} {...kpi} />
           ))}
