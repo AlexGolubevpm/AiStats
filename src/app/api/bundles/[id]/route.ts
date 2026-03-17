@@ -8,6 +8,7 @@ import {
   getBundleFormatBreakdown,
   calculateDelta,
 } from '@/services/metrics'
+import { ensureDataCoverage } from '@/services/data-coverage'
 
 export async function GET(
   request: NextRequest,
@@ -32,6 +33,9 @@ export async function GET(
     if (!bundle) {
       return errorResponse('Bundle not found', 404)
     }
+
+    // Check data coverage and trigger backfill if needed
+    const coverage = await ensureDataCoverage(from, to)
 
     // Bundle-level KPIs with deltas
     const current = await aggregateBundleMetrics(bundle.id, from, to)
@@ -118,6 +122,12 @@ export async function GET(
       sites,
       formatBreakdown,
       trend,
+      coverage: {
+        complete: coverage.covered,
+        missingDates: coverage.missingDates.length,
+        syncTriggered: coverage.enqueuedJobs.length > 0,
+        resyncTriggered: coverage.resyncTriggered,
+      },
     })
   } catch (error) {
     console.error('Bundle detail API error:', error)

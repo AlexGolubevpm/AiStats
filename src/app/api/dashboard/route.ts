@@ -9,6 +9,7 @@ import {
   calculateDelta,
   getPreviousDateRange,
 } from '@/services/metrics'
+import { ensureDataCoverage } from '@/services/data-coverage'
 
 /**
  * Compute comparison period based on compare mode:
@@ -43,6 +44,9 @@ export async function GET(request: NextRequest) {
     const { from, to } = parsePeriodParam(searchParams)
     const compare = searchParams.get('compare') || 'prev_period'
     const { from: prevFrom, to: prevTo } = getComparisonRange(from, to, compare)
+
+    // Check data coverage and trigger backfill if needed (non-blocking)
+    const coverage = await ensureDataCoverage(from, to)
 
     // Current and previous period network metrics
     const current = await aggregateNetworkMetrics(from, to)
@@ -165,7 +169,19 @@ export async function GET(request: NextRequest) {
       type: a.type === 'spike' || a.type === 'drop' ? 'risk' as const : 'info' as const,
     }))
 
-    return jsonResponse({ kpis, bundles, insights, trend, compareMode: compare })
+    return jsonResponse({
+      kpis,
+      bundles,
+      insights,
+      trend,
+      compareMode: compare,
+      coverage: {
+        complete: coverage.covered,
+        missingDates: coverage.missingDates.length,
+        syncTriggered: coverage.enqueuedJobs.length > 0,
+        resyncTriggered: coverage.resyncTriggered,
+      },
+    })
   } catch (error) {
     console.error('Dashboard API error:', error)
     return errorResponse('Failed to load dashboard data')

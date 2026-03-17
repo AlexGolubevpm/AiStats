@@ -17,8 +17,10 @@ interface SyncAffiliateJobData {
 
 async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
   const { from, to } = job.data
-  const fromDate = from ? new Date(from) : new Date(Date.now() - 24 * 60 * 60 * 1000)
-  const toDate = to ? new Date(to) : new Date()
+  // Google Sheets CSV is fetched in full — no need to restrict by default date range.
+  // Only filter when explicit from/to is provided.
+  const fromDate = from ? new Date(from) : null
+  const toDate = to ? new Date(to) : null
 
   const syncLog = await prisma.syncLog.create({
     data: {
@@ -44,7 +46,7 @@ async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
     await job.updateProgress(20)
     await job.log('Fetching affiliate revenue from Google Sheets...')
 
-    const affiliateData = await service.fetchAffiliateRevenue(fromDate, toDate)
+    const affiliateData = await service.fetchAffiliateRevenue(fromDate ?? new Date(0), toDate ?? new Date())
     await job.log(`Fetched ${affiliateData.length} affiliate rows from sheet`)
 
     await job.updateProgress(50)
@@ -87,7 +89,9 @@ async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
       }
 
       const date = new Date(row.date + 'T00:00:00.000Z')
-      if (date < fromDate || date > toDate) continue
+      // Filter by date range only if explicit bounds were provided
+      if (fromDate && date < fromDate) continue
+      if (toDate && date > toDate) continue
 
       const source = row.source || 'google_sheets'
 
@@ -115,7 +119,17 @@ async function processSyncAffiliate(job: Job<SyncAffiliateJobData>) {
 
     await job.updateProgress(85)
     await job.log('Updating daily metrics with affiliate revenue...')
-    await recalcDailyMetricsAffiliate(fromDate, toDate)
+    // Recalculate for the full range of imported data
+    const allAffDates = await prisma.affiliateRevenue.aggregate({
+      _min: { date: true },
+      _max: { date: true },
+    })
+    if (allAffDates._min.date && allAffDates._max.date) {
+      await recalcDailyMetricsAffiliate(
+        fromDate || allAffDates._min.date,
+        toDate || allAffDates._max.date,
+      )
+    }
 
     await job.updateProgress(90)
 

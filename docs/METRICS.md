@@ -70,7 +70,7 @@ Google Sheets (Affiliate) ──► AffiliateRevenue ──┤
 | `costs` | `Cost` | По `site.sheetName` |
 | `affiliateRevenue` | `AffiliateRevenue` | По `site.sheetName` |
 
-> **Примечание**: Воркеры `sync-costs.ts` и `sync-affiliate.ts` имеют заготовку (TODO) для парсинга строк из Google Sheets. Фактический upsert закомментирован.
+> **Примечание**: Воркеры `sync-costs.ts` и `sync-affiliate.ts` загружают весь CSV из Google Sheets и импортируют все строки. При отсутствии явных параметров `from`/`to` фильтрация по датам не применяется — все данные из таблицы попадают в БД.
 
 ---
 
@@ -351,3 +351,40 @@ KPIs + formatBreakdown + tierBreakdown + trend + health + anomalies + costs + af
 | `anomalies` | Обнаруженные аномалии | type, severity, metric, expected, actual, delta, resolved |
 | `ai_analyses` | AI-генерированные выводы | summary, risks, opportunities, recommendations |
 | `sync_logs` | Лог синхронизаций | source, status, recordsProcessed, error |
+
+---
+
+## 14. Автоматический бэкфилл и ресинк
+
+Источник: `src/services/data-coverage.ts`
+
+### Как работает
+
+При каждом запросе к Dashboard / Bundle / Site API система автоматически:
+
+1. **Проверяет покрытие** — есть ли записи в `daily_metrics` за каждый день запрошенного периода
+2. **Бэкфилл** — если найдены пропущенные даты, ставит в очередь BullMQ задачи:
+   - `sync-adspyglass` и `sync-yandex-metrica` с конкретными `from`/`to` за пропущенные дни
+   - `sync-costs` и `sync-affiliate` — полный импорт (CSV скачивается целиком)
+3. **Ресинк** — если запрошенный период пересекается с последними 3 днями и последний синк был >6 часов назад, данные пересинкиваются (late-arriving data из AdSpyglass/Metrica)
+
+### API
+
+- `POST /api/sync/ensure-coverage` — явная проверка: `{ from: "YYYY-MM-DD", to: "YYYY-MM-DD", forceResync?: boolean }`
+- `POST /api/sync` с `forceResync: true` — принудительный ресинк за указанный период
+
+### Ответ API (поле `coverage`)
+
+Все data-API возвращают объект `coverage`:
+```json
+{
+  "coverage": {
+    "complete": false,
+    "missingDates": 5,
+    "syncTriggered": true,
+    "resyncTriggered": true
+  }
+}
+```
+
+Фронтенд может использовать `coverage.complete === false` для показа индикатора «загружаем исторические данные».
