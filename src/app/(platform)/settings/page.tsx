@@ -11,10 +11,43 @@ import { TopContextBar } from '@/components/layout/topbar'
 import { ChartCard } from '@/components/shared/chart-card'
 import { ChartSkeleton } from '@/components/shared/loading-skeleton'
 import { useSettings, useSaveSettings } from '@/hooks/use-api'
+import { useSyncStatus } from '@/hooks/use-sync-status'
+import { useToast } from '@/components/ui/toast'
+
+const SYNC_SOURCE_MAP: Record<string, string> = {
+  'AdSpyglass': 'adspyglass',
+  'Google Sheets (Costs)': 'google_sheets_costs',
+  'Google Sheets (Affiliate)': 'google_sheets_affiliate',
+}
+
+function formatSyncTime(dateStr: string) {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function SyncStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    completed: 'bg-[var(--color-success-bg)] text-[var(--color-success-dark)]',
+    running: 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)]',
+    failed: 'bg-[var(--color-danger-bg)] text-[var(--color-danger-dark)]',
+  }
+  const labels: Record<string, string> = {
+    completed: 'Completed',
+    running: 'Running…',
+    failed: 'Failed',
+  }
+  return (
+    <span className={`rounded-[var(--radius-pill)] px-2.5 py-1 text-[11px] font-semibold ${styles[status] || 'bg-[var(--color-warning-bg)] text-[var(--color-warning-dark)]'}`}>
+      {labels[status] || 'Pending'}
+    </span>
+  )
+}
 
 function SettingsContent() {
   const { data: settings, isLoading } = useSettings()
   const saveSettings = useSaveSettings()
+  const { latestBySource, triggerSync, isSyncing } = useSyncStatus()
+  const { toast } = useToast()
   const [formData, setFormData] = useState<Record<string, string>>({})
 
   if (isLoading) {
@@ -24,9 +57,14 @@ function SettingsContent() {
   const getValue = (key: string) => formData[key] ?? settings?.[key] ?? ''
 
   const handleSave = async (keys: string[]) => {
-    for (const k of keys) {
-      const value = formData[k] ?? settings?.[k] ?? ''
-      await saveSettings.mutateAsync({ key: k, value })
+    try {
+      for (const k of keys) {
+        const value = formData[k] ?? settings?.[k] ?? ''
+        await saveSettings.mutateAsync({ key: k, value })
+      }
+      toast('Settings saved successfully')
+    } catch {
+      toast('Failed to save settings', 'error')
     }
   }
 
@@ -86,19 +124,28 @@ function SettingsContent() {
       <TabsContent value="sync" className="mt-6">
         <ChartCard title="Sync Status" description="Last synchronization results">
           <div className="space-y-2">
-            {['AdSpyglass', 'Google Sheets (Costs)', 'Google Sheets (Affiliate)'].map((source) => (
-              <div key={source} className="flex items-center justify-between rounded-[var(--radius-control)] bg-[var(--color-surface-secondary)] px-4 py-3.5">
-                <span className="text-[13px] font-semibold">{source}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-meta">
-                    {settings?.lastSync?.[source] || 'Never synced'}
-                  </span>
-                  <span className="rounded-[var(--radius-pill)] bg-[var(--color-warning-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-warning-dark)]">
-                    {settings?.syncStatus?.[source] || 'Pending'}
-                  </span>
+            {Object.entries(SYNC_SOURCE_MAP).map(([label, sourceKey]) => {
+              const log = latestBySource(sourceKey)
+              return (
+                <div key={label} className="flex items-center justify-between rounded-[var(--radius-control)] bg-[var(--color-surface-secondary)] px-4 py-3.5">
+                  <span className="text-[13px] font-semibold">{label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-meta">
+                      {log?.completedAt ? formatSyncTime(log.completedAt) : log?.startedAt ? formatSyncTime(log.startedAt) : 'Never synced'}
+                    </span>
+                    {log?.recordsProcessed ? (
+                      <span className="text-meta">{log.recordsProcessed} records</span>
+                    ) : null}
+                    <SyncStatusBadge status={log?.status || 'pending'} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
+          </div>
+          <div className="mt-4">
+            <Button onClick={() => triggerSync('all')} disabled={isSyncing} className="rounded-[var(--radius-control)]">
+              {isSyncing ? 'Syncing…' : 'Sync All Now'}
+            </Button>
           </div>
         </ChartCard>
       </TabsContent>
