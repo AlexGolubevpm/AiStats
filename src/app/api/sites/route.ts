@@ -7,12 +7,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
     const { from, to } = parsePeriodParam(searchParams)
+    const bundleSlug = searchParams.get('bundleSlug') || undefined
     const bundleId = searchParams.get('bundleId') || undefined
 
     const sites = await prisma.site.findMany({
       where: {
         isActive: true,
-        ...(bundleId ? { bundleId } : {}),
+        ...(bundleSlug ? { bundle: { slug: bundleSlug } } : bundleId ? { bundleId } : {}),
       },
       include: {
         bundle: { select: { id: true, name: true, slug: true, color: true } },

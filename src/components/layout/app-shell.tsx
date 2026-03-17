@@ -15,7 +15,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[var(--color-app-bg)]">
       <Sidebar />
-      <main className="min-h-screen lg:ml-[260px]">
+      <main className="min-h-screen overflow-x-hidden lg:ml-[260px]">
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

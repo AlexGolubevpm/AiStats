@@ -166,8 +166,8 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
           const siteImpressions = Math.round(fRow.impressions * siteShare)
           const siteClicks = Math.round(fRow.clicks * siteShare)
           const siteRevenue = fRow.broker_income * siteShare
-          const siteCtr = siteImpressions > 0 ? (siteClicks / siteImpressions) * 100 : 0
-          const siteFillRate = fRow.fill_rate
+          const siteCtr = Math.min(siteImpressions > 0 ? (siteClicks / siteImpressions) * 100 : 0, 9999)
+          const siteFillRate = Math.min(fRow.fill_rate, 9999)
           const siteEcpm = siteImpressions > 0 ? (siteRevenue / siteImpressions) * 1000 : 0
           const siteRpm = dailyMetric.hits > 0 ? (siteRevenue / Number(dailyMetric.hits)) * 1000 : 0
 

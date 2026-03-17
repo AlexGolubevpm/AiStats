@@ -63,7 +63,7 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
   },
   {
     accessorKey: 'hits',
-    header: 'Requests',
+    header: 'Ad Requests',
     cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || 0)}</span>,
   },
   {
