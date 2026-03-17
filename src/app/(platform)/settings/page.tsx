@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast'
 
 const SYNC_SOURCE_MAP: Record<string, string> = {
   'AdSpyglass': 'adspyglass',
+  'Yandex Metrica': 'yandex_metrica',
   'Google Sheets (Costs)': 'google_sheets_costs',
   'Google Sheets (Affiliate)': 'google_sheets_affiliate',
 }
@@ -91,6 +92,17 @@ function SettingsContent() {
               <Input type="password" value={getValue('adspyglass_api_key')} onChange={(e) => setFormData({ ...formData, adspyglass_api_key: e.target.value })} className="mt-1.5" />
             </div>
             <Button onClick={() => handleSave(['adspyglass_url', 'adspyglass_api_key'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="Yandex Metrica" description="OAuth token for fetching visitor data. Counter IDs are set per-site on the Sites page." className="mt-6">
+          <div className="space-y-4">
+            <div>
+              <Label>OAuth Token</Label>
+              <Input type="password" value={getValue('yandex_metrika_oauth_token')} onChange={(e) => setFormData({ ...formData, yandex_metrika_oauth_token: e.target.value })} placeholder="y0_AgAAAA..." className="mt-1.5" />
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Get token at <a href="https://oauth.yandex.ru" target="_blank" rel="noopener noreferrer" className="underline">oauth.yandex.ru</a> with metrika:read scope</p>
+            </div>
+            <Button onClick={() => handleSave(['yandex_metrika_oauth_token'])} className="rounded-[var(--radius-control)]">Save Token</Button>
           </div>
         </ChartCard>
       </TabsContent>

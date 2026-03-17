@@ -57,14 +57,25 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
     await job.updateProgress(5)
     await job.log(`Syncing AdOK data from ${fromDate} to ${toDate}`)
 
-    // Load site mapping: domain → site record
+    // Load site mapping: domain/name/slug/sheetName → site record
+    // Multiple keys per site to improve matching with AdOK website names
     const allSites = await prisma.site.findMany({ where: { isActive: true } })
     const siteByDomain = new Map<string, typeof allSites[0]>()
     for (const site of allSites) {
+      // Primary: clean domain
       siteByDomain.set(cleanDomain(site.domain), site)
+      // Fallback: domain without TLD (e.g. "mysite" from "mysite.com")
+      const withoutTld = cleanDomain(site.domain).replace(/\.[^.]+$/, '')
+      if (withoutTld && !siteByDomain.has(withoutTld)) {
+        siteByDomain.set(withoutTld, site)
+      }
+      // Fallback: slug, name, sheetName (lowercased)
+      if (site.slug) siteByDomain.set(site.slug.toLowerCase(), site)
+      if (site.name) siteByDomain.set(site.name.toLowerCase(), site)
+      if (site.sheetName) siteByDomain.set(cleanDomain(site.sheetName), site)
     }
 
-    await job.log(`Loaded ${siteByDomain.size} site mappings`)
+    await job.log(`Loaded ${allSites.length} sites with ${siteByDomain.size} mapping keys`)
     let totalRecords = 0
 
     // ── Step 1: Fetch per-website data using group_by=website ──
@@ -87,12 +98,16 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
       const websiteRows = await service.fetchReport({ from: dateStr, to: dateStr, group_by: 'website' })
 
       let matchedSites = 0
+      const unmatchedDomains: string[] = []
       for (const row of websiteRows) {
         if (!row.name) continue
         const domain = cleanDomain(row.name)
+        // Try multiple matching strategies
         const site = siteByDomain.get(domain)
+          || siteByDomain.get(domain.replace(/\.[^.]+$/, ''))  // without TLD
+          || siteByDomain.get(row.name.toLowerCase())          // raw name lowercased
         if (!site) {
-          await job.log(`  Unmatched domain: ${domain}`)
+          unmatchedDomains.push(domain)
           continue
         }
 
@@ -134,7 +149,10 @@ async function processSyncAdspyglass(job: Job<SyncAdspyglassJobData>) {
         matchedSites++
       }
 
-      await job.log(`  ${dateStr}: ${matchedSites} sites matched from ${websiteRows.length} websites`)
+      if (unmatchedDomains.length > 0) {
+        await job.log(`  Unmatched domains: ${unmatchedDomains.join(', ')}`)
+      }
+      await job.log(`  ${dateStr}: ${matchedSites} matched, ${unmatchedDomains.length} unmatched from ${websiteRows.length} websites`)
     }
 
     // ── Step 2: Fetch format data (ad_type) per date ──

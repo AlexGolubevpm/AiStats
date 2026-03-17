@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { subDays, startOfDay, differenceInDays } from 'date-fns'
 import { prisma } from '@/lib/db'
 import { parsePeriodParam, parsePreviousPeriod, jsonResponse, errorResponse } from '@/lib/api-utils'
 import {
@@ -18,8 +19,10 @@ export async function GET(request: NextRequest) {
     const current = await aggregateNetworkMetrics(from, to)
     const previous = await aggregateNetworkMetrics(prevFrom, prevTo)
 
-    // Trend data for sparklines and charts (full selected period)
-    const trend = await getNetworkTrend(from, to)
+    // Trend data: minimum 7 days for sparklines, full range for longer periods
+    const periodDays = differenceInDays(to, from) + 1
+    const trendFrom = periodDays < 7 ? startOfDay(subDays(to, 6)) : from
+    const trend = await getNetworkTrend(trendFrom, to)
 
     // Build KPI cards
     const kpis = [
