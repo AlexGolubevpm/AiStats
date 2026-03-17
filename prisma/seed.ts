@@ -11,37 +11,46 @@ const BUNDLE_DEFS = [
   { name: 'Hentai', slug: 'hentai', color: '#8B5CF6' },
 ] as const;
 
-// Real sites from AdSpyglass, mapped to bundles
-const REAL_SITES: Record<string, Array<{ name: string; domain: string; slug: string }>> = {
+// Real sites mapped to bundles with Yandex Metrica counter IDs
+const REAL_SITES: Record<string, Array<{ name: string; domain: string; slug: string; metrikaCounterId?: string }>> = {
   gays: [
-    { name: 'GayXHub', domain: 'gayxhub.com', slug: 'gayxhub' },
-    { name: 'GayXXXWorld', domain: 'gayxxxworld.com', slug: 'gayxxxworld' },
-    { name: 'GayDesireXHub', domain: 'gaydesirexhub.com', slug: 'gaydesirexhub' },
-    { name: 'GayLoveXHub', domain: 'gaylovexhub.com', slug: 'gaylovexhub' },
-    { name: 'LoveForBoysXHub', domain: 'loveforboysxhub.com', slug: 'loveforboysxhub' },
-    { name: 'PrideBoysXHub', domain: 'prideboysxhub.com', slug: 'prideboysxhub' },
-    { name: 'PrideXHub', domain: 'pridexhub.com', slug: 'pridexhub' },
-    { name: 'AdultXHub', domain: 'adultxhub.com', slug: 'adultxhub' },
+    { name: 'GayXHub', domain: 'gayxhub.com', slug: 'gayxhub', metrikaCounterId: '103969151' },
+    { name: 'GayXXXWorld', domain: 'gayxxxworld.com', slug: 'gayxxxworld', metrikaCounterId: '100274934' },
+    { name: 'GayDesireXHub', domain: 'gaydesirexhub.com', slug: 'gaydesirexhub', metrikaCounterId: '107068671' },
+    { name: 'GayLoveXHub', domain: 'gaylovexhub.com', slug: 'gaylovexhub', metrikaCounterId: '107068647' },
+    { name: 'LoveForBoysXHub', domain: 'loveforboysxhub.com', slug: 'loveforboysxhub', metrikaCounterId: '107068679' },
+    { name: 'PrideBoysXHub', domain: 'prideboysxhub.com', slug: 'prideboysxhub', metrikaCounterId: '107068653' },
+    { name: 'PrideXHub', domain: 'pridexhub.com', slug: 'pridexhub', metrikaCounterId: '107068690' },
+    { name: 'AdultXHub', domain: 'adultxhub.com', slug: 'adultxhub', metrikaCounterId: '103969163' },
+    { name: 'BoysXHub', domain: 'boysxhub.com', slug: 'boysxhub' },
+    { name: 'HotGayXHub', domain: 'hotgayxhub.com', slug: 'hotgayxhub' },
+    { name: 'GayWorldXHub', domain: 'gayworldxhub.com', slug: 'gayworldxhub' },
   ],
   jav: [
-    { name: 'Japan Whores', domain: 'japan-whores.com', slug: 'japan-whores' },
-    { name: 'Japanese Matures', domain: 'japanesematures.com', slug: 'japanesematures' },
-    { name: 'JavMix', domain: 'javmix.com', slug: 'javmix' },
-    { name: 'JP Milfs', domain: 'jpmilfs.com', slug: 'jpmilfs' },
-    { name: 'POV JP', domain: 'povjp.com', slug: 'povjp' },
-    { name: 'Big Tits Tokyo', domain: 'bigtitstokyo.com', slug: 'bigtitstokyo' },
-    { name: '18 Tokyo', domain: '18tokyo.com', slug: '18tokyo' },
-    { name: 'Wierd Japan', domain: 'wierdjapan.com', slug: 'wierdjapan' },
-    { name: 'Asian Muffin', domain: 'asianmuffin.com', slug: 'asianmuffin' },
+    { name: 'Japan Whores', domain: 'japan-whores.com', slug: 'japan-whores', metrikaCounterId: '94309089' },
+    { name: 'Japanese Matures', domain: 'japanesematures.com', slug: 'japanesematures', metrikaCounterId: '105911844' },
+    { name: 'JavMix', domain: 'javmix.com', slug: 'javmix', metrikaCounterId: '103469964' },
+    { name: 'JP Milfs', domain: 'jpmilfs.com', slug: 'jpmilfs', metrikaCounterId: '107069166' },
+    { name: 'POV JP', domain: 'povjp.com', slug: 'povjp', metrikaCounterId: '105792968' },
+    { name: 'Big Tits Tokyo', domain: 'bigtitstokyo.com', slug: 'bigtitstokyo', metrikaCounterId: '105792731' },
+    { name: '18 Tokyo', domain: '18tokyo.com', slug: '18tokyo', metrikaCounterId: '105911829' },
+    { name: 'Wierd Japan', domain: 'wierdjapan.com', slug: 'wierdjapan', metrikaCounterId: '105792990' },
+    { name: 'Asian Muffin', domain: 'asianmuffin.com', slug: 'asianmuffin', metrikaCounterId: '100275058' },
   ],
   hentai: [
-    { name: 'Hentai Smile', domain: 'hentaismile.com', slug: 'hentaismile' },
-    { name: 'Anime Hentai XHub', domain: 'animehentaixhub.com', slug: 'animehentaixhub' },
-    { name: 'Hentai Lover XHub', domain: 'hentailoverxhub.com', slug: 'hentailoverxhub' },
-    { name: 'Hi Hentai Porn', domain: 'hihentaiporn.com', slug: 'hihentaiporn' },
+    { name: 'Hentai Smile', domain: 'hentaismile.com', slug: 'hentaismile', metrikaCounterId: '100275025' },
+    { name: 'Anime Hentai XHub', domain: 'animehentaixhub.com', slug: 'animehentaixhub', metrikaCounterId: '103748471' },
+    { name: 'Hentai Lover XHub', domain: 'hentailoverxhub.com', slug: 'hentailoverxhub', metrikaCounterId: '107068623' },
+    { name: 'Hi Hentai Porn', domain: 'hihentaiporn.com', slug: 'hihentaiporn', metrikaCounterId: '107068610' },
+    { name: 'iHentai Porn', domain: 'ihentaiporn.com', slug: 'ihentaiporn', metrikaCounterId: '107068619' },
+    { name: 'All Naruto Hentai', domain: 'allnarutohentai.com', slug: 'allnarutohentai', metrikaCounterId: '107068582' },
+    { name: 'Ultimate Hentai XHub', domain: 'ultimatehentaixhub.com', slug: 'ultimatehentaixhub', metrikaCounterId: '107068635' },
+    { name: 'Hentai Desire XHub', domain: 'hentaidesirexhub.com', slug: 'hentaidesirexhub' },
+    { name: 'Fantasy Hentai XHub', domain: 'fantasyhentaixhub.com', slug: 'fantasyhentaixhub' },
+    { name: 'Hentai Zone XHub', domain: 'hentaizonexhub.com', slug: 'hentaizonexhub' },
   ],
   trans: [
-    // No sites in AdSpyglass yet
+    // No sites yet
   ],
 };
 
@@ -98,6 +107,7 @@ async function main() {
           bundleId: bundle.id,
           externalId: null,
           sheetName: siteDef.name,
+          metrikaCounterId: siteDef.metrikaCounterId || null,
           isActive: true,
         },
       });
@@ -111,16 +121,8 @@ async function main() {
   await prisma.setting.createMany({
     data: [
       {
-        key: 'sync.google_sheets.enabled',
-        value: JSON.parse(JSON.stringify(true)),
-      },
-      {
-        key: 'sync.google_sheets.interval_minutes',
-        value: JSON.parse(JSON.stringify(30)),
-      },
-      {
-        key: 'sync.google_sheets.spreadsheet_id',
-        value: JSON.parse(JSON.stringify('1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms')),
+        key: 'costs_sheet_id',
+        value: JSON.parse(JSON.stringify('1sFc4VPOjXLQVT0bk89oPottIYq-9vyVU_W2BPsUAnSo')),
       },
       {
         key: 'ai.analysis.enabled',
@@ -152,13 +154,13 @@ async function main() {
       },
     ],
   });
-  console.log('  10 settings created.');
+  console.log('  8 settings created.');
 
   // Summary
   console.log('\n--- Seed Complete ---');
   console.log(`Bundles:   ${bundles.length}`);
   console.log(`Sites:     ${siteCount}`);
-  console.log(`Settings:  10`);
+  console.log(`Settings:  8`);
   console.log('\nNo fake metrics seeded. Real data will come from AdSpyglass sync.');
 }
 
