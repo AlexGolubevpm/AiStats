@@ -69,8 +69,8 @@ model DailyMetric {
 
   romi     Decimal @default(0) @db.Decimal(8, 2)
   rpm      Decimal @default(0) @db.Decimal(8, 4)
-  ctr      Decimal @default(0) @db.Decimal(6, 4)
-  fillRate Decimal @default(0) @db.Decimal(6, 4)
+  ctr      Decimal @default(0) @db.Decimal(8, 4)
+  fillRate Decimal @default(0) @db.Decimal(8, 4)
   ecpm     Decimal @default(0) @db.Decimal(8, 4)
 
   site      Site     @relation(fields: [siteId], references: [id])
@@ -91,8 +91,8 @@ model FormatMetric {
   impressions Int     @default(0)
   clicks      Int     @default(0)
   revenue     Decimal @default(0) @db.Decimal(12, 4)
-  ctr         Decimal @default(0) @db.Decimal(6, 4)
-  fillRate    Decimal @default(0) @db.Decimal(6, 4)
+  ctr         Decimal @default(0) @db.Decimal(8, 4)
+  fillRate    Decimal @default(0) @db.Decimal(8, 4)
   ecpm        Decimal @default(0) @db.Decimal(8, 4)
   rpm         Decimal @default(0) @db.Decimal(8, 4)
 
@@ -125,8 +125,8 @@ model TierMetric {
   impressions Int     @default(0)
   clicks      Int     @default(0)
   revenue     Decimal @default(0) @db.Decimal(12, 4)
-  ctr         Decimal @default(0) @db.Decimal(6, 4)
-  fillRate    Decimal @default(0) @db.Decimal(6, 4)
+  ctr         Decimal @default(0) @db.Decimal(8, 4)
+  fillRate    Decimal @default(0) @db.Decimal(8, 4)
   rpm         Decimal @default(0) @db.Decimal(8, 4)
 
   site Site @relation(fields: [siteId], references: [id])
