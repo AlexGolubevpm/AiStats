@@ -87,6 +87,11 @@ export async function GET(request: NextRequest) {
           select: { mappingStatus: true },
         })
 
+        // Count total cost records for this site
+        const costCount = await prisma.cost.count({
+          where: { siteId: site.id },
+        })
+
         return {
           id: site.id,
           name: site.name,
@@ -97,6 +102,7 @@ export async function GET(request: NextRequest) {
           thirtyDayTotal,
           changePercent,
           mappingStatus: latestCost?.mappingStatus ?? null,
+          hasCostData: costCount > 0,
         }
       })
     )

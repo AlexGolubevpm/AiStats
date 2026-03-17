@@ -143,8 +143,8 @@ body {
 
 /* Page title */
 .text-page-title {
-  font-size: 30px;
-  line-height: 36px;
+  font-size: 32px;
+  line-height: 38px;
   font-weight: 700;
   color: var(--color-text-primary);
 }
@@ -159,16 +159,18 @@ body {
 
 /* Card title */
 .text-card-title {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 /* KPI value */
 .text-kpi-value {
-  font-size: 36px;
-  line-height: 40px;
+  font-size: 38px;
+  line-height: 44px;
   font-weight: 700;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;

@@ -20,6 +20,7 @@ export function usePeriod() {
   const period = searchParams.get('period') || 'yesterday'
   const customFrom = searchParams.get('from') || ''
   const customTo = searchParams.get('to') || ''
+  const compare = searchParams.get('compare') || 'prev_period'
 
   const setPeriod = useCallback(
     (newPeriod: string) => {
@@ -45,5 +46,14 @@ export function usePeriod() {
     [searchParams, router, pathname]
   )
 
-  return { period, setPeriod, customFrom, customTo, setCustomRange }
+  const setCompare = useCallback(
+    (mode: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('compare', mode)
+      router.push(`${pathname}?${params.toString()}`)
+    },
+    [searchParams, router, pathname]
+  )
+
+  return { period, setPeriod, customFrom, customTo, setCustomRange, compare, setCompare }
 }
