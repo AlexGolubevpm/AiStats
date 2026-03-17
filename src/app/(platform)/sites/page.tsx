@@ -1,11 +1,11 @@
 'use client'
 
 import { Suspense } from 'react'
+import { Box, Stack, Card, Text } from '@mantine/core'
 import { motion } from 'framer-motion'
 import { fadeInUp } from '@/lib/motion'
 import { TopContextBar } from '@/components/layout/topbar'
 import { HealthBadge } from '@/components/shared/health-badge'
-import { MetricDelta } from '@/components/shared/delta-indicator'
 import { TableSkeleton } from '@/components/shared/loading-skeleton'
 import { DataTable } from '@/components/features/data-table'
 import { useSites } from '@/hooks/use-api'
@@ -36,7 +36,7 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
     accessorKey: 'name',
     header: 'Site',
     cell: ({ row }) => (
-      <Link href={`/sites/${row.original.slug}`} className="text-[13px] font-semibold text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline">
+      <Link href={`/sites/${row.original.slug}`} style={{ fontSize: 13, fontWeight: 600, color: '#4F46E5', textDecoration: 'none' }}>
         {row.original.name}
       </Link>
     ),
@@ -45,9 +45,9 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
     accessorKey: 'bundle',
     header: 'Bundle',
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: row.original.bundleColor || 'var(--color-text-disabled)' }} />
-        <span className="text-[13px]">{row.original.bundle}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: row.original.bundleColor || '#9CA3AF' }} />
+        <span style={{ fontSize: 13 }}>{row.original.bundle}</span>
       </div>
     ),
   },
@@ -58,28 +58,28 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
       row.original.healthScore != null ? (
         <HealthBadge score={row.original.healthScore} showLabel={false} />
       ) : (
-        <span className="text-meta">--</span>
+        <Text size="xs" c="#6B7280">--</Text>
       ),
   },
   {
     accessorKey: 'hits',
     header: 'Ad Requests',
-    cell: ({ row }) => <span className="tabular-nums">{formatCompact(row.original.hits || 0)}</span>,
+    cell: ({ row }) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCompact(row.original.hits || 0)}</span>,
   },
   {
     accessorKey: 'adRevenue',
     header: 'Ad Revenue',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.adRevenue || 0)}</span>,
+    cell: ({ row }) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.adRevenue || 0)}</span>,
   },
   {
     accessorKey: 'affiliateRevenue',
     header: 'Affiliate',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.affiliateRevenue || 0)}</span>,
+    cell: ({ row }) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.affiliateRevenue || 0)}</span>,
   },
   {
     accessorKey: 'costs',
     header: 'Costs',
-    cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.costs || 0)}</span>,
+    cell: ({ row }) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(row.original.costs || 0)}</span>,
   },
   {
     accessorKey: 'profit',
@@ -87,7 +87,7 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
     cell: ({ row }) => {
       const profit = row.original.profit || 0
       return (
-        <span className={`font-semibold tabular-nums ${profit >= 0 ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-danger-dark)]'}`}>
+        <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: profit >= 0 ? '#039855' : '#D92D20' }}>
           {formatCurrency(profit)}
         </span>
       )
@@ -96,7 +96,7 @@ const columns: ColumnDef<SiteRow, unknown>[] = [
   {
     accessorKey: 'romi',
     header: 'ROMI',
-    cell: ({ row }) => <span className="tabular-nums">{(row.original.romi || 0).toFixed(1)}%</span>,
+    cell: ({ row }) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{(row.original.romi || 0).toFixed(1)}%</span>,
   },
 ]
 
@@ -113,7 +113,7 @@ function SitesContent() {
   const { data: rawSites, isLoading } = useSites(period, filters.bundleId)
 
   if (isLoading || !rawSites) {
-    return <div className="px-6 py-8"><TableSkeleton rows={10} /></div>
+    return <Box px="xl" py="xl"><TableSkeleton rows={10} /></Box>
   }
 
   const sites: SiteRow[] = rawSites.map((s: { id: string; name: string; slug: string; bundle: { name: string }; health: { score: number } | null; hits: number; adRevenue: number; affiliateRevenue: number; costs: number; profit: number; romi: number }) => ({
@@ -133,37 +133,39 @@ function SitesContent() {
 
   if (sites.length === 0) {
     return (
-      <div className="space-y-4 px-6 py-8">
-        <FilterBar showBundle showFormat={false} showTier={false} />
-        <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-dashed border-[var(--color-border-default)] py-20">
-          <p className="text-[14px] text-[var(--color-text-muted)]">No sites found</p>
-          <p className="mt-1.5 text-meta">Sites will appear after syncing with AdSpyglass</p>
-        </div>
-      </div>
+      <Box px="xl" py="xl">
+        <Stack gap="md">
+          <FilterBar showBundle showFormat={false} showTier={false} />
+          <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: '#D7DCE5', borderStyle: 'dashed' } }}>
+            <Stack align="center" py="xl" gap="xs">
+              <Text size="sm" c="#6B7280">No sites found</Text>
+              <Text size="xs" c="#6B7280" fw={500}>Sites will appear after syncing with AdSpyglass</Text>
+            </Stack>
+          </Card>
+        </Stack>
+      </Box>
     )
   }
 
   return (
-    <motion.div
-      className="space-y-8 px-6 py-8"
-      initial="hidden"
-      animate="visible"
-      variants={fadeInUp}
-      custom={0}
-    >
-      <FilterBar showBundle showFormat={false} showTier={false} />
-      <DataTable columns={columns} data={sites} searchKey="name" searchPlaceholder="Search sites..." />
+    <motion.div initial="hidden" animate="visible" variants={fadeInUp} custom={0}>
+      <Box px="xl" py="xl">
+        <Stack gap="xl">
+          <FilterBar showBundle showFormat={false} showTier={false} />
+          <DataTable columns={columns} data={sites} searchKey="name" searchPlaceholder="Search sites..." />
+        </Stack>
+      </Box>
     </motion.div>
   )
 }
 
 export default function SitesPage() {
   return (
-    <div>
+    <Box>
       <TopContextBar title="Sites" subtitle="All sites across bundles" showExport />
-      <Suspense fallback={<div className="px-6 py-8"><TableSkeleton rows={10} /></div>}>
+      <Suspense fallback={<Box px="xl" py="xl"><TableSkeleton rows={10} /></Box>}>
         <SitesContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }

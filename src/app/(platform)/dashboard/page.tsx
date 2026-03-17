@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { Box, SimpleGrid, Stack, Text, Card, Group, Badge } from '@mantine/core'
 import { motion, AnimatePresence } from 'framer-motion'
 import { fadeInUp, staggerContainer } from '@/lib/motion'
 import Link from 'next/link'
@@ -21,20 +22,9 @@ import { formatCurrency, formatCompact } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
-// Primary KPI labels (first row) — order matters
 const PRIMARY_KPIS = ['Visitors', 'Ad Revenue', 'Total Revenue', 'Profit', 'ROMI']
 const SECONDARY_KPIS = ['Ad Requests', 'Affiliate Revenue', 'Costs', 'RPM']
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#D7DCE5] py-20">
-      <p className="text-[14px] text-[#6B7280]">{message}</p>
-      <p className="mt-1.5 text-[12px] font-medium text-[#6B7280]">Data will appear after syncing with AdSpyglass</p>
-    </div>
-  )
-}
-
-// Bundle colors for identity accents
 const BUNDLE_COLORS: Record<string, string> = {
   JAV: '#EF4444',
   Gays: '#3B82F6',
@@ -58,69 +48,90 @@ function BundleSummaryCard({ bundle }: { bundle: BundleData }) {
   const accentColor = BUNDLE_COLORS[bundle.name] || bundle.color
 
   return (
-    <Link
+    <Card
+      component={Link}
       href={`/bundles/${bundle.slug}`}
-      className="group block overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08),0_2px_4px_rgba(16,24,40,0.04)] hover:border-[#D7DCE5]"
+      padding="lg"
+      radius="xl"
+      shadow="sm"
+      withBorder
+      styles={{
+        root: {
+          borderColor: '#E5E7EB',
+          textDecoration: 'none',
+          transition: 'all 0.15s ease',
+          cursor: 'pointer',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+            borderColor: '#D7DCE5',
+          },
+        },
+      }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: accentColor }} />
-          <span className="text-[15px] font-semibold text-[#111827]">{bundle.name}</span>
-        </div>
-        <div className="flex items-center gap-2">
+      <Group justify="space-between">
+        <Group gap="xs">
+          <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: accentColor }} />
+          <Text size="sm" fw={600} c="#111827">{bundle.name}</Text>
+        </Group>
+        <Group gap="xs">
           {bundle.healthScore != null && <HealthBadge score={bundle.healthScore} showLabel={true} size="sm" />}
-          <ChevronRight className="h-4 w-4 text-[#9CA3AF] transition-transform duration-150 group-hover:translate-x-0.5" />
-        </div>
-      </div>
+          <ChevronRight size={16} color="#9CA3AF" />
+        </Group>
+      </Group>
 
-      {/* Metrics */}
-      <div className="mt-4 grid grid-cols-2 gap-y-3 gap-x-4">
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">Ad Requests</span>
-          <p className="mt-0.5 text-[16px] font-bold tabular-nums text-[#111827]">{formatCompact(bundle.hits || 0)}</p>
-        </div>
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">Revenue</span>
-          <p className="mt-0.5 text-[16px] font-bold tabular-nums text-[#111827]">{formatCurrency(bundle.totalRevenue || 0)}</p>
-        </div>
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">Profit</span>
-          <p className="mt-0.5 text-[16px] font-bold tabular-nums text-[#039855]">
+      {/* Metrics grid */}
+      <SimpleGrid cols={2} spacing="xs" mt="md">
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
+            Ad Requests
+          </Text>
+          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {formatCompact(bundle.hits || 0)}
+          </Text>
+        </Box>
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
+            Revenue
+          </Text>
+          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {formatCurrency(bundle.totalRevenue || 0)}
+          </Text>
+        </Box>
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
+            Profit
+          </Text>
+          <Text size="md" fw={700} c="#039855" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formatCurrency(bundle.profit || 0)}
-          </p>
-        </div>
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">ROMI</span>
-          <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="text-[16px] font-bold tabular-nums text-[#111827]">{(bundle.romi || 0).toFixed(1)}%</span>
-          </div>
-        </div>
-      </div>
+          </Text>
+        </Box>
+        <Box>
+          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
+            ROMI
+          </Text>
+          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {(bundle.romi || 0).toFixed(1)}%
+          </Text>
+        </Box>
+      </SimpleGrid>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-[#E5E7EB] pt-3">
-        <span className="text-[12px] font-medium text-[#6B7280]">{bundle.sitesCount || 0} sites</span>
+      <Group justify="space-between" mt="md" pt="sm" style={{ borderTop: '1px solid #E5E7EB' }}>
+        <Text size="xs" fw={500} c="#6B7280">{bundle.sitesCount || 0} sites</Text>
         {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
-      </div>
-    </Link>
+      </Group>
+    </Card>
   )
 }
 
-/**
- * Compute 4 typed operational insight cards from bundles + anomalies:
- * 1. Top Opportunity (best performing bundle or biggest gain)
- * 2. Main Risk (highest severity anomaly)
- * 3. Biggest Drop (biggest negative delta)
- * 4. Most Efficient Bundle (best ROMI)
- */
 function computeTypedInsights(
   bundles: BundleData[],
   rawInsights: InsightData[]
 ): InsightData[] {
   const typed: InsightData[] = []
 
-  // 1. Top Opportunity — bundle with biggest positive delta
   if (bundles.length > 0) {
     const bestGain = [...bundles]
       .filter(b => b.delta !== undefined && b.delta > 0)
@@ -142,7 +153,6 @@ function computeTypedInsights(
     }
   }
 
-  // 2. Main Risk — highest severity anomaly
   const sortedRisks = [...rawInsights]
     .filter(i => i.type === 'risk')
     .sort((a, b) => {
@@ -153,7 +163,6 @@ function computeTypedInsights(
     typed.push({ ...sortedRisks[0], type: 'risk' })
   }
 
-  // 3. Biggest Drop — bundle with most negative delta
   if (bundles.length > 0) {
     const worstDrop = [...bundles]
       .filter(b => b.delta !== undefined && b.delta < 0)
@@ -175,7 +184,6 @@ function computeTypedInsights(
     }
   }
 
-  // 4. Most Efficient Bundle — best ROMI
   if (bundles.length > 0) {
     const bestRomi = [...bundles].sort((a, b) => b.romi - a.romi)[0]
     if (bestRomi && bestRomi.romi > 0) {
@@ -197,7 +205,6 @@ function computeTypedInsights(
   return typed
 }
 
-/** Fade-in wrapper for chart sections that animate from skeleton */
 function ChartFadeIn({ children }: { children: React.ReactNode }) {
   return (
     <AnimatePresence mode="wait">
@@ -214,19 +221,21 @@ function ChartFadeIn({ children }: { children: React.ReactNode }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto max-w-[1600px] space-y-8 px-6 py-6">
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
-      </div>
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
-      </div>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        <ChartSkeleton />
-        <ChartSkeleton />
-        <ChartSkeleton />
-      </div>
-    </div>
+    <Box maw={1600} mx="auto" px="xl" py="xl">
+      <Stack gap="xl">
+        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4, xl: 5 }} spacing="md">
+          {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
+        </SimpleGrid>
+        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4 }} spacing="md">
+          {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
+        </SimpleGrid>
+        <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
+          <ChartSkeleton />
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </SimpleGrid>
+      </Stack>
+    </Box>
   )
 }
 
@@ -245,147 +254,167 @@ function DashboardContent() {
 
   if (!hasKpis && !hasBundles && !hasTrend) {
     return (
-      <div className="mx-auto max-w-[1600px] px-6 py-8">
-        <EmptyState message="No data available yet" />
-      </div>
+      <Box maw={1600} mx="auto" px="xl" py="xl">
+        <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: '#E5E7EB', borderStyle: 'dashed' } }}>
+          <Stack align="center" py="xl" gap="xs">
+            <Text size="sm" c="#6B7280">No data available yet</Text>
+            <Text size="xs" fw={500} c="#6B7280">Data will appear after syncing with AdSpyglass</Text>
+          </Stack>
+        </Card>
+      </Box>
     )
   }
 
-  // Split KPIs into primary and secondary rows
   const allKpis = data.kpis as Array<{ label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }>
   const primaryKpis = PRIMARY_KPIS.map(label => allKpis.find(k => k.label === label)).filter(Boolean)
   const secondaryKpis = SECONDARY_KPIS.map(label => allKpis.find(k => k.label === label)).filter(Boolean)
-
-  // Compute 4 typed operational insights from bundles + anomalies
-  const typedInsights = computeTypedInsights(
-    data.bundles || [],
-    data.insights || []
-  )
-
-  // Compare mode label for display
+  const typedInsights = computeTypedInsights(data.bundles || [], data.insights || [])
   const compareLabel = compare === 'prev_7d' ? 'vs 7d ago' : compare === 'prev_day' ? 'vs yesterday' : 'vs prev period'
 
   return (
     <motion.div
-      className="mx-auto max-w-[1600px] space-y-8 overflow-hidden px-6 py-6 pb-8"
       initial="hidden"
       animate="visible"
       variants={staggerContainer}
     >
-      {/* === KPI Section === */}
-      {hasKpis && (
-        <div className="space-y-5">
-          {/* Primary KPI Row */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {primaryKpis.map((kpi, i) => (
-              <motion.div key={kpi!.label} custom={i} variants={fadeInUp}>
-                <KPICard {...kpi!} />
-              </motion.div>
-            ))}
-          </div>
-          {/* Secondary KPI Row */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {secondaryKpis.map((kpi, i) => (
-              <motion.div key={kpi!.label} custom={i + 5} variants={fadeInUp}>
-                <KPICard {...kpi!} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+      <Box maw={1600} mx="auto" px="xl" py="xl" pb={48} style={{ overflow: 'hidden' }}>
+        <Stack gap="xl">
 
-      {/* === Network Signals Strip === */}
-      {(hasBundles || hasInsights) && (
-        <motion.div custom={9} variants={fadeInUp}>
-          <SignalStrip
-            bundles={data.bundles || []}
-            insights={data.insights || []}
-          />
-        </motion.div>
-      )}
-
-      {/* === Trends Section === */}
-      {hasTrend && (
-        <div>
-          <h2 className="mb-5 text-[20px] font-semibold text-[#111827]">Trends</h2>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-            <motion.div custom={10} variants={fadeInUp}>
-              <ChartFadeIn>
-                <ChartCard title="Revenue Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                  <RevenueTrendChart data={data.trend} />
-                </ChartCard>
-              </ChartFadeIn>
+          {/* === Coverage indicator === */}
+          {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
+            <motion.div custom={0} variants={fadeInUp}>
+              <Badge
+                variant="light"
+                color="indigo"
+                size="lg"
+                radius="lg"
+                styles={{ root: { textTransform: 'none', fontWeight: 500 } }}
+              >
+                Loading historical data for {data.coverage.missingDates} missing days...
+              </Badge>
             </motion.div>
-            <motion.div custom={11} variants={fadeInUp}>
-              <ChartFadeIn>
-                <ChartCard title="Traffic Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                  <TrafficTrendChart data={data.trend} />
-                </ChartCard>
-              </ChartFadeIn>
+          )}
+
+          {/* === KPI Section === */}
+          {hasKpis && (
+            <Stack gap="md">
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 5 }} spacing="md">
+                {primaryKpis.map((kpi, i) => (
+                  <motion.div key={kpi!.label} custom={i} variants={fadeInUp}>
+                    <KPICard {...kpi!} />
+                  </motion.div>
+                ))}
+              </SimpleGrid>
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+                {secondaryKpis.map((kpi, i) => (
+                  <motion.div key={kpi!.label} custom={i + 5} variants={fadeInUp}>
+                    <KPICard {...kpi!} />
+                  </motion.div>
+                ))}
+              </SimpleGrid>
+            </Stack>
+          )}
+
+          {/* === Network Signals Strip === */}
+          {(hasBundles || hasInsights) && (
+            <motion.div custom={9} variants={fadeInUp}>
+              <SignalStrip bundles={data.bundles || []} insights={data.insights || []} />
             </motion.div>
-            <motion.div custom={12} variants={fadeInUp}>
-              <ChartFadeIn>
-                <ChartCard title="Profit Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                  <ProfitTrendChart data={data.trend} />
-                </ChartCard>
-              </ChartFadeIn>
-            </motion.div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* === Bundles Section === */}
-      {hasBundles && (
-        <div>
-          <h2 className="mb-5 text-[20px] font-semibold text-[#111827]">Bundles</h2>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {data.bundles.map((bundle: BundleData, i: number) => (
-              <motion.div key={bundle.id} custom={i + 13} variants={fadeInUp} className="min-w-0">
-                <BundleSummaryCard bundle={bundle} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+          {/* === Trends Section === */}
+          {hasTrend && (
+            <Box>
+              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+                Trends
+              </Text>
+              <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
+                <motion.div custom={10} variants={fadeInUp}>
+                  <ChartFadeIn>
+                    <ChartCard title="Revenue Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                      <RevenueTrendChart data={data.trend} />
+                    </ChartCard>
+                  </ChartFadeIn>
+                </motion.div>
+                <motion.div custom={11} variants={fadeInUp}>
+                  <ChartFadeIn>
+                    <ChartCard title="Traffic Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                      <TrafficTrendChart data={data.trend} />
+                    </ChartCard>
+                  </ChartFadeIn>
+                </motion.div>
+                <motion.div custom={12} variants={fadeInUp}>
+                  <ChartFadeIn>
+                    <ChartCard title="Profit Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                      <ProfitTrendChart data={data.trend} />
+                    </ChartCard>
+                  </ChartFadeIn>
+                </motion.div>
+              </SimpleGrid>
+            </Box>
+          )}
 
-      {/* === Operational Insights (4 typed cards) === */}
-      {typedInsights.length > 0 && (
-        <div>
-          <h2 className="mb-5 text-[20px] font-semibold text-[#111827]">Operational Insights</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {typedInsights.map((insight, i) => (
-              <motion.div key={i} custom={i + 17} variants={fadeInUp}>
-                <InsightCard {...insight} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+          {/* === Bundles Section === */}
+          {hasBundles && (
+            <Box>
+              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+                Bundles
+              </Text>
+              <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+                {data.bundles.map((bundle: BundleData, i: number) => (
+                  <motion.div key={bundle.id} custom={i + 13} variants={fadeInUp}>
+                    <BundleSummaryCard bundle={bundle} />
+                  </motion.div>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
 
-      {/* === Additional Anomalies (if any beyond typed insights) === */}
-      {hasInsights && data.insights.length > 0 && (
-        <div>
-          <h2 className="mb-5 text-[20px] font-semibold text-[#111827]">Recent Anomalies</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {data.insights.slice(0, 6).map((insight: InsightData, i: number) => (
-              <motion.div key={i} custom={i + 21} variants={fadeInUp}>
-                <InsightCard {...insight} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+          {/* === Operational Insights === */}
+          {typedInsights.length > 0 && (
+            <Box>
+              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+                Operational Insights
+              </Text>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                {typedInsights.map((insight, i) => (
+                  <motion.div key={i} custom={i + 17} variants={fadeInUp}>
+                    <InsightCard {...insight} />
+                  </motion.div>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {/* === Recent Anomalies === */}
+          {hasInsights && data.insights.length > 0 && (
+            <Box>
+              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+                Recent Anomalies
+              </Text>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                {data.insights.slice(0, 6).map((insight: InsightData, i: number) => (
+                  <motion.div key={i} custom={i + 21} variants={fadeInUp}>
+                    <InsightCard {...insight} />
+                  </motion.div>
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+        </Stack>
+      </Box>
     </motion.div>
   )
 }
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-[#F6F8FB]">
+    <Box bg="#F6F8FB" mih="100vh">
       <TopContextBar title="Dashboard" subtitle="Network overview and key metrics" showExport showCompare />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </Suspense>
-    </div>
+    </Box>
   )
 }

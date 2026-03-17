@@ -7,6 +7,7 @@ import {
   syncAffiliateQueue,
   syncYandexMetricaQueue,
 } from '@/lib/queue'
+import { ensureDataCoverage } from '@/services/data-coverage'
 
 export async function GET() {
   try {
@@ -38,6 +39,20 @@ export async function POST(request: NextRequest) {
     const source = body.source || 'all'
     const from = body.from
     const to = body.to
+
+    // If forceResync is set, use the smart coverage system
+    if (body.forceResync && from && to) {
+      const coverage = await ensureDataCoverage(
+        new Date(from + 'T00:00:00.000Z'),
+        new Date(to + 'T23:59:59.999Z'),
+        { forceResync: true },
+      )
+      return jsonResponse({
+        message: `Resync triggered: ${coverage.enqueuedJobs.length} jobs enqueued`,
+        jobs: coverage.enqueuedJobs,
+        coverage,
+      })
+    }
 
     const jobs: string[] = []
 

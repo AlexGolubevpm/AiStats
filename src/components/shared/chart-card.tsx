@@ -1,4 +1,6 @@
-import { cn } from '@/lib/utils'
+'use client'
+
+import { Card, Group, Text, Box } from '@mantine/core'
 
 interface ChartCardProps {
   title: string
@@ -9,35 +11,55 @@ interface ChartCardProps {
   delta?: number
 }
 
-export function ChartCard({ title, description, children, className, action, delta }: ChartCardProps) {
+export function ChartCard({ title, description, children, action, delta }: ChartCardProps) {
   return (
-    <div
-      className={cn(
-        'overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-200 hover:shadow-[0_4px_10px_rgba(16,24,40,0.08),0_2px_4px_rgba(16,24,40,0.04)]',
-        className
-      )}
+    <Card
+      padding={0}
+      radius="xl"
+      shadow="sm"
+      withBorder
+      styles={{
+        root: {
+          borderColor: '#E5E7EB',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+          },
+        },
+      }}
     >
-      <div className="flex items-center justify-between px-5 py-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h3 className="text-[14px] font-semibold text-[#111827]">{title}</h3>
+      <Group justify="space-between" px="lg" py="md">
+        <Box>
+          <Group gap="sm" align="center">
+            <Text size="sm" fw={600} c="#111827">
+              {title}
+            </Text>
             {delta !== undefined && (
-              <span className={`text-[12px] font-semibold tabular-nums ${delta >= 0 ? 'text-[#039855]' : 'text-[#D92D20]'}`}>
+              <Text
+                size="xs"
+                fw={600}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                c={delta >= 0 ? '#039855' : '#D92D20'}
+              >
                 {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-              </span>
+              </Text>
             )}
-          </div>
+          </Group>
           {description && (
-            <p className="mt-0.5 text-[12px] font-medium text-[#6B7280]">{description}</p>
+            <Text size="xs" c="#6B7280" fw={500} mt={2}>
+              {description}
+            </Text>
           )}
-        </div>
+        </Box>
         {action}
-      </div>
-      <div className="px-5 pb-5">{children}</div>
-    </div>
+      </Group>
+      <Box px="lg" pb="lg">
+        {children}
+      </Box>
+    </Card>
   )
 }
 
 export function TrendChartCard({ title, description, children, className, action, delta }: ChartCardProps) {
-  return <ChartCard title={title} description={description} className={className} action={action} delta={delta}>{children}</ChartCard>
+  return <ChartCard title={title} description={description} action={action} delta={delta}>{children}</ChartCard>
 }

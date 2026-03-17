@@ -1,5 +1,6 @@
 'use client'
 
+import { Card, Group, Text, Box, ThemeIcon, SimpleGrid } from '@mantine/core'
 import { TrendingUp, TrendingDown, AlertTriangle, Trophy } from 'lucide-react'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 
@@ -16,30 +17,30 @@ const signalConfig = {
   gain: {
     icon: TrendingUp,
     label: 'Biggest Revenue Gain',
-    iconBg: 'bg-[#ECFDF3]',
-    iconColor: 'text-[#039855]',
-    borderColor: 'border-l-[#10B981]',
+    iconBg: '#ECFDF3',
+    iconColor: '#039855',
+    borderColor: '#10B981',
   },
   drop: {
     icon: TrendingDown,
     label: 'Biggest Revenue Drop',
-    iconBg: 'bg-[#FEF3F2]',
-    iconColor: 'text-[#D92D20]',
-    borderColor: 'border-l-[#F04438]',
+    iconBg: '#FEF3F2',
+    iconColor: '#D92D20',
+    borderColor: '#F04438',
   },
   risk: {
     icon: AlertTriangle,
     label: 'Highest Risk',
-    iconBg: 'bg-[#FFFAEB]',
-    iconColor: 'text-[#DC6803]',
-    borderColor: 'border-l-[#F79009]',
+    iconBg: '#FFFAEB',
+    iconColor: '#DC6803',
+    borderColor: '#F79009',
   },
   winner: {
     icon: Trophy,
     label: 'Strongest Bundle',
-    iconBg: 'bg-[#EEF2FF]',
-    iconColor: 'text-[#4F46E5]',
-    borderColor: 'border-l-[#4F46E5]',
+    iconBg: '#EEF2FF',
+    iconColor: '#4F46E5',
+    borderColor: '#4F46E5',
   },
 }
 
@@ -48,26 +49,72 @@ function SignalCard({ signal }: { signal: SignalData }) {
   const Icon = config.icon
 
   return (
-    <div className={`flex items-start gap-3 rounded-[12px] border border-[#E5E7EB] border-l-[3px] ${config.borderColor} bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)]`}>
-      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${config.iconBg}`}>
-        <Icon className={`h-4 w-4 ${config.iconColor}`} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">{config.label}</p>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          <span className="truncate text-[13px] font-semibold text-[#111827]">{signal.entity}</span>
-          <span className="shrink-0 text-[12px] font-semibold tabular-nums text-[#4B5563]">
-            {signal.type === 'winner' ? `${signal.delta.toFixed(1)}% ROMI` : formatCurrency(signal.value)}
-          </span>
-          {signal.type !== 'winner' && (
-            <span className={`shrink-0 text-[12px] font-semibold tabular-nums ${signal.delta >= 0 ? 'text-[#039855]' : 'text-[#D92D20]'}`}>
-              {formatPercent(signal.delta)}
-            </span>
-          )}
-        </div>
-        <p className="mt-1 truncate text-[11px] text-[#6B7280]">{signal.reason}</p>
-      </div>
-    </div>
+    <Card
+      padding="sm"
+      radius="lg"
+      shadow="xs"
+      withBorder
+      styles={{
+        root: {
+          borderColor: '#E5E7EB',
+          borderLeft: `3px solid ${config.borderColor}`,
+          transition: 'all 0.15s ease',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 10px rgba(16,24,40,0.08)',
+          },
+        },
+      }}
+    >
+      <Group align="flex-start" gap="sm" wrap="nowrap">
+        <ThemeIcon
+          size={32}
+          radius="md"
+          variant="light"
+          styles={{
+            root: {
+              backgroundColor: config.iconBg,
+              color: config.iconColor,
+              flexShrink: 0,
+            },
+          }}
+        >
+          <Icon size={16} />
+        </ThemeIcon>
+        <Box flex={1} miw={0}>
+          <Text
+            size="xs"
+            fw={600}
+            tt="uppercase"
+            c="#6B7280"
+            style={{ letterSpacing: '0.04em', fontSize: 11 }}
+          >
+            {config.label}
+          </Text>
+          <Group gap="xs" mt={2} align="baseline">
+            <Text size="sm" fw={600} c="#111827" truncate>
+              {signal.entity}
+            </Text>
+            <Text size="xs" fw={600} c="#4B5563" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {signal.type === 'winner' ? `${signal.delta.toFixed(1)}% ROMI` : formatCurrency(signal.value)}
+            </Text>
+            {signal.type !== 'winner' && (
+              <Text
+                size="xs"
+                fw={600}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+                c={signal.delta >= 0 ? '#039855' : '#D92D20'}
+              >
+                {formatPercent(signal.delta)}
+              </Text>
+            )}
+          </Group>
+          <Text size="xs" c="#6B7280" mt={4} truncate style={{ fontSize: 11 }}>
+            {signal.reason}
+          </Text>
+        </Box>
+      </Group>
+    </Card>
   )
 }
 
@@ -121,7 +168,6 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
       })
     }
 
-    // Strongest bundle by ROMI
     const bestByRomi = [...bundles].sort((a, b) => b.romi - a.romi)[0]
     if (bestByRomi) {
       signals.push({
@@ -135,7 +181,6 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
     }
   }
 
-  // Highest risk from insights
   const risks = insights.filter(i => i.type === 'risk' && (i.severity === 'high' || i.severity === 'critical'))
   if (risks.length > 0) {
     const r = risks[0]
@@ -152,10 +197,10 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
   if (signals.length === 0) return null
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
       {signals.slice(0, 4).map((signal, i) => (
         <SignalCard key={i} signal={signal} />
       ))}
-    </div>
+    </SimpleGrid>
   )
 }

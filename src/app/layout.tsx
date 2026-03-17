@@ -1,4 +1,10 @@
 import type { Metadata, Viewport } from 'next'
+import { ColorSchemeScript, MantineProvider } from '@mantine/core'
+import { Notifications } from '@mantine/notifications'
+import { theme } from '@/theme/mantine'
+import '@mantine/core/styles.css'
+import '@mantine/notifications/styles.css'
+import '@mantine/dates/styles.css'
 import '@/styles/globals.css'
 
 export const viewport: Viewport = {
@@ -18,8 +24,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ColorSchemeScript defaultColorScheme="light" />
+      </head>
+      <body>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <Notifications position="top-right" />
+          {children}
+        </MantineProvider>
+      </body>
     </html>
   )
 }

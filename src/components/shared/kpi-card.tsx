@@ -1,10 +1,11 @@
 'use client'
 
-import { cn, formatCurrency, formatNumber, formatPercent, formatCompact } from '@/lib/utils'
+import { Card, Text, Group, Box, Tooltip } from '@mantine/core'
+import { motion } from 'framer-motion'
+import { formatCurrency, formatNumber, formatPercent, formatCompact } from '@/lib/utils'
 import { MetricDelta } from './delta-indicator'
 import { MiniSparkline } from './sparkline'
 
-// Metric-specific sparkline colors per spec
 const METRIC_COLORS: Record<string, string> = {
   'Visitors': '#06B6D4',
   'Ad Requests': '#0EA5E9',
@@ -33,7 +34,6 @@ export function KPICard({
   delta,
   format = 'number',
   trend,
-  className,
 }: KPICardProps) {
   const isInvalidValue = isNaN(value)
 
@@ -56,37 +56,66 @@ export function KPICard({
   const sparkColor = METRIC_COLORS[label] || '#6366F1'
 
   return (
-    <div
-      aria-label={`${label}: ${formattedValue}`}
-      className={cn(
-        'group relative min-h-[144px] overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08),0_2px_4px_rgba(16,24,40,0.04)] hover:border-[#D7DCE5]',
-        className
-      )}
+    <Card
+      padding="lg"
+      radius="xl"
+      shadow="sm"
+      withBorder
+      styles={{
+        root: {
+          borderColor: '#E5E7EB',
+          minHeight: 144,
+          transition: 'all 0.16s ease',
+          cursor: 'default',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
+            borderColor: '#D7DCE5',
+          },
+        },
+      }}
     >
       {/* Label */}
-      <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
+      <Text
+        size="xs"
+        fw={600}
+        tt="uppercase"
+        c="#6B7280"
+        style={{ letterSpacing: '0.04em', fontSize: 12 }}
+      >
         {label}
-      </p>
+      </Text>
 
-      {/* Main value */}
-      <p className="mt-2.5 text-[38px] font-bold leading-[44px] tabular-nums text-[#111827]">
+      {/* Value */}
+      <Text
+        fw={700}
+        c="#111827"
+        mt={10}
+        style={{
+          fontSize: 38,
+          lineHeight: '44px',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {formattedValue}
-      </p>
+      </Text>
 
-      {/* Delta + Sparkline row */}
-      <div className="mt-3 flex items-end justify-between">
-        <div>
+      {/* Delta + Sparkline */}
+      <Group justify="space-between" align="flex-end" mt={12}>
+        <Box>
           {delta !== undefined && (
-            <div className="flex items-center gap-1.5">
+            <Group gap={6} align="center">
               <MetricDelta value={delta} size="sm" />
-              <span className="text-[12px] font-medium text-[#6B7280]">vs prev</span>
-            </div>
+              <Text size="xs" c="#6B7280" fw={500}>
+                vs prev
+              </Text>
+            </Group>
           )}
-        </div>
+        </Box>
         {trend && trend.length > 1 && (
           <MiniSparkline data={trend} color={sparkColor} width={120} height={28} />
         )}
-      </div>
-    </div>
+      </Group>
+    </Card>
   )
 }

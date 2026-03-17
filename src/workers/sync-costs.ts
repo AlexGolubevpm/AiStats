@@ -17,8 +17,10 @@ interface SyncCostsJobData {
 
 async function processSyncCosts(job: Job<SyncCostsJobData>) {
   const { from, to } = job.data
-  const fromDate = from ? new Date(from) : new Date(Date.now() - 24 * 60 * 60 * 1000)
-  const toDate = to ? new Date(to) : new Date()
+  // Google Sheets CSV is fetched in full — no need to restrict by default date range.
+  // Only filter when explicit from/to is provided (e.g. manual resync for a specific period).
+  const fromDate = from ? new Date(from) : null
+  const toDate = to ? new Date(to) : null
 
   const syncLog = await prisma.syncLog.create({
     data: {
@@ -45,7 +47,7 @@ async function processSyncCosts(job: Job<SyncCostsJobData>) {
     await job.updateProgress(20)
     await job.log('Fetching costs from Google Sheets...')
 
-    const costsData = await service.fetchCosts(fromDate, toDate)
+    const costsData = await service.fetchCosts(fromDate ?? new Date(0), toDate ?? new Date())
     await job.log(`Fetched ${costsData.length} cost rows from sheet`)
 
     await job.updateProgress(50)
@@ -94,8 +96,9 @@ async function processSyncCosts(job: Job<SyncCostsJobData>) {
 
       const date = new Date(row.date + 'T00:00:00.000Z')
 
-      // Filter by date range
-      if (date < fromDate || date > toDate) continue
+      // Filter by date range only if explicit bounds were provided
+      if (fromDate && date < fromDate) continue
+      if (toDate && date > toDate) continue
 
       await prisma.cost.upsert({
         where: {
@@ -127,7 +130,17 @@ async function processSyncCosts(job: Job<SyncCostsJobData>) {
 
     // Update daily metrics costs for affected sites/dates
     await job.log('Updating daily metrics with new cost data...')
-    await recalcDailyMetricsCosts(fromDate, toDate)
+    // Recalculate for the full range of imported data
+    const allCostDates = await prisma.cost.aggregate({
+      _min: { date: true },
+      _max: { date: true },
+    })
+    if (allCostDates._min.date && allCostDates._max.date) {
+      await recalcDailyMetricsCosts(
+        fromDate || allCostDates._min.date,
+        toDate || allCostDates._max.date,
+      )
+    }
 
     await prisma.syncLog.update({
       where: { id: syncLog.id },

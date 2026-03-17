@@ -8,6 +8,7 @@ import {
   getTierBreakdown,
   calculateDelta,
 } from '@/services/metrics'
+import { ensureDataCoverage } from '@/services/data-coverage'
 
 export async function GET(
   request: NextRequest,
@@ -32,6 +33,9 @@ export async function GET(
     if (!site) {
       return errorResponse('Site not found', 404)
     }
+
+    // Check data coverage and trigger backfill if needed
+    const coverage = await ensureDataCoverage(from, to)
 
     // KPIs with deltas
     const current = await aggregateSiteMetrics(site.id, from, to)
@@ -196,6 +200,12 @@ export async function GET(
       anomalies: formattedAnomalies,
       costs: formattedCosts,
       affiliateRevenue: formattedAffiliate,
+      coverage: {
+        complete: coverage.covered,
+        missingDates: coverage.missingDates.length,
+        syncTriggered: coverage.enqueuedJobs.length > 0,
+        resyncTriggered: coverage.resyncTriggered,
+      },
     })
   } catch (error) {
     console.error('Site detail API error:', error)

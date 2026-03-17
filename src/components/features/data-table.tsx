@@ -11,6 +11,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
+import { Card, TextInput, Group, Text, ActionIcon, Box, Skeleton, Stack } from '@mantine/core'
 import { ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -49,11 +50,11 @@ export function DataTable<TData>({
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <Stack gap="xs">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded-[var(--radius-control)] bg-[var(--color-surface-secondary)]" />
+          <Skeleton key={i} height={48} radius="md" />
         ))}
-      </div>
+      </Stack>
     )
   }
 
@@ -66,114 +67,162 @@ export function DataTable<TData>({
   const hasNoResults = table.getRowModel().rows.length === 0
 
   return (
-    <div>
+    <Box>
       {/* Toolbar */}
       {searchKey && (
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-disabled)]" />
-            <input
-              placeholder={searchPlaceholder}
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="h-9 w-full rounded-[var(--radius-control)] border border-[var(--color-border-default)] bg-[var(--color-surface)] pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-[var(--color-text-disabled)] focus:border-[var(--color-primary-500)] focus-visible:shadow-[var(--shadow-glow-primary)] sm:w-72"
-            />
-          </div>
-          <span className="hidden text-meta sm:inline">
+        <Group justify="space-between" mb="md" wrap="wrap" gap="sm">
+          <TextInput
+            placeholder={searchPlaceholder}
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.currentTarget.value)}
+            leftSection={<Search size={16} />}
+            radius="md"
+            size="sm"
+            w={{ base: '100%', sm: 288 }}
+            styles={{
+              input: {
+                borderColor: '#D7DCE5',
+                fontSize: 13,
+                '&:focus': {
+                  borderColor: '#6366F1',
+                },
+              },
+            }}
+          />
+          <Text size="xs" c="#6B7280" fw={500} visibleFrom="sm">
             {filteredTotal} results
-          </span>
-        </div>
+          </Text>
+        </Group>
       )}
 
       {/* Table */}
-      <div className="-mx-4 overflow-x-auto sm:mx-0 sm:rounded-[var(--radius-card)] sm:border sm:border-[var(--color-border-subtle)]">
-        <table className="w-full min-w-[640px] text-[13px]">
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]">
-                {headerGroup.headers.map((header, idx) => (
-                  <th
-                    key={header.id}
-                    className={cn(
-                      'px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]',
-                      idx === 0 ? 'sticky left-0 z-10 bg-[var(--color-surface-secondary)] text-left' : '',
-                      header.column.getCanSort() ? 'cursor-pointer select-none' : '',
-                      idx > 1 ? 'text-right' : 'text-left'
-                    )}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className={cn('flex items-center gap-1', idx > 1 ? 'justify-end' : '')}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getCanSort() && (
-                        <span className="ml-0.5">
-                          {header.column.getIsSorted() === 'asc' ? (
-                            <ArrowUp className="h-3 w-3 text-[var(--color-primary-600)]" />
-                          ) : header.column.getIsSorted() === 'desc' ? (
-                            <ArrowDown className="h-3 w-3 text-[var(--color-primary-600)]" />
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 opacity-25" />
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="divide-y divide-[var(--color-border-subtle)]">
-            {hasNoResults ? (
-              <tr>
-                <td colSpan={columns.length} className="py-12 text-center text-[13px] text-[var(--color-text-muted)]">
-                  {hasActiveFilter ? 'No results found' : 'No data available'}
-                </td>
-              </tr>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="group border-l-2 border-transparent hover:border-l-[var(--color-primary-500)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)]">
-                  {row.getVisibleCells().map((cell, idx) => (
-                    <td
-                      key={cell.id}
-                      className={cn(
-                        'px-4 py-3',
-                        idx === 0 ? 'sticky left-0 z-10 bg-[var(--color-surface)] font-medium group-hover:bg-[var(--color-surface-hover)]' : '',
-                        idx > 1 ? 'text-right tabular-nums' : ''
-                      )}
+      <Card
+        padding={0}
+        radius="xl"
+        shadow="sm"
+        withBorder
+        styles={{ root: { borderColor: '#E5E7EB', overflow: 'hidden' } }}
+      >
+        <Box style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 640, fontSize: 13, borderCollapse: 'collapse' }}>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} style={{ borderBottom: '1px solid #D7DCE5', background: '#F9FAFB' }}>
+                  {headerGroup.headers.map((header, idx) => (
+                    <th
+                      key={header.id}
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: '#6B7280',
+                        textAlign: idx > 1 ? 'right' : 'left',
+                        cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                        userSelect: header.column.getCanSort() ? 'none' : undefined,
+                        position: idx === 0 ? 'sticky' : undefined,
+                        left: idx === 0 ? 0 : undefined,
+                        zIndex: idx === 0 ? 10 : undefined,
+                        background: idx === 0 ? '#F9FAFB' : undefined,
+                      }}
+                      onClick={header.column.getToggleSortingHandler()}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: idx > 1 ? 'flex-end' : 'flex-start' }}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getCanSort() && (
+                          <span>
+                            {header.column.getIsSorted() === 'asc' ? (
+                              <ArrowUp size={12} color="#4F46E5" />
+                            ) : header.column.getIsSorted() === 'desc' ? (
+                              <ArrowDown size={12} color="#4F46E5" />
+                            ) : (
+                              <ArrowUpDown size={12} style={{ opacity: 0.25 }} />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </th>
                   ))}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </thead>
+            <tbody>
+              {hasNoResults ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    style={{ padding: '48px 0', textAlign: 'center', color: '#6B7280', fontSize: 13 }}
+                  >
+                    {hasActiveFilter ? 'No results found' : 'No data available'}
+                  </td>
+                </tr>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    style={{
+                      borderBottom: '1px solid #E5E7EB',
+                      transition: 'background 0.12s ease',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    {row.getVisibleCells().map((cell, idx) => (
+                      <td
+                        key={cell.id}
+                        style={{
+                          padding: '12px 16px',
+                          textAlign: idx > 1 ? 'right' : 'left',
+                          fontVariantNumeric: idx > 1 ? 'tabular-nums' : undefined,
+                          fontWeight: idx === 0 ? 500 : undefined,
+                          position: idx === 0 ? 'sticky' : undefined,
+                          left: idx === 0 ? 0 : undefined,
+                          zIndex: idx === 0 ? 10 : undefined,
+                          background: idx === 0 ? 'white' : undefined,
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </Box>
+      </Card>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-          <span className="text-meta">
+        <Group justify="space-between" mt="sm" wrap="wrap" gap="sm">
+          <Text size="xs" c="#6B7280" fw={500}>
             Showing {pageStart}-{pageEnd} of {filteredTotal}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
+          </Text>
+          <Group gap={4}>
+            <ActionIcon
+              variant="default"
+              size="sm"
+              radius="md"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] active:scale-95 focus-visible:shadow-[var(--shadow-glow-primary)] disabled:opacity-40"
+              styles={{ root: { border: '1px solid #D7DCE5' } }}
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
+              <ChevronLeft size={16} />
+            </ActionIcon>
+            <ActionIcon
+              variant="default"
+              size="sm"
+              radius="md"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] active:scale-95 focus-visible:shadow-[var(--shadow-glow-primary)] disabled:opacity-40"
+              styles={{ root: { border: '1px solid #D7DCE5' } }}
             >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+              <ChevronRight size={16} />
+            </ActionIcon>
+          </Group>
+        </Group>
       )}
-    </div>
+    </Box>
   )
 }
