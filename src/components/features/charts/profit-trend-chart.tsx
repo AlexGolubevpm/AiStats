@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend } from 'recharts'
 
 interface ProfitTrendChartProps {
   data: { date: string; profit: number }[]
@@ -60,6 +60,7 @@ export function ProfitTrendChart({ data }: ProfitTrendChartProps) {
           width={48}
         />
         <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ fontSize: 12, color: '#6B7280', paddingTop: 8 }} iconType="circle" iconSize={8} />
         <ReferenceLine y={0} stroke="#D7DCE5" strokeDasharray="3 3" />
         <Area type="monotone" dataKey="profit" name="Profit" stroke="#10B981" fill={`url(#${gradientId})`} strokeWidth={2.5} dot={false} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>

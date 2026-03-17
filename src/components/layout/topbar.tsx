@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PeriodSelector } from '@/components/features/period-selector'
 import { useSyncStatus } from '@/hooks/use-sync-status'
+import { usePeriod } from '@/hooks/use-period'
 
 function SyncStatusBadge() {
   const { latestBySource } = useSyncStatus()
@@ -62,8 +63,10 @@ const COMPARE_OPTIONS = [
 ] as const
 
 function CompareModeSelect() {
-  const [compareMode, setCompareMode] = useState('prev_period')
+  const { compare, setCompare } = usePeriod()
   const [isOpen, setIsOpen] = useState(false)
+
+  const currentLabel = COMPARE_OPTIONS.find(o => o.value === compare)?.label || 'vs Previous Period'
 
   return (
     <div className="relative">
@@ -71,23 +74,27 @@ function CompareModeSelect() {
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 rounded-[10px] border-[#E5E7EB] text-[13px]"
+        className={`h-9 rounded-[10px] border-[#E5E7EB] text-[13px] ${compare !== 'prev_period' ? 'border-[#4F46E5]/30 bg-[#EEF2FF] text-[#4F46E5]' : ''}`}
       >
         <GitCompare className="mr-1.5 h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Compare</span>
+        <span className="hidden sm:inline">{currentLabel}</span>
+        <span className="sm:hidden">Compare</span>
       </Button>
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12),0_4px_8px_rgba(16,24,40,0.06)]">
+          <div className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12),0_4px_8px_rgba(16,24,40,0.06)]">
             {COMPARE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => { setCompareMode(opt.value); setIsOpen(false) }}
-                className={`flex w-full items-center px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-[#F9FAFB] ${
-                  compareMode === opt.value ? 'font-semibold text-[#4F46E5]' : 'text-[#4B5563]'
+                onClick={() => { setCompare(opt.value); setIsOpen(false) }}
+                className={`flex w-full items-center px-3.5 py-2.5 text-left text-[13px] transition-colors hover:bg-[#F9FAFB] ${
+                  compare === opt.value ? 'font-semibold text-[#4F46E5] bg-[#EEF2FF]/50' : 'text-[#4B5563]'
                 }`}
               >
+                {compare === opt.value && (
+                  <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[#4F46E5]" />
+                )}
                 {opt.label}
               </button>
             ))}
@@ -118,9 +125,9 @@ export function TopContextBar({
   actions,
 }: TopContextBarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-[#E5E7EB] bg-white/[0.88] px-6 backdrop-blur-md">
-      {/* Left: Title */}
-      <div className="min-w-0">
+    <header className="sticky top-0 z-30 flex min-h-[72px] flex-col gap-2 border-b border-[#E5E7EB] bg-white/[0.88] px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0">
+      {/* Left: Title — pl-12 on mobile to avoid sidebar hamburger overlap */}
+      <div className="min-w-0 pl-12 lg:pl-0">
         <motion.h1
           key={title}
           className="text-page-title truncate"
@@ -136,7 +143,7 @@ export function TopContextBar({
       </div>
 
       {/* Right: Controls */}
-      <div className="flex flex-shrink-0 items-center gap-3">
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3">
         <Suspense fallback={<Skeleton className="h-5 w-24" />}>
           <SyncStatusBadge />
         </Suspense>
@@ -147,7 +154,11 @@ export function TopContextBar({
           </Suspense>
         )}
 
-        {showCompare && <CompareModeSelect />}
+        {showCompare && (
+          <Suspense fallback={<Skeleton className="h-9 w-[140px]" />}>
+            <CompareModeSelect />
+          </Suspense>
+        )}
 
         {showExport && (
           <Button

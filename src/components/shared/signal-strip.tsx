@@ -9,6 +9,7 @@ interface SignalData {
   metric: string
   value: number
   delta: number
+  reason: string
 }
 
 const signalConfig = {
@@ -47,8 +48,8 @@ function SignalCard({ signal }: { signal: SignalData }) {
   const Icon = config.icon
 
   return (
-    <div className={`flex items-center gap-3 rounded-[12px] border border-[#E5E7EB] border-l-[3px] ${config.borderColor} bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)]`}>
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${config.iconBg}`}>
+    <div className={`flex items-start gap-3 rounded-[12px] border border-[#E5E7EB] border-l-[3px] ${config.borderColor} bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-150 hover:-translate-y-px hover:shadow-[0_4px_10px_rgba(16,24,40,0.08)]`}>
+      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${config.iconBg}`}>
         <Icon className={`h-4 w-4 ${config.iconColor}`} />
       </div>
       <div className="min-w-0 flex-1">
@@ -56,12 +57,15 @@ function SignalCard({ signal }: { signal: SignalData }) {
         <div className="mt-0.5 flex items-baseline gap-2">
           <span className="truncate text-[13px] font-semibold text-[#111827]">{signal.entity}</span>
           <span className="shrink-0 text-[12px] font-semibold tabular-nums text-[#4B5563]">
-            {formatCurrency(signal.value)}
+            {signal.type === 'winner' ? `${signal.delta.toFixed(1)}% ROMI` : formatCurrency(signal.value)}
           </span>
-          <span className={`shrink-0 text-[12px] font-semibold tabular-nums ${signal.delta >= 0 ? 'text-[#039855]' : 'text-[#D92D20]'}`}>
-            {formatPercent(signal.delta)}
-          </span>
+          {signal.type !== 'winner' && (
+            <span className={`shrink-0 text-[12px] font-semibold tabular-nums ${signal.delta >= 0 ? 'text-[#039855]' : 'text-[#D92D20]'}`}>
+              {formatPercent(signal.delta)}
+            </span>
+          )}
         </div>
+        <p className="mt-1 truncate text-[11px] text-[#6B7280]">{signal.reason}</p>
       </div>
     </div>
   )
@@ -81,6 +85,7 @@ interface SignalStripProps {
     metric: string
     value: string
     delta?: number
+    reason?: string
     severity: string
     type?: string
   }>
@@ -89,17 +94,18 @@ interface SignalStripProps {
 export function SignalStrip({ bundles, insights }: SignalStripProps) {
   const signals: SignalData[] = []
 
-  // Find biggest revenue gain/drop from bundles
   if (bundles.length > 0) {
     const sortedByDelta = [...bundles].filter(b => b.delta !== undefined).sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))
 
     if (sortedByDelta.length > 0 && (sortedByDelta[0].delta ?? 0) > 0) {
+      const b = sortedByDelta[0]
       signals.push({
         type: 'gain',
-        entity: sortedByDelta[0].name,
+        entity: b.name,
         metric: 'Revenue',
-        value: sortedByDelta[0].totalRevenue,
-        delta: sortedByDelta[0].delta ?? 0,
+        value: b.totalRevenue,
+        delta: b.delta ?? 0,
+        reason: `Revenue up ${formatPercent(b.delta ?? 0)} vs previous period`,
       })
     }
 
@@ -111,6 +117,7 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
         metric: 'Revenue',
         value: worstBundle.totalRevenue,
         delta: worstBundle.delta ?? 0,
+        reason: `Revenue dropped ${formatPercent(worstBundle.delta ?? 0)} — needs attention`,
       })
     }
 
@@ -123,6 +130,7 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
         metric: 'ROMI',
         value: bestByRomi.profit,
         delta: bestByRomi.romi,
+        reason: `Best return on investment with ${formatCurrency(bestByRomi.profit)} profit`,
       })
     }
   }
@@ -130,12 +138,14 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
   // Highest risk from insights
   const risks = insights.filter(i => i.type === 'risk' && (i.severity === 'high' || i.severity === 'critical'))
   if (risks.length > 0) {
+    const r = risks[0]
     signals.push({
       type: 'risk',
-      entity: risks[0].entity,
-      metric: risks[0].metric,
-      value: parseFloat(risks[0].value) || 0,
-      delta: risks[0].delta ?? 0,
+      entity: r.entity,
+      metric: r.metric,
+      value: parseFloat(r.value) || 0,
+      delta: r.delta ?? 0,
+      reason: r.reason || `Anomaly detected on ${r.metric}`,
     })
   }
 

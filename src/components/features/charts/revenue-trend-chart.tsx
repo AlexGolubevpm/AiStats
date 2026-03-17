@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 
 interface RevenueTrendChartProps {
   data: { date: string; adRevenue: number; affiliateRevenue: number; totalRevenue: number }[]
@@ -66,6 +66,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
           width={48}
         />
         <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ fontSize: 12, color: '#6B7280', paddingTop: 8 }} iconType="circle" iconSize={8} />
         <Area type="monotone" dataKey="adRevenue" name="Ad Revenue" stroke="#4F46E5" fill={`url(#${adRevGradId})`} strokeWidth={2.5} dot={false} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
         <Area type="monotone" dataKey="affiliateRevenue" name="Affiliate" stroke="#8B5CF6" fill={`url(#${affRevGradId})`} strokeWidth={2} strokeOpacity={0.7} dot={false} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
       </AreaChart>

@@ -26,8 +26,8 @@ function buildPeriodParams(period: string, extraParams?: Record<string, string>)
   return params.toString()
 }
 
-export function useDashboard(period: string) {
-  const qs = buildPeriodParams(period)
+export function useDashboard(period: string, compare?: string) {
+  const qs = buildPeriodParams(period, compare ? { compare } : undefined)
   return useQuery({
     queryKey: ['dashboard', qs],
     queryFn: () => fetchApi(`/api/dashboard?${qs}`),
