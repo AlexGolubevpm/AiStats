@@ -23,10 +23,11 @@ function SettingsContent() {
 
   const getValue = (key: string) => formData[key] ?? settings?.[key] ?? ''
 
-  const handleSave = (keys: string[]) => {
-    const data: Record<string, unknown> = {}
-    keys.forEach((k) => { data[k] = formData[k] ?? settings?.[k] ?? '' })
-    saveSettings.mutate(data)
+  const handleSave = async (keys: string[]) => {
+    for (const k of keys) {
+      const value = formData[k] ?? settings?.[k] ?? ''
+      await saveSettings.mutateAsync({ key: k, value })
+    }
   }
 
   return (
@@ -57,15 +58,25 @@ function SettingsContent() {
       </TabsContent>
 
       <TabsContent value="sheets" className="mt-6">
-        <ChartCard title="Google Sheets Configuration" description="Costs and affiliate data sources">
+        <ChartCard title="Google Sheets Configuration" description="Paste the full Google Sheets URL or just the sheet ID. The sheet must be publicly accessible (Share → Anyone with the link).">
           <div className="space-y-4">
             <div>
-              <Label>Costs Sheet ID</Label>
-              <Input type="text" value={getValue('costs_sheet_id')} onChange={(e) => setFormData({ ...formData, costs_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1.5" />
+              <Label>Costs Sheet URL or ID</Label>
+              <Input type="text" value={getValue('costs_sheet_id')} onChange={(e) => {
+                const raw = e.target.value
+                const match = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)
+                setFormData({ ...formData, costs_sheet_id: match ? match[1] : raw })
+              }} placeholder="https://docs.google.com/spreadsheets/d/... or sheet ID" className="mt-1.5" />
+              {getValue('costs_sheet_id') && <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Sheet ID: {getValue('costs_sheet_id')}</p>}
             </div>
             <div>
-              <Label>Affiliate Sheet ID</Label>
-              <Input type="text" value={getValue('affiliate_sheet_id')} onChange={(e) => setFormData({ ...formData, affiliate_sheet_id: e.target.value })} placeholder="Enter Google Sheet ID" className="mt-1.5" />
+              <Label>Affiliate Sheet URL or ID</Label>
+              <Input type="text" value={getValue('affiliate_sheet_id')} onChange={(e) => {
+                const raw = e.target.value
+                const match = raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)
+                setFormData({ ...formData, affiliate_sheet_id: match ? match[1] : raw })
+              }} placeholder="https://docs.google.com/spreadsheets/d/... or sheet ID" className="mt-1.5" />
+              {getValue('affiliate_sheet_id') && <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Sheet ID: {getValue('affiliate_sheet_id')}</p>}
             </div>
             <Button onClick={() => handleSave(['costs_sheet_id', 'affiliate_sheet_id'])} className="rounded-[var(--radius-control)]">Save Configuration</Button>
           </div>
