@@ -32,9 +32,6 @@ jobs:
             echo "=== Building ==="
             npm run build
 
-            echo "=== Creating logs directory ==="
-            mkdir -p logs
-
             echo "=== Restarting with ecosystem config ==="
             pm2 delete all 2>/dev/null || true
             pm2 start ecosystem.config.cjs --env production
