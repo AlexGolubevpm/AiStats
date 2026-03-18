@@ -1,6 +1,6 @@
-# Dashboard — UI/UX документация (Target State)
+# Dashboard — UI/UX документация
 
-Целевое состояние страницы `/dashboard` как продуктового экрана: компоненты, размеры, дизайн-система, иерархия, адаптивность.
+Исчерпывающий гайд по странице `/dashboard`: каждый компонент, его размеры в px, используемые библиотеки, дизайн-токены и архитектура.
 
 ---
 
@@ -10,108 +10,100 @@
 2. [Дизайн-система и токены](#2-дизайн-система-и-токены)
 3. [Общая структура страницы](#3-общая-структура-страницы)
 4. [TopContextBar](#4-topcontextbar)
-5. [DataFreshnessSummary](#5-datafreshnesssummary)
-6. [KPI-карточки (Primary / Secondary)](#6-kpi-карточки)
-7. [DeltaBadge](#7-deltabadge)
-8. [MiniSparkline](#8-minisparkline)
-9. [SignalStrip (Network Signals)](#9-signalstrip)
-10. [Trend Charts](#10-trend-charts)
-11. [BundleSummaryCard](#11-bundlesummarycard)
-12. [NetworkHealthCard](#12-networkhealthcard)
-13. [ChartCard](#13-chartcard)
-14. [AreaChart](#14-areachart)
-15. [InsightCard](#15-insightcard)
-16. [Loading Skeletons](#16-loading-skeletons)
-17. [Анимации](#17-анимации)
-18. [Empty State / Error State / Partial State](#18-empty-state--error-state--partial-state)
-19. [Адаптивность (Responsive)](#19-адаптивность)
-20. [Дерево компонентов](#20-дерево-компонентов)
+5. [KPI-карточки (Primary / Secondary)](#5-kpi-карточки)
+6. [DeltaBadge](#6-deltabadge)
+7. [SparkAreaChart (спарклайны в KPI)](#7-sparkareachart)
+8. [SignalStrip (Network Signals)](#8-signalstrip)
+9. [BundleCard](#9-bundlecard)
+10. [HealthBadge](#10-healthbadge)
+11. [ChartCard](#11-chartcard)
+12. [AreaChart (Tremor)](#12-areachart-tremor)
+13. [Trend Charts (Revenue / Traffic / Profit)](#13-trend-charts)
+14. [InsightCard](#14-insightcard)
+15. [Loading Skeletons](#15-loading-skeletons)
+16. [Анимации (Framer Motion)](#16-анимации)
+17. [Empty State / Error State](#17-empty-state--error-state)
+18. [Адаптивность (Responsive)](#18-адаптивность)
+19. [Дерево компонентов](#19-дерево-компонентов)
 
 ---
 
 ## 1. Стек технологий и библиотеки
 
-### Принцип: один инструмент на задачу
-
-| Слой | Библиотека | Роль | Заметки |
-|---|---|---|---|
-| **Framework** | Next.js 16 (App Router) | SSR, API Routes, маршрутизация | — |
-| **UI Primitives** | Tailwind CSS v4 | Utility-first стили, `@theme` токены | Основа всего visual language |
-| **Icons** | Lucide React | Единственная icon-система на Dashboard | Remixicon **не используется** на Dashboard; если встречается — заменять на Lucide |
-| **Charts** | Recharts | KPI sparklines, trend area charts | Simple, lightweight; для сложных визуализаций в будущем — ECharts |
-| **Animations** | Framer Motion | Stagger появления, page transitions | Минимальные, без bounce/overshoot |
-| **Data Fetching** | TanStack React Query | `useDashboard()`, кеширование, refetch | — |
-| **Utilities** | clsx + tailwind-merge | `cn()` для условных классов | — |
-
-### Что НЕ является визуальной основой Dashboard
-
-| Библиотека | Статус | Допустимое использование |
+| Библиотека | Версия | Роль на Dashboard |
 |---|---|---|
-| **Mantine** | Utility-only | `Badge` (coverage indicator, sync status), `Tooltip` (HealthBadge), `ActionIcon` (toolbar buttons), `Menu` (compare mode). **Mantine не влияет на общий visual language Dashboard.** Все карточки, гриды, типографика — чистый Tailwind. |
-| **Remixicon** | Запрещён на Dashboard | Заменяется на Lucide. Один icon language = чище продукт |
+| **Next.js 16** | 16.1.6 | App Router, SSR, API Routes |
+| **React 19** | 19.x | Компонентный фреймворк |
+| **Tailwind CSS v4** | 4.x | Utility-first стили, `@theme` блок для дизайн-токенов |
+| **Mantine** | 8.3.x | `Badge` (coverage indicator), `Tooltip` (HealthBadge) |
+| **Recharts** | 2.x | Все графики: `AreaChart`, `Area`, `XAxis`, `YAxis`, `CartesianGrid`, `Tooltip`, `ResponsiveContainer` |
+| **Framer Motion** | 11.x | Анимации появления (`fadeInUp`, `staggerContainer`) |
+| **@remixicon/react** | 4.9.x | Иконки: `RiArrowRightSLine`, `RiRefreshLine`, `RiDatabase2Line`, `RiErrorWarningLine`, `RiArrowUpSFill`, `RiArrowDownSFill`, `RiSubtractLine`, `RiArrowDownLine`, `RiAlertLine`, `RiTrophyLine`, `RiArrowUpLine`, `RiLightbulbLine`, `RiArrowRightLine`, `RiArrowLeftSLine` |
+| **@tanstack/react-query** | 5.x | Data fetching, caching (`useDashboard` hook) |
+| **clsx + tailwind-merge** | — | Утилита `cn()` для условных классов |
+| **date-fns** | — | Работа с датами (серверная часть) |
+| **Lucide React** | — | Иконки в TopContextBar (`RefreshCw`, `Download`, `GitCompare`) |
 
-### Файловая структура
+### Файловая структура Dashboard
 
 ```
-src/app/(platform)/dashboard/page.tsx           ← Главная страница
-src/components/layout/topbar.tsx                ← TopContextBar
-src/components/shared/data-freshness.tsx        ← DataFreshnessSummary (NEW)
-src/components/shared/kpi-card.tsx              ← PrimaryKpiCard / SecondaryKpiCard
-src/components/shared/delta-indicator.tsx        ← DeltaBadge
-src/components/shared/mini-sparkline.tsx         ← MiniSparkline (REPLACES SparkAreaChart in KPI)
-src/components/shared/signal-strip.tsx          ← SignalStrip
-src/components/shared/bundle-summary-card.tsx   ← BundleSummaryCard (REPLACES BundleCard)
-src/components/shared/network-health-card.tsx   ← NetworkHealthCard (NEW)
-src/components/shared/insight-card.tsx          ← InsightCard (WinnerCard, LoserCard, RiskCard, OpportunityCard)
-src/components/shared/chart-card.tsx            ← ChartCard
-src/components/shared/health-badge.tsx          ← HealthBadge
-src/components/shared/source-status-pill.tsx    ← SourceStatusPill (NEW)
-src/components/shared/loading-skeleton.tsx      ← Все скелетоны
+src/app/(platform)/dashboard/page.tsx          ← Главная страница
+src/components/layout/topbar.tsx               ← TopContextBar
+src/components/shared/kpi-card.tsx             ← KPICard
+src/components/shared/delta-indicator.tsx       ← DeltaBadge
+src/components/shared/signal-strip.tsx         ← SignalStrip + SignalCard
+src/components/shared/insight-card.tsx         ← InsightCard
+src/components/shared/chart-card.tsx           ← ChartCard
+src/components/shared/health-badge.tsx         ← HealthBadge
+src/components/shared/loading-skeleton.tsx     ← Все скелетоны
+src/components/tremor/AreaChart.tsx            ← Основной AreaChart (636 строк)
+src/components/tremor/SparkAreaChart.tsx        ← SparkAreaChart для KPI
 src/components/features/charts/revenue-trend-chart.tsx
 src/components/features/charts/traffic-trend-chart.tsx
 src/components/features/charts/profit-trend-chart.tsx
-src/lib/chartUtils.ts                          ← Цвета графиков
-src/lib/motion.ts                              ← Анимационные варианты
-src/lib/utils.ts                               ← cn(), formatCurrency, formatCompact и др.
-src/hooks/use-api.ts                           ← useDashboard()
-src/hooks/use-period.ts                        ← usePeriod()
-src/hooks/use-sync-status.ts                   ← useSyncStatus()
-src/styles/globals.css                         ← Дизайн-токены
+src/lib/chartUtils.ts                         ← Цвета и утилиты графиков
+src/lib/motion.ts                             ← Анимационные варианты
+src/lib/utils.ts                              ← cn(), formatCurrency, formatCompact и др.
+src/hooks/use-api.ts                          ← useDashboard() hook
+src/hooks/use-period.ts                       ← usePeriod() hook
+src/styles/globals.css                        ← Дизайн-токены и глобальные стили
 ```
 
 ---
 
 ## 2. Дизайн-система и токены
 
-Все токены — CSS custom properties в `src/styles/globals.css` через `@theme` (Tailwind v4).
+Все токены определены в `src/styles/globals.css` через директиву `@theme` (Tailwind CSS v4).
 
-### 2.1 Surfaces
+### 2.1 Цветовая палитра
 
-| Токен | Значение | Применение |
-|---|---|---|
-| `--color-app-bg` | `#F4F6FB` | Фон страницы |
-| `--color-surface` | `#FFFFFF` | Фон всех карточек |
-| `--color-surface-secondary` | `#F9FAFB` | Вторичные поверхности, shimmer |
-| `--color-surface-hover` | `#F1F5F9` | Hover-состояния |
-
-### 2.2 Borders
+#### Фоны и поверхности
 
 | Токен | Значение | Применение |
 |---|---|---|
-| `--color-border-subtle` | `#E5E7EB` | Границы всех карточек |
-| `--color-border-default` | `#D7DCE5` | Empty state dashed border |
-| `--color-border-strong` | `#C6CDD8` | Усиленные границы |
+| `--color-app-bg` | `#F4F6FB` | Фон всей страницы (`body`, `min-h-screen`) |
+| `--color-surface` | `#FFFFFF` | Фон карточек (KPI, Chart, Signal, Bundle, Insight) |
+| `--color-surface-secondary` | `#F9FAFB` | Вторичные поверхности, shimmer-анимация |
+| `--color-surface-hover` | `#F1F5F9` | Hover-состояния поверхностей |
 
-### 2.3 Text
+#### Границы
 
 | Токен | Значение | Применение |
 |---|---|---|
-| `--color-text-primary` | `#111827` | Заголовки, KPI values, bundle names |
-| `--color-text-secondary` | `#4B5563` | Descriptions, reason text |
-| `--color-text-muted` | `#6B7280` | Labels, captions, section titles |
-| `--color-text-disabled` | `#9CA3AF` | Chevrons, inactive elements |
+| `--color-border-subtle` | `#E5E7EB` | Основная граница всех карточек (`border`) |
+| `--color-border-default` | `#D7DCE5` | Граница пустого состояния (`border-dashed`) |
+| `--color-border-strong` | `#C6CDD8` | Усиленная граница |
 
-### 2.4 Primary Accent (Indigo)
+#### Текст
+
+| Токен | Значение | Применение |
+|---|---|---|
+| `--color-text-primary` | `#111827` | Заголовки, значения KPI, названия бандлов |
+| `--color-text-secondary` | `#4B5563` | Описания в InsightCard |
+| `--color-text-muted` | `#6B7280` | Лейблы KPI, подписи, метки секций |
+| `--color-text-disabled` | `#9CA3AF` | Шевроны, неактивные элементы |
+
+#### Primary accent (Indigo)
 
 | Токен | Значение |
 |---|---|
@@ -124,9 +116,7 @@ src/styles/globals.css                         ← Дизайн-токены
 | `--color-primary-600` | `#4F46E5` |
 | `--color-primary-700` | `#4338CA` |
 
-### 2.5 Semantic Business States
-
-#### General status
+#### Semantic colors
 
 | Группа | bg | main | dark |
 |---|---|---|---|
@@ -134,152 +124,135 @@ src/styles/globals.css                         ← Дизайн-токены
 | **Warning** | `#FFFAEB` | `#F79009` | `#DC6803` |
 | **Danger** | `#FEF3F2` | `#F04438` | `#D92D20` |
 
-#### Health (отдельная группа, не совпадает с general status)
-
-| Токен | Значение | Условие |
-|---|---|---|
-| `--color-health-healthy-bg` | `#ECFDF3` | score ≥ 80 |
-| `--color-health-healthy-text` | `#039855` | |
-| `--color-health-warning-bg` | `#FFFAEB` | score 60-79 |
-| `--color-health-warning-text` | `#DC6803` | |
-| `--color-health-critical-bg` | `#FEF3F2` | score < 60 |
-| `--color-health-critical-text` | `#D92D20` | |
-
-#### Source Freshness (NEW)
-
-| Токен | Значение | Описание |
-|---|---|---|
-| `--color-source-fresh-bg` | `#ECFDF3` | Данные свежие (< 6h) |
-| `--color-source-fresh-text` | `#039855` | |
-| `--color-source-partial-bg` | `#FFFAEB` | Частичные данные |
-| `--color-source-partial-text` | `#DC6803` | |
-| `--color-source-stale-bg` | `#FEF3F2` | Данные устарели (> 24h) |
-| `--color-source-stale-text` | `#D92D20` | |
-| `--color-source-missing-bg` | `#F3F4F6` | Источник не подключён |
-| `--color-source-missing-text` | `#6B7280` | |
-
-### 2.6 Bundle Accents
+#### Bundle accents
 
 | Bundle | Токен | Цвет |
 |---|---|---|
-| JAV | `--color-bundle-jav` | `#EF4444` |
-| Gays | `--color-bundle-gays` | `#3B82F6` |
-| Hentai | `--color-bundle-hentai` | `#8B5CF6` |
-| Trans | `--color-bundle-trans` | `#EC4899` |
+| JAV | `--color-bundle-jav` | `#EF4444` (red) |
+| Gays | `--color-bundle-gays` | `#3B82F6` (blue) |
+| Hentai | `--color-bundle-hentai` | `#8B5CF6` (purple) |
+| Trans | `--color-bundle-trans` | `#EC4899` (pink) |
 
-### 2.7 Chart Semantic Mapping (жёсткое правило)
-
-Каждая метрика имеет фиксированный цвет. Не менять без причины.
-
-| Метрика | Цвет | Tailwind |
-|---|---|---|
-| **Visits** | Cyan | `stroke-cyan-500` / `text-cyan-500` |
-| **Ad Revenue** | Indigo | `stroke-indigo-500` / `text-indigo-500` |
-| **Affiliate Revenue** | Pink | `stroke-pink-500` / `text-pink-500` |
-| **Total Revenue** | Indigo | `stroke-indigo-500` |
-| **Costs** | Amber | `stroke-amber-500` / `text-amber-500` |
-| **Profit** | Emerald | `stroke-emerald-500` / `text-emerald-500` |
-| **ROMI** | Violet | `stroke-violet-500` (только если sparkline используется) |
-| **Health** | Amber/Lime | Только при необходимости |
-
-### 2.8 Border Radius
+### 2.2 Скругления (border-radius)
 
 | Токен | Значение | Применение |
 |---|---|---|
 | `--radius-sm` | `6px` | Мелкие элементы |
 | `--radius-md` | `8px` | Средние элементы |
 | `--radius-lg` | `12px` | Большие элементы |
-| `--radius-card` | `16px` | Все карточки Dashboard |
-| `--radius-control` | `10px` | Иконки-контейнеры, кнопки |
-| `--radius-pill` | `999px` | DeltaBadge, HealthBadge, SourceStatusPill |
+| `--radius-card` | `16px` | **ВСЕ карточки** на Dashboard (KPI, Chart, Signal, Bundle, Insight) |
+| `--radius-control` | `10px` | Иконки-контейнеры в SignalCard/InsightCard, кнопки |
+| `--radius-pill` | `999px` | Pill-бейджи (DeltaBadge, HealthBadge) |
 
-### 2.9 Shadows (строгий набор)
-
-Dashboard карточки используют **только эти три уровня**:
-
-| Токен | Значение | Когда |
-|---|---|---|
-| `--shadow-card` | `0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)` | Дефолтное состояние всех карточек |
-| `--shadow-elevated` | `0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)` | Hover-состояние карточек |
-| `none` | — | Встроенные элементы без собственной тени |
-
-> **Правило**: никаких произвольных теней. Только `card`, `elevated`, `none`.
-
-### 2.10 Transitions
+### 2.3 Тени
 
 | Токен | Значение | Применение |
 |---|---|---|
-| `--ease-out-expo` | `cubic-bezier(0.16, 1, 0.3, 1)` | Все transition-эффекты |
+| `--shadow-xs` | `0 1px 2px rgba(16,24,40,0.04)` | Минимальная тень |
+| `--shadow-card` | `0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)` | Дефолтная тень всех карточек |
+| `--shadow-elevated` | `0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)` | Тень при hover на карточках |
+| `--shadow-modal` | `0 8px 24px rgba(16,24,40,0.12), 0 4px 8px rgba(16,24,40,0.06)` | Модальные окна |
+| `--shadow-glow-primary` | `0 0 0 3px rgba(99,102,241,0.12)` | Focus-ring glow |
+
+### 2.4 Анимации (transitions)
+
+| Токен | Значение | Применение |
+|---|---|---|
+| `--ease-out-expo` | `cubic-bezier(0.16, 1, 0.3, 1)` | Easing всех transition-эффектов на карточках |
 | `--duration-fast` | `150ms` | Быстрые переходы |
-| `--duration-normal` | `200ms` | Hover карточек |
+| `--duration-normal` | `200ms` | Стандартный hover-переход карточек |
 | `--duration-slow` | `300ms` | Медленные переходы |
 
-### 2.11 Типографика
+### 2.5 Типографика
 
 | Элемент | CSS | Размер |
 |---|---|---|
 | **Шрифт** | `'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif` | — |
 | **Font features** | `font-feature-settings: 'tnum' on, 'lnum' on` | Tabular lining numerals |
-| `.text-page-title` | `32px / 38px / 700` | Topbar title |
-| `.text-card-title` | `12px / 16px / 600 / uppercase / tracking 0.04em` | Секции: «BUNDLES», «TRENDS», «INSIGHTS» |
-| `.text-kpi-value` | `38px / 44px / 700 / tabular-nums` | — |
-| `.text-body` | `14px / 20px / 500` | Body text |
-| `.text-meta` | `12px / 16px / 500` | Meta labels |
+| **Antialiasing** | `-webkit-font-smoothing: antialiased` | — |
+| `.text-page-title` | `font-size: 32px; line-height: 38px; font-weight: 700` | Заголовок страницы |
+| `.text-section-title` | `font-size: 20px; line-height: 28px; font-weight: 600` | Заголовок секции |
+| `.text-card-title` | `font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase` | «BUNDLES», «TRENDS», «INSIGHTS», «NETWORK SIGNALS» |
+| `.text-kpi-value` | `font-size: 38px; line-height: 44px; font-weight: 700; tabular-nums` | Большие KPI значения (не используется на Dashboard, см. KPICard) |
+| `.text-body` | `font-size: 14px; line-height: 20px; font-weight: 500` | Текст тела |
+| `.text-meta` | `font-size: 12px; line-height: 16px; font-weight: 500` | Мета-информация |
+
+### 2.6 Глобальные утилиты
+
+| Класс | Описание |
+|---|---|
+| `.tabular-nums` | `font-variant-numeric: tabular-nums` |
+| `.animate-shimmer` | Скелетон-анимация: `linear-gradient(90deg, border-subtle 25%, surface-secondary 50%, border-subtle 75%)`, `background-size: 200% 100%`, `animation: shimmer 1.5s ease-in-out infinite` |
+| `.focus-ring` | `outline: none` + `:focus-visible { box-shadow: 0 0 0 2px surface, 0 0 0 4px primary-500 }` |
+| `.hide-scrollbar` | Скрытие scrollbar (webkit + ms + firefox) |
+| `::-webkit-scrollbar` | `width: 6px; height: 6px`, thumb: `#D4D4D8`, thumb:hover: `#A1A1AA`, `border-radius: 3px` |
 
 ---
 
 ## 3. Общая структура страницы
 
-### Иерархия информации (от общего к частному)
+**Файл**: `src/app/(platform)/dashboard/page.tsx`
 
 ```
-TopContextBar
-  ├── Page Identity (title, subtitle)
-  ├── Data Context (freshness, period, compare)
-  └── Actions (export, sync)
-
-DataFreshnessSummary             ← NEW: статус источников данных
-
-Primary KPI (5 cols)             ← Executive KPIs
-  [Visits] [Total Revenue] [Profit] [ROMI] [Network Health]
-
-Secondary KPI (4 cols)           ← Supporting KPIs
-  [Ad Revenue] [Affiliate Revenue] [Costs] [Revenue per 1000 Visits]
-
-Network Signals (3-4 cols)       ← Alerts / quick signals
-  [Strongest Bundle] [Biggest Drop] [Highest Risk] [Best Recovery]
-
-Trends (3 cols)                  ← Time-series charts
-  [Revenue] [Traffic] [Profit]
-
-Bundles (4-col grid)             ← Drill-down cards
-  [JAV] [Gays] [Hentai] [Trans]
-
-Operational Insights (2 cols)    ← Actionable recommendations
-  [Winner] [Risk] [Loser] [Opportunity]
+┌──────────────────────────────────────────────────────────────────┐
+│ DashboardPage                                                     │
+│ div.min-h-screen.bg-[var(--color-app-bg)]                        │
+│                                                                   │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ TopContextBar                                                 │ │
+│ │ title="Dashboard" subtitle="Network overview and key metrics" │ │
+│ │ showExport showCompare                                        │ │
+│ └──────────────────────────────────────────────────────────────┘ │
+│                                                                   │
+│ <Suspense fallback={<DashboardSkeleton />}>                      │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ DashboardContent                                              │ │
+│ │ motion.div (staggerContainer)                                 │ │
+│ │ div.mx-auto.max-w-[1440px].px-4.py-6.pb-16.sm:px-6          │ │
+│ │ div.flex.flex-col.gap-6                                       │ │
+│ │                                                               │ │
+│ │ ┌─── Coverage Badge (conditional) ────────────────────────┐  │ │
+│ │ │ Mantine Badge variant="light" color="indigo" size="lg"  │  │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Primary KPIs (5 cols) ───────────────────────────────┐  │ │
+│ │ │ [Visitors] [Ad Revenue] [Total Revenue] [Profit] [ROMI] │  │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Secondary KPIs (4 cols) ─────────────────────────────┐  │ │
+│ │ │ [Ad Requests] [Affiliate Revenue] [Costs] [RPM]         │  │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Network Signals (3 cols) ────────────────────────────┐  │ │
+│ │ │ [Biggest Drop] [Main Risk] [Top Performer]              │  │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Bundles (horizontal scroll) ─────────────────────────┐  │ │
+│ │ │ [JAV] [Gays] [Hentai] [Trans]                           │  │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Trends (3 cols) ────────────────────────────────────┐   │ │
+│ │ │ [Revenue] [Traffic] [Profit]                            │   │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ │                                                               │ │
+│ │ ┌─── Insights (2 cols) ──────────────────────────────────┐   │ │
+│ │ │ [InsightCard] [InsightCard]                             │   │ │
+│ │ │ [InsightCard] [InsightCard]                             │   │ │
+│ │ └─────────────────────────────────────────────────────────┘  │ │
+│ └──────────────────────────────────────────────────────────────┘ │
+│ </Suspense>                                                      │
+└──────────────────────────────────────────────────────────────────┘
 ```
-
-### Правило иерархии
-
-**KPI > Trends > Bundles > Insights** по визуальному весу.
-
-- KPI — самые заметные элементы (largest numbers, top of page)
-- Trends — подтверждают KPI визуально (charts)
-- Bundles — drill-down в детали (cards)
-- Insights — actionable рекомендации (самые лёгкие визуально)
-
-> **Изменение**: Bundles перемещены **ниже** Trends. Dashboard строится от общего к частному. Trends показывают общую картину, Bundles — детали.
 
 ### Контейнер страницы
 
-| Свойство | Значение |
-|---|---|
-| `max-width` | `1440px` |
-| `padding-x` | `16px` (mobile) / `24px` (sm+) |
-| `padding-top` | `24px` |
-| `padding-bottom` | `64px` |
-| `gap` между секциями | `24px` (`gap-6`) |
-| `overflow` | `hidden` |
+| Свойство | Значение | Описание |
+|---|---|---|
+| `max-width` | `1440px` | Максимальная ширина контента |
+| `padding-x` | `16px` (mobile) / `24px` (sm+) | Горизонтальные отступы |
+| `padding-y` | `24px` сверху, `64px` снизу | Вертикальные отступы |
+| `gap` | `24px` (`gap-6`) | Расстояние между секциями |
+| `overflow` | `hidden` | Предотвращение горизонтального скролла |
 
 ---
 
@@ -287,669 +260,690 @@ Operational Insights (2 cols)    ← Actionable recommendations
 
 **Файл**: `src/components/layout/topbar.tsx`
 
-### Layout: 3 группы
+Верхняя панель с заголовком, периодом и действиями.
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  Group 1: Identity    │  Group 2: Data Context         │  Group 3: Actions│
-│                       │                                │                  │
-│  Dashboard            │  [SyncStatus] [Period] [Compare]│ [Export] [Sync] │
-│  Network overview...  │                                │                  │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-| Группа | Содержимое | Spacing внутри |
-|---|---|---|
-| **Group 1 — Page Identity** | `title` (32px/700), `subtitle` (14px/500, muted) | — |
-| **Group 2 — Data Context** | `SyncStatusBadge`, `PeriodSelector`, `CompareModeSelect` | `gap-12` (внутри группы `gap-8`) |
-| **Group 3 — Actions** | Export button, Sync/Refresh button | `gap-8` |
-
-### Правило visual grouping
-
-> Spacing между группами **больше** spacing внутри группы. Группы визуально разделены, controls внутри группы сгруппированы плотно.
-
-### Размеры
-
-| Свойство | Значение |
+| Элемент | Описание |
 |---|---|
-| height | `72px` |
-| position | `sticky top-0 z-100` |
-| background | `rgba(255,255,255,0.82)` + `backdrop-filter: blur(10px)` |
-| border-bottom | `1px solid #E7EAF0` |
-| padding-x | `24px` |
-
-### Компоненты TopContextBar
-
-| Компонент | Описание | Размеры |
-|---|---|---|
-| **SyncStatusBadge** | `"Synced 5m ago"`, dot=green | height: `28px`, fontSize: `12px`, border: `#E7EAF0` |
-| **PeriodSelector** | Dropdown: today/yesterday/7d/30d/90d/custom | height: `36px` |
-| **CompareModeSelect** | Menu: vs Previous Period / 7 Days / Day | icon button `36×36px`, `GitCompare` icon (Lucide) |
-| **Export** | Download icon button | `36×36px`, `Download` icon (Lucide) |
-| **SyncButton** | Refresh icon button | `36×36px`, `RefreshCw` icon (Lucide), loading state |
+| `title` | `"Dashboard"` |
+| `subtitle` | `"Network overview and key metrics"` |
+| `showExport` | Показывает кнопку экспорта |
+| `showCompare` | Показывает переключатель режима сравнения |
+| **PeriodSelector** | Выбор периода (today / yesterday / 7d / 30d / 90d / custom) |
+| **SyncStatusBadge** | Mantine Badge — `"Synced Xm ago"`, dot=green, `height: 28px`, `fontSize: 12px`, border: `#E7EAF0` |
 
 ---
 
-## 5. DataFreshnessSummary
+## 5. KPI-карточки
 
-**Файл**: `src/components/shared/data-freshness.tsx` (NEW)
+**Файл**: `src/components/shared/kpi-card.tsx`
 
-Компактный блок между TopContextBar и KPI. Показывает статус свежести каждого источника данных.
+### Разделение на группы
 
-### Когда показывать
-
-- Всегда показывать, если хотя бы один источник `partial`, `stale`, или `missing`
-- Скрывать, если все источники `fresh`
-
-### Layout
-
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│ [● Yandex Metrica: fresh] [● AdSpyglass: 2h ago] [● Costs: stale]  │
-│ [● Affiliate: partial]                                               │
-└───────────────────────────────────────────────────────────────────────┘
-```
-
-Горизонтальный `flex wrap`, каждый элемент — `SourceStatusPill`.
-
-### SourceStatusPill
-
-| Статус | Background | Text | Dot color | Пример |
-|---|---|---|---|---|
-| `fresh` | `--color-source-fresh-bg` | `--color-source-fresh-text` | `#12B76A` | `● Yandex Metrica: fresh` |
-| `partial` | `--color-source-partial-bg` | `--color-source-partial-text` | `#F79009` | `● Costs: partial` |
-| `stale` | `--color-source-stale-bg` | `--color-source-stale-text` | `#F04438` | `● AdSpyglass: stale (26h)` |
-| `missing` | `--color-source-missing-bg` | `--color-source-missing-text` | `#9CA3AF` | `● Yandex Metrica: not connected` |
-
-### Размеры SourceStatusPill
-
-| Свойство | Значение |
-|---|---|
-| height | `24px` |
-| padding | `px-2.5 py-0.5` (10px/2px) |
-| border-radius | `9999px` (pill) |
-| font-size | `11px` |
-| font-weight | `500` |
-| dot | `6×6px` rounded-full, `mr-1.5` |
-
-### Источники для отслеживания
-
-| Source | Что мониторим |
-|---|---|
-| **Yandex Metrica** | `users` data freshness |
-| **AdSpyglass** | `adRevenue`, `hits`, `impressions` freshness |
-| **Costs** | Google Sheets costs data |
-| **Affiliate** | Google Sheets affiliate data |
-
----
-
-## 6. KPI-карточки
-
-### Принцип: Primary визуально сильнее Secondary
-
-Primary KPI-карточки — executive-уровень. Они крупнее и заметнее.
-Secondary KPI-карточки — supporting data. Визуально легче.
-
-### Primary KPIs — 5 колонок
+#### Primary KPIs — 5 колонок
 
 ```
 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5
 ```
 
-| # | Метрика | format | Sparkline | Описание |
-|---|---|---|---|---|
-| 1 | **Visits** | `number` | да (cyan) | Уникальные посетители (Yandex Metrica) |
-| 2 | **Total Revenue** | `currency` | да (indigo) | Ad + Affiliate revenue |
-| 3 | **Profit** | `currency` | да (emerald) | Revenue - Costs |
-| 4 | **ROMI** | `percent` | нет | Return on Marketing Investment |
-| 5 | **Network Health** | `score` | нет | Средний health score сети (0-100) |
+| # | Метрика | format | Цвет спарклайна |
+|---|---------|--------|----------------|
+| 1 | Visitors | `number` | `blue` |
+| 2 | Ad Revenue | `currency` | `violet` |
+| 3 | Total Revenue | `currency` | `blue` |
+| 4 | Profit | `currency` | `emerald` |
+| 5 | ROMI | `percent` | `amber` |
 
-> **Изменения**:
-> - `Ad Revenue` перемещён в Secondary (не executive-уровень)
-> - `Ad Requests` **удалён** из KPI-строки полностью (не executive метрика; перенести в monetization drill-down или tooltip)
-> - `Network Health` **добавлен** как 5-й Primary KPI
-
-### Secondary KPIs — 4 колонки
+#### Secondary KPIs — 4 колонки
 
 ```
 grid grid-cols-2 gap-4 lg:grid-cols-4
 ```
 
-| # | Метрика | format | Sparkline | Описание |
-|---|---|---|---|---|
-| 1 | **Ad Revenue** | `currency` | опционально (indigo) | Доход от рекламы |
-| 2 | **Affiliate Revenue** | `currency` | нет | Партнёрский доход (может быть нестабильным) |
-| 3 | **Costs** | `currency` | да (amber) | Операционные расходы |
-| 4 | **Revenue per 1000 Visits** | `currency` | нет | RPM = (totalRevenue / users) × 1000 |
+| # | Метрика | format | Цвет спарклайна |
+|---|---------|--------|----------------|
+| 1 | Ad Requests | `number` | `cyan` |
+| 2 | Affiliate Revenue | `currency` | `pink` |
+| 3 | Costs | `currency` | `amber` |
+| 4 | RPM | `currency` | `cyan` |
 
-### Анатомия PrimaryKpiCard
-
-```
-┌──────────────────────────────────────────────┐
-│  TOTAL REVENUE                    [+12.3%] ▲ │  ← label 12px uppercase + DeltaBadge
-│                                               │
-│  $12,450.00                                   │  ← value 30px bold (primary)
-│                                               │
-│  ▁▂▃▅▇█▆▅                                    │  ← MiniSparkline h-[22px]
-└──────────────────────────────────────────────┘
-```
-
-### Анатомия SecondaryKpiCard
-
-Аналогичная, но визуально легче:
+### Анатомия KPICard
 
 ```
-┌──────────────────────────────────────────────┐
-│  COSTS                            [-3.2%] ▼  │  ← label 11px + DeltaBadge
-│  $4,560.00                                    │  ← value 24px bold (secondary)
-│  ▁▂▃▅▇                                       │  ← sparkline optional, h-[20px]
-└──────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ ┌─header─────────────────────────────────┐  │
+│ │  AD REVENUE                [+12.3%] ▲  │  │  ← 12px uppercase semibold + DeltaBadge
+│ └────────────────────────────────────────┘  │
+│                                              │
+│  $12,450.00                                  │  ← 28px/30px bold tabular-nums
+│                                              │
+│  vs prev period                              │  ← 12px medium muted
+│                                              │
+│  ┌─sparkline────────────────────────────┐   │
+│  │  ▁▂▃▅▇█▆▅▃▂▁▃▅                      │   │  ← h-10 (40px) SparkAreaChart
+│  └──────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘
 ```
 
-### Визуальное разделение Primary vs Secondary
-
-| Свойство | PrimaryKpiCard | SecondaryKpiCard |
-|---|---|---|
-| **value font-size** | `30px` (`text-[30px]`) | `24px` (`text-2xl`) |
-| **value font-weight** | `700` (bold) | `700` (bold) |
-| **label font-size** | `12px` | `11px` |
-| **padding** | `16px` (`p-4`) | `14px` (`p-3.5`) |
-| **sparkline height** | `22px` | `20px` |
-
-### Общие стили обоих типов KPI
+### Размеры и стили
 
 | Свойство | Значение |
 |---|---|
-| border-radius | `var(--radius-card)` = `16px` |
-| border | `1px solid var(--color-border-subtle)` |
-| background | `var(--color-surface)` = `#FFFFFF` |
-| shadow | `var(--shadow-card)` → `var(--shadow-elevated)` on hover |
-| transition | `all 200ms ease-out-expo` |
-| hover transform | `translateY(-1px)` (max 1px lift) |
+| **padding** | `16px` (`p-4`) |
+| **border-radius** | `var(--radius-card)` = `16px` |
+| **border** | `1px solid var(--color-border-subtle)` = `#E5E7EB` |
+| **background** | `var(--color-surface)` = `#FFFFFF` |
+| **shadow** | `var(--shadow-card)` по умолчанию |
+| **shadow:hover** | `var(--shadow-elevated)` |
+| **transition** | `all 200ms cubic-bezier(0.16, 1, 0.3, 1)` |
+| **hover transform** | `translateY(-2px)` (`-translate-y-0.5`) |
 
-### Удалённые элементы
+#### Лейбл метрики
 
-- ~~`vs prev period` строка~~ — убрана. DeltaBadge — единственный compare indicator. Текстовая подпись добавляется **только** если compare mode нестандартный (не `prev_period`).
-- ~~Мелкие служебные значения над value~~ — anti-pattern, не допускается.
+| Свойство | Значение |
+|---|---|
+| font-size | `12px` (`text-xs`) |
+| font-weight | `600` (`font-semibold`) |
+| text-transform | `uppercase` |
+| letter-spacing | `0.04em` (`tracking-[0.04em]`) |
+| color | `var(--color-text-muted)` = `#6B7280` |
+
+#### Значение метрики
+
+| Свойство | Значение |
+|---|---|
+| font-size | `28px` (mobile) / `30px` (`sm:text-3xl`) |
+| line-height | `tight` (~1.25) |
+| font-weight | `700` (`font-bold`) |
+| letter-spacing | `tight` (~-0.025em) |
+| color | `var(--color-text-primary)` = `#111827` |
+| font-variant-numeric | `tabular-nums` |
+| margin-top | `8px` (`mt-2`) |
+
+#### Текст сравнения
+
+| Свойство | Значение |
+|---|---|
+| font-size | `12px` (`text-xs`) |
+| font-weight | `500` (`font-medium`) |
+| color | `var(--color-text-muted)` = `#6B7280` |
+| margin-top | `4px` (`mt-1`) |
+| текст | `"vs prev period"` |
+
+#### Спарклайн контейнер
+
+| Свойство | Значение |
+|---|---|
+| height | `40px` (`h-10`) |
+| width | `100%` (`w-full`) |
+| margin-top | `12px` (`mt-3`) |
+
+### Форматирование значений
+
+| format | Функция | Пример |
+|---|---|---|
+| `currency` | `formatCurrency(value)` → `Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', min/maxFractionDigits: 2 })` | `$12,450.00` |
+| `number` | `formatNumber(value)` → `Intl.NumberFormat('en-US')` | `123,456` |
+| `percent` | `${value.toFixed(1)}%` | `156.3%` |
+| `compact` | `formatCompact(value)` → `≥1M: "1.2M"`, `≥1K: "12.5K"`, else `"999"` | `12.5K` |
+| `score` | `value.toString()` | `85` |
 
 ---
 
-## 7. DeltaBadge
+## 6. DeltaBadge
 
 **Файл**: `src/components/shared/delta-indicator.tsx`
+
+Pill-shaped индикатор изменения (дельты) в процентах.
+
+### Анатомия
+
+```
+┌──────────┐
+│ ▲ +12.3% │  ← pill-badge с иконкой направления
+└──────────┘
+```
 
 ### Размеры
 
 | Размер | padding | font-size | icon size |
 |---|---|---|---|
-| `sm` | `px-2 py-0.5` (8px/2px) | `12px` | `14px` |
-| `md` | `px-2.5 py-1` (10px/4px) | `14px` | `16px` |
+| `sm` | `px-2 py-0.5` (8px/2px) | `12px` (`text-xs`) | `14px` (`size-3.5`) |
+| `md` | `px-2.5 py-1` (10px/4px) | `14px` (`text-sm`) | `16px` (`size-4`) |
 
-### Состояния (6 штук)
+### Цветовые состояния
 
-| Состояние | Условие | background | text | Иконка | Текст |
-|---|---|---|---|---|---|
-| **positive** | `delta > 0`, данные полные | `bg-emerald-50` | `text-emerald-700` | `ArrowUpRight` (Lucide) | `+12.3%` |
-| **negative** | `delta < 0`, данные полные | `bg-red-50` | `text-red-700` | `ArrowDownRight` (Lucide) | `-5.7%` |
-| **neutral** | `delta === 0` | `bg-gray-100` | `text-gray-600` | — | `+0.0%` |
-| **partial** | данные current или previous period неполные | `bg-amber-50` | `text-amber-600` | `AlertCircle` (Lucide, 10px) | `~+12.3%` (тильда перед значением) |
-| **not-comparable** | previous = 0 и результат misleading, или источник missing | `bg-gray-100` | `text-gray-500` | — | `n/a` |
-| **invalid** | NaN / Infinity | `bg-gray-100` | `text-gray-500` | `Minus` (Lucide) | `—` |
+| Состояние | background | text | Иконка |
+|---|---|---|---|
+| **Positive** (>0) | `bg-emerald-50` | `text-emerald-700` | `RiArrowUpSFill` |
+| **Negative** (<0) | `bg-red-50` | `text-red-700` | `RiArrowDownSFill` |
+| **Neutral** (=0) | `bg-gray-100` | `text-gray-600` | *(нет иконки)* |
+| **Invalid** (NaN/Inf) | `bg-gray-100` | `text-gray-500` | `RiSubtractLine` + `—` |
 
-### Правила
-
-- `partial`: показывается если coverage < 100% для одного из периодов сравнения, или один из источников `stale`
-- `not-comparable`: показывается если previous value = 0 и delta = 100% (математически верно, но бизнес-смысла нет), или если источник missing entirely
-- Формат: `formatPercent(value)` → `+12.3%` / `-5.7%` / `+0.0%`
-
----
-
-## 8. MiniSparkline
-
-**Файл**: `src/components/shared/mini-sparkline.tsx` (REPLACES SparkAreaChart in KPI)
-
-### Принцип
-
-Sparkline в KPI — **информационная подсказка**, а не декоративный элемент. Максимально минимальный.
-
-### Спецификация
+### Стили
 
 | Свойство | Значение |
 |---|---|
-| **height** | `20-22px` (Primary: `22px`, Secondary: `20px`) |
-| **width** | `100%` |
-| **stroke** | Line only, **без area fill** |
-| **strokeWidth** | `1.75px` |
-| **markers** | Нет |
-| **tooltip** | Нет |
-| **axes** | Нет |
-| **grid** | Нет |
-| **area fill** | **Нет** (удалён gradient fill) |
-| **animation** | `300ms`, subtle |
-| **type** | `monotone` |
-| **connectNulls** | `true` |
+| border-radius | `9999px` (`rounded-full`) |
+| font-weight | `600` (`font-semibold`) |
+| font-variant-numeric | `tabular-nums` |
+| display | `inline-flex items-center gap-0.5` (gap 2px) |
 
-### Где используется sparkline
+### Формат вывода
 
-| Метрика | Sparkline | Причина |
-|---|---|---|
-| Visits | ✅ | Стабильная метрика, хорошо читается |
-| Total Revenue | ✅ | Ключевая метрика, тренд важен |
-| Profit | ✅ | Может быть волатильным, но тренд критичен |
-| Costs | ✅ (optional) | Показывает динамику расходов |
-| Ad Revenue | ✅ (optional) | Полезно если данные стабильны |
-| ROMI | ❌ | Ratio, шумный подневно |
-| Network Health | ❌ | Композитный скор, sparkline неинформативен |
-| Affiliate Revenue | ❌ | Часто нестабильный, sparkline misleading |
-| Revenue per 1000 Visits | ❌ | Noisy metric |
-
-### Правило
-
-> Если sparkline визуально не дотягивает (< 3 точек, слишком шумный, или flat line) — не рендерить. Пустой placeholder (`h-[22px]`) вместо него. Лучше пустота, чем плохой sparkline.
+```typescript
+formatPercent(value) → `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+// +12.3%, -5.7%, +0.0%
+```
 
 ---
 
-## 9. SignalStrip
+## 7. SparkAreaChart
+
+**Файл**: `src/components/tremor/SparkAreaChart.tsx`
+
+Миниатюрный area-график, используемый внутри KPICard.
+
+### Параметры на Dashboard
+
+| Параметр | Значение |
+|---|---|
+| `data` | Последние 14 точек из `trend[]` (обрезается: `trend.slice(-14)`) |
+| `index` | `"idx"` (числовой индекс) |
+| `categories` | `['value']` |
+| `colors` | По метрике: blue/violet/emerald/amber/cyan/pink |
+| `fill` | `"gradient"` |
+| `className` | `"h-10 w-full"` (40px × 100%) |
+
+### Размеры
+
+| Свойство | Значение |
+|---|---|
+| height | `40px` (`h-10`), по умолчанию `48px` (`h-12`) |
+| width | `100%` |
+| margin (recharts) | `{ bottom: 1, left: 1, right: 1, top: 1 }` |
+| strokeWidth | `2px` |
+| strokeLinejoin | `round` |
+| strokeLinecap | `round` |
+
+### Gradient fill
+
+```
+offset="5%"  → stopOpacity: 0.4
+offset="95%" → stopOpacity: 0
+```
+
+### Цвета по метрике (METRIC_CHART_COLOR)
+
+| Метрика | Цвет Tremor | Tailwind class |
+|---|---|---|
+| Visitors | `blue` | `stroke-blue-500`, `text-blue-500` |
+| Ad Revenue | `violet` | `stroke-violet-500`, `text-violet-500` |
+| Total Revenue | `blue` | `stroke-blue-500` |
+| Profit | `emerald` | `stroke-emerald-500` |
+| ROMI | `amber` | `stroke-amber-500` |
+| Ad Requests | `cyan` | `stroke-cyan-500` |
+| Affiliate Revenue | `pink` | `stroke-pink-500` |
+| Costs | `amber` | `stroke-amber-500` |
+| RPM | `cyan` | `stroke-cyan-500` |
+
+### Tooltip
+
+Минимальный tooltip при hover:
+- `rounded-md`, border `gray-200`, bg `white`
+- padding: `px-2.5 py-1.5` (10px/6px)
+- font: `12px semibold tabular-nums`, color `gray-900`
+- shadow: `shadow-md`
+
+---
+
+## 8. SignalStrip
 
 **Файл**: `src/components/shared/signal-strip.tsx`
+
+Секция «Network Signals» — до 3 карточек предупреждений.
 
 ### Layout
 
 ```
-h2.text-card-title.mb-3    ← "NETWORK SIGNALS"
-grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4
+h2.text-card-title.mb-3    ← "NETWORK SIGNALS" (12px uppercase semibold)
+grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3
 ```
 
-### 4 типа сигналов
+### Типы сигналов
 
-| # | Тип | Иконка (Lucide) | Цвет | Описание |
-|---|---|---|---|---|
-| 1 | `strongest` | `Trophy` | `--color-primary-500` (indigo) | Бандл с лучшим ROMI |
-| 2 | `drop` | `TrendingDown` | `--color-danger` (red) | Наибольшее падение revenue |
-| 3 | `risk` | `AlertTriangle` | `--color-warning` (amber) | Главный риск (аномалия или worst health) |
-| 4 | `recovery` | `TrendingUp` | `--color-success` (green) | Бандл с наибольшим ростом после падения (NEW) |
+| Тип | Иконка | Лейбл | Цвет текста | Фон иконки | Border-left |
+|---|---|---|---|---|---|
+| `drop` | `RiArrowDownLine` | `Biggest Drop` | `var(--color-danger)` = `#F04438` | `var(--color-danger-bg)` = `#FEF3F2` | `var(--color-danger)` |
+| `risk` | `RiAlertLine` | `Main Risk` | `var(--color-warning)` = `#F79009` | `var(--color-warning-bg)` = `#FFFAEB` | `var(--color-warning)` |
+| `winner` | `RiTrophyLine` | `Top Performer` | `var(--color-primary-500)` = `#6366F1` | `var(--color-primary-50)` = `#EEF2FF` | `var(--color-primary-500)` |
 
 ### Анатомия SignalCard
 
 ```
-┌───┬──────────────────────────────────────────┐
-│ ▌ │ [icon]  STRONGEST BUNDLE                  │  ← label 11px uppercase bold
-│ ▌ │  16px   JAV  ROMI: 156.3%                │  ← entity 13px semibold + key metric
-│ ▌ │  in     Best ROI with $890 profit         │  ← reason 12px medium (1 line)
-│ ▌ │  28×28                                     │
-└───┴──────────────────────────────────────────┘
-  3px              padding: 12px
+┌───┬────────────────────────────────────────────────┐
+│ ▌ │ ┌──────┐                                        │
+│ ▌ │ │ icon │  BIGGEST DROP                          │  ← 11px uppercase bold
+│ ▌ │ │ 18px │  GayXHub   [-12.3%]                   │  ← 14px semibold + DeltaBadge
+│ ▌ │ │ 36×36│  Revenue dropped $1,234 vs prev period │  ← 12px medium muted (line-clamp-2)
+│ ▌ │ └──────┘                                        │
+└───┴────────────────────────────────────────────────┘
+  3px                    padding: 16px
 ```
 
-### Размеры (легче KPI и Insights)
+### Размеры SignalCard
 
 | Свойство | Значение |
 |---|---|
-| padding | `12px` (`p-3`) — **меньше** чем KPI/Insight (16px) |
+| padding | `16px` (`p-4`) |
 | border-radius | `var(--radius-card)` = `16px` |
-| border-left | `3px` solid (цвет по типу) |
-| **icon container** | `28×28px` (`h-7 w-7`) — **меньше** чем Insight (36px) |
-| **icon** | `16×16px` |
-| **label** | `11px bold uppercase tracking-wider` |
-| **entity** | `13px semibold` |
-| **reason** | `12px medium muted`, **1 строка** (line-clamp-1) |
-| shadow | `var(--shadow-card)` |
-| hover | нет lift, только `shadow-elevated` |
+| border | `1px solid var(--color-border-subtle)` |
+| border-left | `3px` solid (цвет по типу сигнала) |
+| shadow | `var(--shadow-card)` → `var(--shadow-elevated)` on hover |
+| transition | `all 200ms ease-out-expo` |
+| hover | `translateY(-2px)` |
+| **icon container** | `36×36px` (`h-9 w-9`), `border-radius: var(--radius-control)` = `10px` |
+| **icon** | `18×18px` (`size-[18px]`) |
+| **label** | `11px` (`text-[11px]`), `font-weight: 700`, `uppercase`, `tracking-wider` |
+| **entity name** | `14px` (`text-sm`), `font-weight: 600`, truncate |
+| **reason text** | `12px` (`text-xs`), `font-weight: 500`, `line-clamp-2` |
+| gap (icon → content) | `12px` (`gap-3`) |
+| gap (label → entity) | `6px` (`mt-1.5`) |
+| gap (entity → reason) | `6px` (`mt-1.5`) |
 
-### Strict structure каждого signal
+### Логика вычисления сигналов
 
-Каждый signal обязательно содержит:
-1. `icon` — Lucide иконка по типу
-2. `label` — тип сигнала (uppercase)
-3. `entity` — имя бандла/сайта
-4. `keyMetric` — одно ключевое число (ROMI, delta, health score)
-5. `reason` — одна короткая строка объяснения
-6. `actionHint` — опциональный текст действия ("View details")
-
----
-
-## 10. Trend Charts
-
-### Layout
-
-```
-h2.text-card-title.mb-3    ← "TRENDS"
-grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3
-```
-
-3 обязательных графика + 1 опциональный:
-
-### 10.1 Revenue Trend
-
-| Параметр | Значение |
-|---|---|
-| **Primary series** | `totalRevenue` (indigo) — основная линия |
-| **Optional split** | `adRevenue` (indigo) + `affiliateRevenue` (pink) |
-| **Правило** | Если split визуально ухудшает читаемость → только `totalRevenue` |
-| height | `288px` (`h-72`) |
-| fill | `gradient` (subtle) |
-
-### 10.2 Traffic Trend
-
-| Параметр | Значение |
-|---|---|
-| **Series** | `users` (cyan) — **Yandex Metrica visits** |
-| **Правило** | НЕ использовать `hits` (ad requests) как traffic на Dashboard |
-| height | `288px` |
-| Y formatter | `XK` (thousands) |
-
-> **Важно**: source of truth для traffic = Yandex Metrica visits. `hits` — это ad script loads из AdSpyglass, **не** traffic metric.
-
-### 10.3 Profit Trend
-
-| Параметр | Значение |
-|---|---|
-| **Series** | `profit` (emerald) |
-| **autoMinValue** | `true` (Y-axis может уходить в минус) |
-| **Optional** | Costs overlay (amber, dashed line) — future |
-| **Optional** | Volatility marker — future |
-| height | `288px` |
-
-### 10.4 Costs Trend (optional)
-
-Не обязательно в текущем UI, но в документации зафиксирован как возможный 4-й chart:
-
-| Параметр | Значение |
-|---|---|
-| **Series** | `costs` (amber) |
-| **Type** | Line (no fill) |
-| height | `288px` |
-
-### Product constraints для всех чартов
-
-1. Никаких избыточных decorative gradients
-2. Grid — subtle only (`stroke-gray-200 stroke-1`)
-3. Legend не должен доминировать (мелкий, compact)
-4. Максимум 2-3 серии на одном графике
-5. Если chart содержит partial data — UI **обязан** это показать:
-   - Tooltip показывает `"(partial)"` для incomplete дней
-   - Legend показывает indicator
-   - Chart не должен создавать ощущение полной уверенности в данных
+1. **Biggest Drop**: Бандл с наименьшей `delta` (< 0). `reason`: `"Revenue dropped ${абсолютное_изменение} vs previous period"`
+2. **Main Risk**: Первый insight с `type === 'risk'` и `severity` high/critical. Fallback: бандл с наихудшим `healthScore`
+3. **Top Performer**: Бандл с наибольшим `romi`. `reason`: `"Best ROI with ${profit} profit"`
 
 ---
 
-## 11. BundleSummaryCard
+## 9. BundleCard
 
-**Файл**: `src/components/shared/bundle-summary-card.tsx` (REPLACES BundleCard)
+**Файл**: `src/app/(platform)/dashboard/page.tsx` (inline компонент)
 
 ### Layout контейнер
 
 ```
 h2.text-card-title.mb-3    ← "BUNDLES"
-
-Desktop: grid grid-cols-4 gap-4
-Tablet:  grid grid-cols-2 gap-4
-Mobile:  grid grid-cols-1 gap-4
+div.flex.gap-4.overflow-x-auto.pb-1.hide-scrollbar    ← горизонтальный скролл
 ```
-
-> **Изменение**: убран horizontal scroll как desktop-дефолт. Scroll допустим только на mobile как fallback.
 
 ### Анатомия
 
 ```
 ┌─────────────────────────────────────────────────┐
-│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ ← accent bar: 3px
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ ← accent bar: h-[3px]
 │                                                  │
-│  ● JAV                   [85] [+12.3%]      ▶  │ ← header
+│  ● JAV                   [85/100] [+12.3%] ▶    │ ← header: dot + name + HealthBadge + DeltaBadge + chevron
 │                                                  │
-│  VISITS         REVENUE        PROFIT     ROMI  │ ← metrics grid
-│  12.5K          $1,234         $890       156.3% │
-│  ──────────────────────────────────────────────  │
-│  5 sites  Revenue share: 34%        View bundle  │ ← operational footer
+│  AD REQUESTS    REVENUE                          │ ← 2×2 metrics grid
+│  12.5K          $1,234.00                        │
+│                                                  │
+│  PROFIT         ROMI                             │
+│  $890.00        156.3%                           │
+│  ──────────────────────────────────────────────  │ ← border-t divider
+│  5 sites                        [+12.3%]         │ ← footer
+│                                                  │
 └─────────────────────────────────────────────────┘
 ```
-
-### Обязательные поля
-
-| Поле | Формат | Описание |
-|---|---|---|
-| **Health** | `HealthBadge` (score/100) | Композитный health score |
-| **Visits** | `formatCompact` | Уникальные посетители |
-| **Total Revenue** | `formatCurrency` | Суммарный доход |
-| **Profit** | `formatCurrency` (green/red) | Чистая прибыль |
-| **ROMI** | `percent` | Return on investment |
-| **Delta** | `DeltaBadge` | Изменение revenue vs prev period |
-| **Revenue Share** или **Profit Share** | `percent` | Доля бандла в общей сети |
-
-> **Изменение**: `Ad Requests` убран из bundle card. Заменён на `Visits`.
-
-### Metrics grid
-
-```
-grid grid-cols-2 gap-x-4 gap-y-3
-```
-
-4 метрики: Visits, Revenue, Profit, ROMI.
-
-| Элемент | Стиль |
-|---|---|
-| metric label | `11px semibold uppercase tracking-wider`, color: `--color-text-muted` |
-| metric value | `18px bold tabular-nums`, color: `--color-text-primary` |
-| profit value | green if > 0, red if ≤ 0 |
-
-### Operational footer
-
-Footer **обязательно** содержит:
-
-| Элемент | Описание |
-|---|---|
-| Sites count | `"5 sites"` — 12px medium muted |
-| Revenue/Profit Share | `"Revenue share: 34%"` — 12px medium muted |
-| Delta | `DeltaBadge` (sm) |
-| Action | `"View bundle"` text or chevron → link to `/bundles/{slug}` |
 
 ### Размеры
 
 | Свойство | Значение |
 |---|---|
+| `min-width` | `260px` (mobile) / `280px` (sm+) |
+| `flex` | `none` (не растягивается) |
 | padding | `16px` (`p-4`) |
-| border-radius | `16px` |
-| accent bar | `3px` (bundle color) |
-| color dot | `10×10px` (`h-2.5 w-2.5 rounded-full`) |
-| min-width | нет (grid-based, не scroll) |
+| border-radius | `var(--radius-card)` = `16px` |
+| accent bar height | `3px` |
+| **color dot** | `10×10px` (`h-2.5 w-2.5 rounded-full`) |
+| **bundle name** | `14px semibold` (`text-sm font-semibold`) |
+| **metric label** | `11px semibold uppercase tracking-wider`, color: `--color-text-muted` |
+| **metric value** | `18px bold tabular-nums` (`text-lg font-bold`) |
+| **grid** | `grid-cols-2 gap-x-4 gap-y-3` (16px × 12px) |
+| **footer divider** | `border-t border-[--color-border-subtle]`, margin-top: `12px`, padding-top: `12px` |
+| **footer text** | `12px medium muted` (`text-xs font-medium`) |
+| **chevron icon** | `16×16px` (`size-4`), color: `--color-text-disabled` |
+
+### Цветовое кодирование значений
+
+| Условие | Цвет |
+|---|---|
+| `profit > 0` | `var(--color-success-dark)` = `#039855` |
+| `profit <= 0` | `var(--color-danger-dark)` = `#D92D20` |
+| Остальные метрики | `var(--color-text-primary)` = `#111827` |
+
+### Взаимодействие
+
+- Вся карточка — `<Link href={/bundles/${slug}}>` (клик → переход на детальную страницу бандла)
+- Hover: `shadow-card` → `shadow-elevated`, `translateY(-2px)`
+- `text-decoration: none`, `color: inherit`
+- `focus-ring` при фокусе клавиатурой
 
 ---
 
-## 12. NetworkHealthCard
+## 10. HealthBadge
 
-**Файл**: `src/components/shared/network-health-card.tsx` (NEW)
+**Файл**: `src/components/shared/health-badge.tsx`
 
-### Использование
-
-Появляется как 5-й Primary KPI (`Network Health`).
+Использует **Mantine Badge** и **Mantine Tooltip**.
 
 ### Визуал
 
 ```
-┌──────────────────────────────────────────────┐
-│  NETWORK HEALTH                               │
-│                                               │
-│  82 / 100                                     │  ← score, large text
-│  ● healthy                                    │  ← status dot + label
-│                                               │
-│  confidence: high                              │  ← optional, if data complete
-└──────────────────────────────────────────────┘
+[85/100]     ← pill badge
 ```
 
-### Health с confidence
+### Размеры
 
-| Состояние | Описание | Визуал |
-|---|---|---|
-| **full confidence** | Все источники fresh, coverage 100% | Score отображается нормально |
-| **low confidence** | Один или более источников stale/partial | Score с пониженной opacity + note `"~82 (partial data)"` |
-| **no data** | Нет health scores | `"—"` с note `"Insufficient data"` |
+| Размер | Mantine size | padding | font |
+|---|---|---|---|
+| `sm` | `xs` | авто | авто |
+| `md` | `sm` | авто | авто |
 
-### Где ещё используется Health
+### Стили
 
-| Контекст | Компонент |
+| Свойство | Значение |
 |---|---|
-| KPI card | `NetworkHealthCard` (5-й Primary KPI) |
-| Bundle card | `HealthBadge` (pill в header) |
-| Signal strip | Худший health → `risk` signal |
-| Trend/sparkline | Не используется (не подходит для sparkline) |
+| variant | `light` |
+| radius | `xl` (pill) |
+| textTransform | `none` |
+| fontWeight | `600` |
+| cursor | `default` |
+| fontVariantNumeric | `tabular-nums` |
+
+### Цвета по статусу
+
+| Статус | Условие | Mantine color |
+|---|---|---|
+| `healthy` | score ≥ 80 | `green` |
+| `warning` | score 60-79 | `yellow` |
+| `critical` | score < 60 | `red` |
+
+### Tooltip
+
+`"Health Score: 85/100 (healthy)"` — Mantine Tooltip с `withArrow`.
 
 ---
 
-## 13. ChartCard
+## 11. ChartCard
 
 **Файл**: `src/components/shared/chart-card.tsx`
 
-### Richer header structure
+Контейнер-обёртка для каждого графика.
+
+### Анатомия
 
 ```
 ┌──────────────────────────────────────────────┐
 │  ┌─header───────────────────────────────┐    │
-│  │  Revenue              [DeltaBadge]    │    │  ← title 14px semibold + delta
-│  │  30 days · vs prev period             │    │  ← subtitle 12px muted
-│  │  ⚠ partial: costs data missing 3 days │    │  ← source completeness note (conditional)
+│  │  Revenue              [DeltaBadge]    │    │  ← 14px semibold + optional delta
+│  │  30 days · vs prev period             │    │  ← 12px medium muted
 │  └───────────────────────────────────────┘    │
 │                                               │
 │  ┌─body──────────────────────────────────┐   │
+│  │                                        │   │
 │  │  [AreaChart h-72 (288px)]             │   │
+│  │                                        │   │
 │  └────────────────────────────────────────┘   │
 └──────────────────────────────────────────────┘
 ```
 
-### Элементы header
-
-| Элемент | Описание | Стиль |
-|---|---|---|
-| `title` | Название графика | `14px semibold`, `--color-text-primary` |
-| `subtitle` | Период + compare label | `12px medium`, `--color-text-muted`, `mt-1` |
-| `delta` | DeltaBadge (optional) | `sm` size |
-| `sourceNote` | Completeness warning (optional) | `11px medium`, `--color-source-partial-text`, `mt-1` |
-| `action` | Optional button/link | — |
-
 ### Размеры
 
 | Свойство | Значение |
 |---|---|
-| border-radius | `16px` |
+| border-radius | `var(--radius-card)` = `16px` |
 | border | `1px solid var(--color-border-subtle)` |
 | shadow | `var(--shadow-card)` → `var(--shadow-elevated)` on hover |
-| header padding | `px-5 pt-5 pb-3` (20px/20px/12px) |
-| body padding | `px-5 pb-5` (20px/20px) |
-| stronger header zone | header визуально отделён большим вертикальным spacing от body |
-| legend placement | Inside body, below chart, compact |
+| transition | `shadow 200ms ease-[--duration-normal]` |
+| **header padding** | `px-5 pt-5 pb-3` (20px top/sides, 12px bottom) |
+| **body padding** | `px-5 pb-5` (20px sides/bottom) |
+| **title** | `14px semibold` (`text-sm font-semibold`), color: `--color-text-primary` |
+| **description** | `12px medium` (`text-xs font-medium`), color: `--color-text-muted`, margin-top: `4px` |
 
-### Правило
+### Описание на Dashboard
 
-> ChartCard не должен быть "просто белой коробкой с графиком". Header zone должен быть stronger: содержать достаточно контекста (title + delta + source note) чтобы chart был понятен без hover.
+Формат: `"{trend.length} days · {compareLabel}"`, где `compareLabel`:
+- `prev_7d` → `"vs 7d ago"`
+- `prev_day` → `"vs yesterday"`
+- default → `"vs prev period"`
 
 ---
 
-## 14. AreaChart
+## 12. AreaChart (Tremor)
 
 **Файл**: `src/components/tremor/AreaChart.tsx`
 
-### Product constraints (обязательные правила)
+Полнофункциональный area-chart, построенный поверх Recharts. **636 строк** кода.
 
-1. **Никаких excessive decorative gradients** — gradient fill subtle (5% → 0% opacity)
-2. **Grid subtle only** — horizontal lines `stroke-gray-200 stroke-1`, no vertical lines
-3. **Legend compact** — не доминирует, мелкий текст (`12px`)
-4. **Series count ≤ 3** — на одном графике максимум 3 серии для readability
-5. **Source-aware rendering**: если серия incomplete:
-   - Tooltip показывает `"(partial data)"`
-   - Legend отмечает серию как partial
-   - Chart НЕ создаёт ощущение полной уверенности
+### Архитектура
 
-### Размеры
+```
+AreaChart (Tremor wrapper)
+├── ResponsiveContainer
+│   └── RechartsAreaChart
+│       ├── CartesianGrid
+│       ├── XAxis
+│       ├── YAxis
+│       ├── Tooltip → ChartTooltip
+│       ├── RechartsLegend → Legend → LegendItem[]
+│       ├── defs → linearGradient (для каждой category)
+│       └── Area (для каждой category)
+└── Legend (scrollable, keyboard-navigable)
+    ├── LegendItem[]
+    └── ScrollButton[] (RiArrowLeftSLine / RiArrowRightSLine)
+```
+
+### Размеры по умолчанию
 
 | Свойство | Значение |
 |---|---|
-| default height | `320px` (`h-80`), на Dashboard: `288px` (`h-72`) |
+| height | `320px` (`h-80`), на Dashboard: `288px` (`h-72`) |
+| width | `100%` |
 | yAxisWidth | `56px` |
 | strokeWidth | `2px` |
+| tickGap | `5px` |
 | animationDuration | `600ms` |
-| XAxis | `text-xs fill-gray-500`, no tickLine, no axisLine |
-| YAxis | `text-xs fill-gray-500`, no tickLine, no axisLine |
-| Grid | horizontal only, `stroke-gray-200` |
-| Tooltip | `rounded-lg`, border `gray-200`, bg white, `shadow-lg` |
+
+### Grid
+
+```
+CartesianGrid: className="stroke-gray-200 stroke-1", horizontal=true, vertical=false
+```
+
+### Оси
+
+| Ось | Стили |
+|---|---|
+| XAxis | `text-xs fill-gray-500`, tickLine=false, axisLine=false, transform="translate(0, 6)" |
+| YAxis | `text-xs fill-gray-500`, tickLine=false, axisLine=false, transform="translate(-3, 0)" |
+
+### Tooltip (ChartTooltip)
+
+```
+┌────────────────────────────────────┐
+│ 2025-01-15                          │  ← header: 14px medium gray-900
+├────────────────────────────────────┤
+│ ● adRevenue         $12,450.00     │  ← color dot + name + value
+│ ● affiliateRevenue  $2,340.00      │
+└────────────────────────────────────┘
+```
+
+| Свойство | Значение |
+|---|---|
+| border-radius | `8px` (`rounded-lg`) |
+| border | `1px solid gray-200` |
+| background | `white` |
+| shadow | `shadow-lg` |
+| font-size | `14px` (`text-sm`) |
+| header padding | `px-4 py-2` (16px/8px) |
+| header border-bottom | `gray-100` |
+| body padding | `px-4 py-2` |
+| color dot | `h-[3px] w-3.5 rounded-full` (3px высота, 14px ширина) |
+
+### Legend
+
+| Свойство | Значение |
+|---|---|
+| layout | горизонтальный `flex`, поддержка slider при overflow |
+| item padding | `px-2 py-1` (8px/4px) |
+| font-size | `12px` (`text-xs`), color: `gray-700` |
+| color indicator | `h-[3px] w-3.5 rounded-full` |
+| scroll buttons | `20×20px` (`size-5`), `RiArrowLeftSLine` / `RiArrowRightSLine` |
+
+### Gradient fill
+
+```
+gradient mode:
+  offset="5%"  → stopOpacity: 0.3 (active) / 0.1 (dimmed)
+  offset="95%" → stopOpacity: 0
+```
+
+### Dot (active)
+
+```
+r=5, fill=category color, stroke=white (stroke-white), className="cursor-pointer" (if onValueChange)
+```
 
 ---
 
-## 15. InsightCard
+## 13. Trend Charts
+
+### RevenueTrendChart
+
+**Файл**: `src/components/features/charts/revenue-trend-chart.tsx`
+
+| Параметр | Значение |
+|---|---|
+| data index | `"date"` |
+| categories | `['adRevenue', 'affiliateRevenue']` |
+| colors | `['violet', 'fuchsia']` → `stroke-violet-500`, `stroke-fuchsia-500` |
+| valueFormatter | `$X.XX` или `$X.XK` (≥1000) |
+| height | `288px` (`h-72`) |
+| fill | `gradient` |
+| showLegend | `true` |
+| showGridLines | `true` |
+| yAxisWidth | `56px` |
+
+### TrafficTrendChart
+
+**Файл**: `src/components/features/charts/traffic-trend-chart.tsx`
+
+| Параметр | Значение |
+|---|---|
+| categories | `['hits']` |
+| colors | `['cyan']` → `stroke-cyan-500` |
+| valueFormatter | `XK` (≥1000) или plain number |
+
+### ProfitTrendChart
+
+**Файл**: `src/components/features/charts/profit-trend-chart.tsx`
+
+| Параметр | Значение |
+|---|---|
+| categories | `['profit']` |
+| colors | `['emerald']` → `stroke-emerald-500` |
+| valueFormatter | `$X.XX` или `$X.XK` |
+| **autoMinValue** | `true` (Y-axis может уходить в минус) |
+
+### Layout графиков
+
+```
+grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3
+```
+
+- 1 колонка на мобильном
+- 2 колонки на md (768px+)
+- 3 колонки на xl (1280px+)
+
+---
+
+## 14. InsightCard
 
 **Файл**: `src/components/shared/insight-card.tsx`
 
 ### Layout секции
 
 ```
-h2.text-card-title.mb-3    ← "OPERATIONAL INSIGHTS"
+h2.text-card-title.mb-3    ← "INSIGHTS"
 grid grid-cols-1 gap-4 md:grid-cols-2
 ```
 
-### 4 архетипа (explicit exports)
+### Типы и конфигурация
 
-| Тип | Компонент | Иконка (Lucide) | Лейбл | Border-left color |
-|---|---|---|---|---|
-| `winner` | `WinnerCard` | `Trophy` | `Winner` | `--color-success` |
-| `loser` | `LoserCard` | `TrendingDown` | `Declining` | `--color-danger` |
-| `risk` | `RiskCard` | `AlertTriangle` | `Risk` | `--color-warning` |
-| `opportunity` | `OpportunityCard` | `TrendingUp` | `Opportunity` | `--color-primary-500` |
+| Тип | Иконка | Лейбл | Цвет текста | Фон иконки | Border-left |
+|---|---|---|---|---|---|
+| `winner` | `RiTrophyLine` | `Winner` | `var(--color-success-dark)` | `var(--color-success-bg)` | `var(--color-success)` |
+| `loser` | `RiArrowDownLine` | `Declining` | `var(--color-danger-dark)` | `var(--color-danger-bg)` | `var(--color-danger)` |
+| `risk` | `RiAlertLine` | `Risk` | `var(--color-warning-dark)` | `var(--color-warning-bg)` | `var(--color-warning)` |
+| `opportunity` | `RiArrowUpLine` | `Opportunity` | `var(--color-primary-600)` | `var(--color-primary-50)` | `var(--color-primary-500)` |
+| `info` | `RiLightbulbLine` | `Info` | `text-blue-600` | `bg-blue-50` | `border-l-blue-500` |
 
-### Simplified archetype
+### Анатомия
 
 ```
-┌───┬──────────────────────────────────────────────┐
-│ ▌ │ [icon]  WINNER                                │  ← label 11px bold uppercase
-│ ▌ │  18px   Revenue Growth — GayXHub  [+15.2%]   │  ← title: metric + entity + delta
-│ ▌ │  in     Fastest growing bundle.               │  ← reason: MAX 2 short lines
-│ ▌ │  36×36  Consider allocating more traffic.     │
-│ ▌ │                                               │
-│ ▌ │         View details →                        │  ← action: MAX 1 short line
-└───┴──────────────────────────────────────────────┘
+┌───┬──────────────────────────────────────────────────────┐
+│ ▌ │ ┌──────┐                                              │
+│ ▌ │ │ icon │  OPPORTUNITY                                 │  ← 11px bold uppercase
+│ ▌ │ │ 18px │  Revenue Growth  GayXHub  [+15.2%]          │  ← metric + entity + DeltaBadge
+│ ▌ │ │ 36×36│                                              │
+│ ▌ │ └──────┘  GayXHub is the fastest growing bundle.     │  ← 13px leading-relaxed
+│ ▌ │            Consider allocating more traffic.          │
+│ ▌ │                                                       │
+│ ▌ │            View GayXHub details →                     │  ← 12px semibold primary-600
+│ ▌ │                                                       │            ▶
+└───┴──────────────────────────────────────────────────────┘
+ 3px   16px padding                                     chevron 16×16
 ```
-
-### Text limits (жёсткие)
-
-| Элемент | Лимит |
-|---|---|
-| **label** | 1 слово (Winner / Declining / Risk / Opportunity) |
-| **title** | metric + entity + delta — 1 строка |
-| **reason** | Максимум 2 короткие строки (`line-clamp-2`) |
-| **action** | Максимум 1 короткая строка |
-
-### Severity (для Risk и Loser)
-
-| Тип | Severity | Визуал |
-|---|---|---|
-| Risk | `critical` / `high` / `medium` / `low` | Border-left thickness: critical=4px, high=3px, medium=3px, low=2px |
-| Loser | определяется по `delta` | `< -50%` → critical, `< -30%` → high, `< -15%` → medium, else low |
 
 ### Размеры
 
 | Свойство | Значение |
 |---|---|
 | padding | `16px` (`p-4`) |
-| border-radius | `16px` |
+| border-radius | `var(--radius-card)` = `16px` |
+| border | `1px solid var(--color-border-subtle)` |
 | border-left | `3px` (цвет по типу) |
-| icon container | `36×36px`, radius: `10px` |
-| icon | `18×18px` |
-| label | `11px bold uppercase tracking-wider` |
-| title metric | `14px semibold` |
-| title entity | `12px medium muted` |
-| reason | `13px leading-relaxed`, `--color-text-secondary` |
-| action | `12px semibold`, `--color-primary-600`, underline on hover |
+| shadow | `var(--shadow-card)` |
+| **icon container** | `36×36px` (`h-9 w-9`), radius: `var(--radius-control)` = `10px` |
+| **icon** | `18×18px` (`size-[18px]`) |
+| **label** | `11px` (`text-[11px]`), `font-weight: 700`, `uppercase`, `tracking-wider` |
+| **metric name** | `14px semibold` (`text-sm font-semibold`) |
+| **entity name** | `12px medium muted` (`text-xs font-medium`) |
+| **reason text** | `13px` (`text-[13px]`), `leading-relaxed`, color: `--color-text-secondary` |
+| **action link** | `12px semibold`, color: `--color-primary-600`, `underline-offset-2`, hover: underline |
+| **action icon** | `RiArrowRightLine` `12×12px` (`size-3`) |
+| **chevron** | `RiArrowRightSLine` `16×16px` (`size-4`), `--color-text-disabled`, `mt-0.5` |
+
+### Взаимодействие
+
+- Если есть `actionHref` → вся карточка = `<Link>`, hover: `shadow-elevated` + `translateY(-2px)` + `focus-ring`
+- Если нет href → обычный `<div>`, без hover-эффекта подъёма
+
+### Логика computeInsights
+
+Функция `computeInsights(bundles, rawInsights)` генерирует до 4 инсайтов:
+
+1. **Opportunity**: Бандл с наибольшим положительным `delta` (рост revenue)
+2. **Risk**: Первый `rawInsight` с `type === 'risk'`, отсортированный по severity (critical > high > medium > low)
+3. **Loser**: Бандл с наибольшим отрицательным `delta`. Severity: `delta < -20%` → `high`, иначе `medium`
+4. **Winner**: Бандл с наибольшим `romi` (>0). Показывает profit и revenue
 
 ---
 
-## 16. Loading Skeletons
+## 15. Loading Skeletons
 
 **Файл**: `src/components/shared/loading-skeleton.tsx`
 
-### Shimmer base
+### Shimmer-базис
 
 ```css
 .animate-shimmer {
   background: linear-gradient(90deg,
-    var(--color-border-subtle) 25%,
-    var(--color-surface-secondary) 50%,
+    var(--color-border-subtle) 25%,    /* #E5E7EB */
+    var(--color-surface-secondary) 50%, /* #F9FAFB */
     var(--color-border-subtle) 75%
   );
   background-size: 200% 100%;
@@ -957,203 +951,234 @@ grid grid-cols-1 gap-4 md:grid-cols-2
 }
 ```
 
-### Скелетоны для всех секций Dashboard
+### KPICardSkeleton
 
-| Компонент | Описание |
+```
+┌──────────────────────────────────┐
+│ [▓▓▓ 16×3]       [▓▓▓▓ 14×5]   │  ← label shimmer + delta shimmer (rounded-full)
+│ [▓▓▓▓▓▓ 24×7]                   │  ← value shimmer
+│ [▓▓▓ 16×3]                      │  ← comparison text shimmer
+│ [▓▓▓▓▓▓▓▓▓▓▓▓▓ 100%×10]        │  ← sparkline shimmer
+└──────────────────────────────────┘
+```
+
+| Элемент | Размеры (w × h px) |
 |---|---|
-| `DataFreshnessSkeleton` | Horizontal row of 4 pill-shaped shimmers (`h-6 w-32` × 4) |
-| `PrimaryKpiCardSkeleton` | label shimmer + value shimmer + sparkline shimmer |
-| `SecondaryKpiCardSkeleton` | Аналогично, но меньше |
-| `SignalCardSkeleton` | icon shimmer + label + entity + reason (1 line) |
-| `BundleSummaryCardSkeleton` | accent bar + header + 2×2 grid + footer |
-| `ChartSkeleton` | header (title + subtitle) + chart area `h-72` |
-| `InsightCardSkeleton` | icon + label + title + reason (2 lines) + action |
+| label | `64×12` (`w-16 h-3`) |
+| delta | `56×20` (`w-14 h-5 rounded-full`) |
+| value | `96×28` (`w-24 h-7`) |
+| comparison | `64×12` (`w-16 h-3`) |
+| sparkline | `100%×40` (`w-full h-10`) |
 
-### Sync-aware состояния (кроме skeleton)
+### ChartSkeleton
 
-| Состояние | Компонент | Визуал |
-|---|---|---|
-| **Partial data** | `PartialDataBanner` | Amber background strip: `"Some data sources are incomplete for this period"` |
-| **Missing source** | `MissingSourceWarning` | Red/gray pill: `"Yandex Metrica not connected — Visits data unavailable"` |
-| **Stale data** | `StaleDataIndicator` | Amber dot + `"Data may be outdated (last sync: 26h ago)"` |
+| Элемент | Размеры |
+|---|---|
+| header title | `96×16` (`w-24 h-4`) |
+| header desc | `80×12` (`w-20 h-3`) |
+| chart area | `100%×288` (`w-full h-72 rounded-lg`) |
+| header padding | `px-5 pt-5 pb-3` |
+| body padding | `px-5 pb-5` |
+
+### SignalCardSkeleton
+
+| Элемент | Размеры |
+|---|---|
+| icon | `36×36` (`h-9 w-9 rounded-[--radius-control]`) |
+| label | `64×12` |
+| entity | `112×16` |
+| reason | `100%×12` |
+| border-left | `3px gray-200` |
+
+### BundleCardSkeleton
+
+| Элемент | Размеры |
+|---|---|
+| accent bar | `100%×3` |
+| color dot | `10×10 rounded-full` |
+| name | `64×16` |
+| delta | `56×20 rounded-full` |
+| metric labels (×4) | `56×10` |
+| metric values (×4) | `64×20` |
+| footer | `48×12` |
+| min-width | `260px` / `280px` (sm+) |
+
+### InsightCardSkeleton
+
+| Элемент | Размеры |
+|---|---|
+| icon | `36×36` |
+| label | `64×12` |
+| header | `144×16` |
+| reason | `100%×40` |
+| action | `112×12` |
 
 ---
 
-## 17. Анимации
+## 16. Анимации
 
 **Файл**: `src/lib/motion.ts`
 
-### Правила (жёсткие)
+### fadeInUp (основная анимация карточек)
 
-- **No bounce** — никакого bounce-эффекта
-- **No overshoot** — easing не выходит за пределы
-- **No long dramatic transitions** — максимум 300ms
-- **No flashy reveals** — никаких flashy scale/rotation
-- Easing: `cubic-bezier(0.16, 1, 0.3, 1)` (expo-out) для всего
+```typescript
+hidden:  { opacity: 0, y: 10 }   // 10px ниже, прозрачный
+visible: { opacity: 1, y: 0 }    // на месте, видимый
+  duration: 220ms
+  delay: i * 40ms                 // STAGGER_DELAY = 0.04s
+  ease: [0.16, 1, 0.3, 1]        // expo-out
+```
 
-### Конкретные анимации
+### staggerContainer
 
-| Анимация | Применение | Параметры |
+```typescript
+visible: { transition: { staggerChildren: 0.04 } }  // 40ms между дочерними элементами
+```
+
+### Порядок появления (custom index)
+
+| Секция | Индексы | Задержка первого элемента |
 |---|---|---|
-| **Page fade-in** | `DashboardContent` mount | `opacity: 0→1`, `y: 6→0`, `250ms` |
-| **KPI stagger** | Primary KPIs → Secondary KPIs | `opacity: 0→1`, `y: 10→0`, `220ms`, stagger `40ms` |
-| **Chart fade-in** | ChartCard appearance | `opacity: 0→1`, `220ms`, delay after KPI |
-| **Hover lift** | Все карточки | `translateY(0 → -1px)`, `200ms` — **максимум 1px** |
-| **Toolbar menu** | CompareModeSelect dropdown | `opacity: 0→1`, `scale: 0.96→1`, `200ms` |
+| Primary KPIs (5 шт) | `0..4` | `0ms` |
+| Secondary KPIs (4 шт) | `5..8` | `200ms` |
+| SignalStrip | `9` | `360ms` |
+| Bundle cards | `10..13` | `400ms` |
+| Chart cards | `14..16` | `560ms` |
+| Insight cards | `17..20` | `680ms` |
 
-### Порядок появления
-
-| Секция | Delay (от начала) |
-|---|---|
-| DataFreshness | `0ms` |
-| Primary KPIs (5 шт) | `0–200ms` (stagger 40ms) |
-| Secondary KPIs (4 шт) | `200–360ms` |
-| Signals (3-4 шт) | `360–520ms` |
-| Trends (3 шт) | `520–640ms` |
-| Bundles (4 шт) | `640–800ms` |
-| Insights (2-4 шт) | `800–960ms` |
-
-Общее время: ~`1000ms` до full visible.
+Общее время анимации появления: ~`800ms` (последний элемент: `20 × 40ms = 800ms` задержка + `220ms` анимация ≈ `1020ms`).
 
 ---
 
-## 18. Empty State / Error State / Partial State
+## 17. Empty State / Error State
 
-### Стандартные состояния
+### EmptyState
 
-#### EmptyState (нет данных)
-
-```
-┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
-│         [Database icon 24px]             │
-│         in circle 48px                   │
-│                                          │
-│    No data available yet                 │  ← 16px semibold
-│    Start syncing from Settings           │  ← 14px muted
-│                                          │
-│    [Go to Settings]                      │  ← primary button
-└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
-```
-
-#### ErrorState (ошибка загрузки)
+Показывается когда нет KPI, бандлов и трендов (`!hasKpis && !hasBundles && !hasTrend`).
 
 ```
-┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
-│         [AlertTriangle icon 24px]        │
-│         in circle 48px (danger bg)       │
-│                                          │
-│    Failed to load dashboard              │
-│    {error.message}                       │
-│                                          │
-│    [Retry]                               │  ← danger button
-└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
+│                                               │
+│         ┌──────┐                              │
+│         │  DB  │  ← RiDatabase2Line 24×24px   │
+│         │      │    в круге 48×48px            │
+│         └──────┘    bg: primary-50             │
+│                     icon: primary-500          │
+│                                               │
+│    No data available yet                      │  ← 16px semibold
+│    Data will appear after syncing             │  ← 14px muted
+│    with AdSpyglass.                           │
+│                                               │
+│    ┌──────────────────────┐                   │
+│    │ ↻ Go to Settings     │                   │  ← primary button
+│    └──────────────────────┘                   │
+│                                               │
+└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
 ```
 
-### Специальные partial/error состояния (NEW)
+| Свойство | Значение |
+|---|---|
+| container | `rounded-[--radius-card]`, `border-2 border-dashed border-[--color-border-default]`, `bg-[--color-surface]` |
+| padding | `px-6 py-16` (24px × 64px) |
+| icon circle | `48×48px`, `rounded-full`, bg: `--color-primary-50` |
+| icon | `24×24px`, color: `--color-primary-500` |
+| button | `px-4 py-2`, `rounded-[--radius-control]` = `10px`, bg: `--color-primary-500`, `font-semibold`, hover: `--color-primary-600`, `focus-ring`, `shadow-sm` |
 
-| Состояние | Когда | Визуал |
-|---|---|---|
-| **Stale source** | Один из источников не синкался > 24h | Amber banner: `"AdSpyglass data is stale (last sync: 26h ago). Dashboard may not reflect latest data."` |
-| **Incomplete compare** | Coverage < 100% для previous period | DeltaBadge показывает `partial` state; tooltip: `"Comparison may be inaccurate due to incomplete data"` |
-| **Partial revenue** | affiliateRevenue или costs missing для части дней | ChartCard sourceNote: `"⚠ Costs data missing for 3 days"` |
-| **Missing cost mapping** | Site не привязан к sheet cost row | На bundle card: costs = `"—"`, profit = `"—"`, note: `"Cost mapping incomplete"` |
-| **Missing affiliate mapping** | Site не привязан к affiliate sheet | Affiliate Revenue KPI: `"—"`, note: `"Not configured"` |
-| **No data for period** | Запрошен период, для которого нет записей | EmptyState с текстом: `"No data for selected period. Try a different date range."` |
+### ErrorState
+
+Аналогичная структура, но в красных тонах:
+
+| Элемент | Цвет |
+|---|---|
+| border | `var(--color-danger)` |
+| background | `var(--color-danger-bg)` |
+| icon circle bg | `white` |
+| icon | `RiErrorWarningLine`, color: `var(--color-danger)` |
+| button | bg: `var(--color-danger)`, hover: `var(--color-danger-dark)` |
+| action | `window.location.reload()` |
 
 ---
 
-## 19. Адаптивность
+## 18. Адаптивность
 
-### Breakpoints
+### Breakpoints (Tailwind defaults)
 
-| Breakpoint | min-width |
-|---|---|
-| **base** (mobile) | `0px` |
-| **sm** | `640px` |
-| **md** | `768px` |
-| **lg** | `1024px` |
-| **xl** | `1280px` |
+| Breakpoint | min-width | Применение на Dashboard |
+|---|---|---|
+| **base** (mobile) | `0px` | 1-2 колонки |
+| **sm** | `640px` | `px-6`, KPI 3 cols, Signals 2 cols, BundleCard 280px min-width |
+| **md** | `768px` | Charts 2 cols, Insights 2 cols |
+| **lg** | `1024px` | Primary KPI 5 cols, Secondary KPI 4 cols |
+| **xl** | `1280px` | Charts 3 cols, Signals 3 cols |
 
-### Responsive grid
+### Responsive grid-таблица
 
 | Секция | mobile | sm | md | lg | xl |
 |---|---|---|---|---|---|
-| DataFreshness | wrap | wrap | 1 row | 1 row | 1 row |
-| Primary KPIs | **1 col** | 2-3 cols | 3 cols | **5 cols** | 5 cols |
-| Secondary KPIs | **1 col** | 2 cols | 2 cols | **4 cols** | 4 cols |
-| Signals | 1 col | **2 cols** | 2 cols | 2 cols | **4 cols** |
-| Trends | **1 col** | 1 col | **2 cols** | 2 cols | **3 cols** |
-| Bundles | **1 col stack** | 2 cols | 2 cols | **4 cols grid** | 4 cols grid |
+| Primary KPIs | 2 cols | 3 cols | 3 cols | **5 cols** | 5 cols |
+| Secondary KPIs | 2 cols | 2 cols | 2 cols | **4 cols** | 4 cols |
+| Network Signals | 1 col | **2 cols** | 2 cols | 2 cols | **3 cols** |
+| Bundles | scroll | scroll | scroll | scroll | scroll |
+| Trend Charts | 1 col | 1 col | **2 cols** | 2 cols | **3 cols** |
 | Insights | 1 col | 1 col | **2 cols** | 2 cols | 2 cols |
-
-> **Изменения**: Bundles на desktop = 4-col grid (не scroll). Mobile = 1-col stack (scroll допустим как fallback).
 
 ---
 
-## 20. Дерево компонентов
+## 19. Дерево компонентов
 
 ```
 DashboardPage
-├── TopContextBar
-│   ├── Group 1: Page Identity
-│   │   ├── title ("Dashboard", 32px/700)
-│   │   └── subtitle ("Network overview...", 14px/500)
-│   ├── Group 2: Data Context
-│   │   ├── SyncStatusBadge (Mantine Badge)
-│   │   ├── PeriodSelector
-│   │   └── CompareModeSelect (Lucide GitCompare)
-│   └── Group 3: Actions
-│       ├── ExportButton (Lucide Download)
-│       └── SyncButton (Lucide RefreshCw)
+├── TopContextBar (title, subtitle, showExport, showCompare)
+│   ├── PeriodSelector
+│   ├── SyncStatusBadge (Mantine Badge)
+│   └── ActionButtons (RefreshCw, Download, GitCompare)
 │
 └── Suspense (fallback=DashboardSkeleton)
     └── DashboardContent
         └── motion.div (staggerContainer)
             │
-            ├── DataFreshnessSummary (NEW)
-            │   └── SourceStatusPill × 4 (NEW)
-            │       (Yandex Metrica / AdSpyglass / Costs / Affiliate)
+            ├── [Coverage] Mantine Badge (conditional)
             │
-            ├── Primary KPIs (grid 5-col)
-            │   ├── PrimaryKpiCard: Visits (sparkline: cyan)
-            │   ├── PrimaryKpiCard: Total Revenue (sparkline: indigo)
-            │   ├── PrimaryKpiCard: Profit (sparkline: emerald)
-            │   ├── PrimaryKpiCard: ROMI (no sparkline)
-            │   └── NetworkHealthCard: Network Health (NEW)
-            │       ├── score (large)
-            │       ├── status dot + label
-            │       └── confidence indicator
+            ├── [Primary KPIs] grid 5-col
+            │   └── KPICard × 5
+            │       ├── label (text-xs uppercase)
+            │       ├── DeltaBadge (sm)
+            │       ├── value (text-[28px])
+            │       ├── comparison text
+            │       └── SparkAreaChart (h-10, gradient fill)
             │
-            ├── Secondary KPIs (grid 4-col)
-            │   ├── SecondaryKpiCard: Ad Revenue
-            │   ├── SecondaryKpiCard: Affiliate Revenue
-            │   ├── SecondaryKpiCard: Costs (sparkline: amber)
-            │   └── SecondaryKpiCard: Revenue per 1000 Visits
+            ├── [Secondary KPIs] grid 4-col
+            │   └── KPICard × 4
             │
-            ├── SignalStrip (grid 4-col)
-            │   ├── SignalCard: Strongest Bundle (Lucide Trophy)
-            │   ├── SignalCard: Biggest Drop (Lucide TrendingDown)
-            │   ├── SignalCard: Highest Risk (Lucide AlertTriangle)
-            │   └── SignalCard: Best Recovery (Lucide TrendingUp)
+            ├── [Network Signals] SignalStrip
+            │   └── grid 3-col
+            │       └── SignalCard × 3
+            │           ├── icon (RiArrowDownLine / RiAlertLine / RiTrophyLine)
+            │           ├── label (11px uppercase bold)
+            │           ├── entity + DeltaBadge
+            │           └── reason (line-clamp-2)
             │
-            ├── Trends (grid 3-col)
+            ├── [Bundles] horizontal scroll
+            │   └── BundleCard × N (Link)
+            │       ├── accent bar (3px, bundle color)
+            │       ├── header: dot + name + HealthBadge + DeltaBadge + chevron
+            │       ├── metrics grid 2×2
+            │       └── footer: sites count + DeltaBadge
+            │
+            ├── [Trends] grid 3-col
             │   ├── ChartCard "Revenue"
-            │   │   └── RevenueTrendChart → AreaChart
+            │   │   └── RevenueTrendChart → AreaChart (violet + fuchsia)
             │   ├── ChartCard "Traffic"
-            │   │   └── TrafficTrendChart → AreaChart
+            │   │   └── TrafficTrendChart → AreaChart (cyan)
             │   └── ChartCard "Profit"
-            │       └── ProfitTrendChart → AreaChart
+            │       └── ProfitTrendChart → AreaChart (emerald, autoMinValue)
             │
-            ├── Bundles (grid 4-col)
-            │   └── BundleSummaryCard × N (Link)
-            │       ├── accent bar (3px)
-            │       ├── header: dot + name + HealthBadge + DeltaBadge
-            │       ├── metrics grid: Visits, Revenue, Profit, ROMI
-            │       └── operational footer: sites + share + action
-            │
-            └── Operational Insights (grid 2-col)
-                ├── WinnerCard (Lucide Trophy)
-                ├── RiskCard (Lucide AlertTriangle)
-                ├── LoserCard (Lucide TrendingDown)
-                └── OpportunityCard (Lucide TrendingUp)
+            └── [Insights] grid 2-col
+                └── InsightCard × N
+                    ├── left border (3px, type color)
+                    ├── icon (type-specific, 18px in 36×36 container)
+                    ├── label (type name, 11px uppercase)
+                    ├── metric + entity + DeltaBadge
+                    ├── reason (13px)
+                    └── action link + chevron (conditional)
 ```
