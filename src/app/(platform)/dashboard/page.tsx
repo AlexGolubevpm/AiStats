@@ -12,6 +12,8 @@ import { InsightCard } from '@/components/shared/insight-card'
 import { HealthBadge } from '@/components/shared/health-badge'
 import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { SignalStrip } from '@/components/shared/signal-strip'
+import { DataFreshnessSummary } from '@/components/shared/data-freshness-summary'
+import { NetworkHealthCard } from '@/components/shared/network-health-card'
 import {
   KPICardSkeleton,
   ChartSkeleton,
@@ -26,11 +28,11 @@ import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact, cn } from '@/lib/utils'
 import {
-  RiArrowRightSLine,
-  RiRefreshLine,
-  RiDatabase2Line,
-  RiErrorWarningLine,
-} from '@remixicon/react'
+  ChevronRight,
+  RefreshCw,
+  Database,
+  AlertCircle,
+} from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
 /* ── Constants ── */
@@ -66,7 +68,7 @@ function BundleCard({ bundle }: { bundle: BundleData }) {
     <Link
       href={`/bundles/${bundle.slug}`}
       className={cn(
-        'block min-w-[260px] flex-none no-underline sm:min-w-[280px]',
+        'block no-underline',
         'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
         'border border-[var(--color-border-subtle)]',
         'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
@@ -88,7 +90,7 @@ function BundleCard({ bundle }: { bundle: BundleData }) {
           <div className="flex items-center gap-2">
             {bundle.healthScore != null && <HealthBadge score={bundle.healthScore} showLabel={false} size="sm" />}
             {bundle.delta !== undefined && <DeltaBadge value={bundle.delta} size="sm" />}
-            <RiArrowRightSLine className="size-4 text-[var(--color-text-disabled)]" />
+            <ChevronRight size={16} strokeWidth={2} className="text-[var(--color-text-disabled)]" />
           </div>
         </div>
 
@@ -191,22 +193,22 @@ function DashboardSkeleton() {
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <SignalCardSkeleton key={i} />)}
         </div>
-        <div className="flex gap-4 overflow-hidden">
-          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <ChartSkeleton />
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <ChartSkeleton />
-          <ChartSkeleton />
-          <ChartSkeleton />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
         </div>
       </div>
     </div>
@@ -219,7 +221,7 @@ function EmptyState() {
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-border-default)] bg-[var(--color-surface)] px-6 py-16 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-50)]">
-          <RiDatabase2Line className="size-6 text-[var(--color-primary-500)]" />
+          <Database size={24} strokeWidth={2} className="text-[var(--color-primary-500)]" />
         </div>
         <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">No data available yet</h3>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
@@ -229,7 +231,7 @@ function EmptyState() {
           href="/settings"
           className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-primary-600)] focus-ring"
         >
-          <RiRefreshLine className="size-4" />
+          <RefreshCw size={16} strokeWidth={2} />
           Go to Settings
         </Link>
       </div>
@@ -243,7 +245,7 @@ function ErrorState({ error }: { error: Error | unknown }) {
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-danger)] bg-[var(--color-danger-bg)] px-6 py-16 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
-          <RiErrorWarningLine className="size-6 text-[var(--color-danger)]" />
+          <AlertCircle size={24} strokeWidth={2} className="text-[var(--color-danger)]" />
         </div>
         <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">Failed to load dashboard</h3>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
@@ -253,7 +255,7 @@ function ErrorState({ error }: { error: Error | unknown }) {
           onClick={() => window.location.reload()}
           className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-dark)] focus-ring"
         >
-          <RiRefreshLine className="size-4" />
+          <RefreshCw size={16} strokeWidth={2} />
           Retry
         </button>
       </div>
@@ -282,14 +284,26 @@ function DashboardContent() {
   const typedInsights = computeInsights(data.bundles || [], data.insights || [])
   const compareLabel = compare === 'prev_7d' ? 'vs 7d ago' : compare === 'prev_day' ? 'vs yesterday' : 'vs prev period'
 
+  const networkHealthScore = hasBundles
+    ? data.bundles.reduce((sum: number, b: BundleData) => sum + (b.healthScore ?? 70), 0) / data.bundles.length
+    : 0
+  const unhealthyCount = hasBundles
+    ? data.bundles.filter((b: BundleData) => (b.healthScore ?? 100) < 60).length
+    : 0
+
   return (
     <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
       <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-16 overflow-hidden sm:px-6">
         <div className="flex flex-col gap-6">
 
+          {/* Data Freshness Summary */}
+          <motion.div custom={0} variants={fadeInUp}>
+            <DataFreshnessSummary />
+          </motion.div>
+
           {/* Coverage indicator */}
           {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
-            <motion.div custom={0} variants={fadeInUp}>
+            <motion.div custom={1} variants={fadeInUp}>
               <Badge
                 variant="light" color="indigo" size="lg" radius="lg"
                 styles={{ root: { textTransform: 'none', fontWeight: 500, fontSize: 12 } }}
@@ -302,16 +316,16 @@ function DashboardContent() {
           {/* ── Primary KPIs ── */}
           {hasKpis && (
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                 {primaryKpis.map((kpi, i) => (
-                  <motion.div key={kpi!.label} custom={i} variants={fadeInUp}>
+                  <motion.div key={kpi!.label} custom={i + 2} variants={fadeInUp}>
                     <KPICard {...kpi!} />
                   </motion.div>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {secondaryKpis.map((kpi, i) => (
-                  <motion.div key={kpi!.label} custom={i + 5} variants={fadeInUp}>
+                  <motion.div key={kpi!.label} custom={i + 7} variants={fadeInUp}>
                     <KPICard {...kpi!} />
                   </motion.div>
                 ))}
@@ -321,45 +335,54 @@ function DashboardContent() {
 
           {/* ── Network Signals ── */}
           {(hasBundles || hasInsights) && (
-            <motion.div custom={9} variants={fadeInUp}>
+            <motion.div custom={11} variants={fadeInUp}>
               <SignalStrip bundles={data.bundles || []} insights={data.insights || []} />
             </motion.div>
+          )}
+
+          {/* ── Trend Charts ── */}
+          {hasTrend && (
+            <div>
+              <h2 className="text-card-title mb-3">Trends</h2>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <motion.div custom={12} variants={fadeInUp}>
+                  <ChartCard title="Revenue" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <RevenueTrendChart data={data.trend} />
+                  </ChartCard>
+                </motion.div>
+                <motion.div custom={13} variants={fadeInUp}>
+                  <ChartCard title="Traffic" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <TrafficTrendChart data={data.trend} />
+                  </ChartCard>
+                </motion.div>
+                <motion.div custom={14} variants={fadeInUp}>
+                  <ChartCard title="Profit" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <ProfitTrendChart data={data.trend} />
+                  </ChartCard>
+                </motion.div>
+              </div>
+            </div>
           )}
 
           {/* ── Bundle Cards ── */}
           {hasBundles && (
             <div>
-              <h2 className="text-card-title mb-3">Bundles</h2>
-              <div className="flex gap-4 overflow-x-auto pb-1 hide-scrollbar">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-card-title">Bundles</h2>
+                {hasBundles && (
+                  <NetworkHealthCard
+                    score={networkHealthScore}
+                    unhealthyCount={unhealthyCount}
+                    totalBundles={data.bundles.length}
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {data.bundles.map((bundle: BundleData, i: number) => (
-                  <motion.div key={bundle.id} custom={i + 10} variants={fadeInUp}>
+                  <motion.div key={bundle.id} custom={i + 15} variants={fadeInUp}>
                     <BundleCard bundle={bundle} />
                   </motion.div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Charts ── */}
-          {hasTrend && (
-            <div>
-              <h2 className="text-card-title mb-3">Trends</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <motion.div custom={14} variants={fadeInUp}>
-                  <ChartCard title="Revenue" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                    <RevenueTrendChart data={data.trend} />
-                  </ChartCard>
-                </motion.div>
-                <motion.div custom={15} variants={fadeInUp}>
-                  <ChartCard title="Traffic" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                    <TrafficTrendChart data={data.trend} />
-                  </ChartCard>
-                </motion.div>
-                <motion.div custom={16} variants={fadeInUp}>
-                  <ChartCard title="Profit" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
-                    <ProfitTrendChart data={data.trend} />
-                  </ChartCard>
-                </motion.div>
               </div>
             </div>
           )}
@@ -370,7 +393,7 @@ function DashboardContent() {
               <h2 className="text-card-title mb-3">Insights</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {typedInsights.map((insight, i) => (
-                  <motion.div key={i} custom={i + 17} variants={fadeInUp}>
+                  <motion.div key={i} custom={i + 19} variants={fadeInUp}>
                     <InsightCard {...insight} />
                   </motion.div>
                 ))}

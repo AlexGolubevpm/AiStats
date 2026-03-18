@@ -173,7 +173,7 @@ export function TopContextBar({
         style={{ height: 72 }}
         align="center"
       >
-        {/* Left: Title */}
+        {/* Group 1: Identity */}
         <Box style={{ paddingLeft: 'var(--burger-offset, 0)' }}>
           <motion.div
             key={title}
@@ -210,53 +210,59 @@ export function TopContextBar({
           )}
         </Box>
 
-        {/* Right: Controls */}
-        <Group gap={12} wrap="wrap">
-          <Suspense fallback={<Skeleton h={28} w={100} radius="xl" />}>
-            <SyncStatusBadge />
-          </Suspense>
-
-          {showPeriod && (
-            <Suspense fallback={<Skeleton h={36} w={160} radius="md" />}>
-              <PeriodSelector />
+        {/* Right side: Groups 2 + 3 */}
+        <Group gap={16} wrap="wrap">
+          {/* Group 2: Data Context */}
+          <Group gap={8} wrap="nowrap">
+            <Suspense fallback={<Skeleton h={28} w={100} radius="xl" />}>
+              <SyncStatusBadge />
             </Suspense>
-          )}
 
-          {showCompare && (
-            <Suspense fallback={<Skeleton h={36} w={36} radius="md" />}>
-              <CompareModeSelect />
-            </Suspense>
-          )}
+            {showPeriod && (
+              <Suspense fallback={<Skeleton h={36} w={160} radius="md" />}>
+                <PeriodSelector />
+              </Suspense>
+            )}
 
-          {showExport && (
-            <ActionIcon
-              variant="default"
-              size="lg"
-              radius="md"
-              aria-label="Export"
-              styles={{
-                root: {
-                  border: '1px solid #E7EAF0',
-                  height: 36,
-                  width: 36,
-                  transition: 'all 0.14s ease',
-                  '&:hover': {
-                    backgroundColor: '#F1F5F9',
+            {showCompare && (
+              <Suspense fallback={<Skeleton h={36} w={36} radius="md" />}>
+                <CompareModeSelect />
+              </Suspense>
+            )}
+          </Group>
+
+          {/* Group 3: Actions */}
+          <Group gap={8} wrap="nowrap">
+            {showSync && (
+              <Suspense fallback={<Skeleton h={36} w={36} radius="md" />}>
+                <SyncButton />
+              </Suspense>
+            )}
+
+            {showExport && (
+              <ActionIcon
+                variant="default"
+                size="lg"
+                radius="md"
+                aria-label="Export"
+                styles={{
+                  root: {
+                    border: '1px solid #E7EAF0',
+                    height: 36,
+                    width: 36,
+                    transition: 'all 0.14s ease',
+                    '&:hover': {
+                      backgroundColor: '#F1F5F9',
+                    },
                   },
-                },
-              }}
-            >
-              <Download size={15} color="#64748B" />
-            </ActionIcon>
-          )}
+                }}
+              >
+                <Download size={15} color="#64748B" />
+              </ActionIcon>
+            )}
 
-          {showSync && (
-            <Suspense fallback={<Skeleton h={36} w={36} radius="md" />}>
-              <SyncButton />
-            </Suspense>
-          )}
-
-          {actions}
+            {actions}
+          </Group>
         </Group>
       </Group>
     </Box>
