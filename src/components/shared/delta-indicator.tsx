@@ -1,65 +1,58 @@
 'use client'
 
-import { cn, formatPercent } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { RiArrowUpSFill, RiArrowDownSFill, RiSubtractLine } from '@remixicon/react'
+import { formatPercent, cn } from '@/lib/utils'
 
-interface MetricDeltaProps {
+interface DeltaBadgeProps {
   value: number
   size?: 'sm' | 'md'
   className?: string
 }
 
-export function MetricDelta({ value, size = 'sm', className }: MetricDeltaProps) {
-  const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'
-  const textSize = size === 'sm' ? 'text-xs' : 'text-sm'
+/**
+ * Unified delta indicator used across all dashboard components.
+ * Displays a pill-shaped badge with directional icon and percentage.
+ */
+export function DeltaBadge({ value, size = 'sm', className }: DeltaBadgeProps) {
+  const isPositive = value > 0
+  const isNegative = value < 0
+  const isNeutral = !isPositive && !isNegative
+  const isInvalid = !isFinite(value) || isNaN(value)
 
-  if (!isFinite(value) || isNaN(value)) {
+  if (isInvalid) {
     return (
-      <motion.span
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.2 }}
+      <span
         className={cn(
-          'inline-flex items-center gap-1 font-medium tabular-nums',
-          textSize,
-          'text-[var(--color-text-muted)]',
-          className
+          'inline-flex items-center gap-0.5 rounded-full font-semibold tabular-nums',
+          'bg-gray-100 text-gray-500',
+          size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+          className,
         )}
       >
-        <Minus className={iconSize} />
+        <RiSubtractLine className={size === 'sm' ? 'size-3' : 'size-3.5'} />
         &mdash;
-      </motion.span>
+      </span>
     )
   }
 
   return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.2 }}
+    <span
       className={cn(
-        'inline-flex items-center gap-1 font-medium tabular-nums',
-        textSize,
-        value > 0
-          ? 'text-[var(--color-success-dark)]'
-          : value < 0
-            ? 'text-[var(--color-danger-dark)]'
-            : 'text-[var(--color-text-muted)]',
-        className
+        'inline-flex items-center gap-0.5 rounded-full font-semibold tabular-nums',
+        isPositive && 'bg-emerald-50 text-emerald-700',
+        isNegative && 'bg-red-50 text-red-700',
+        isNeutral && 'bg-gray-100 text-gray-600',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+        className,
       )}
     >
-      {value > 0 ? (
-        <TrendingUp className={iconSize} />
-      ) : value < 0 ? (
-        <TrendingDown className={iconSize} />
-      ) : (
-        <Minus className={iconSize} />
-      )}
+      {isPositive && <RiArrowUpSFill className={size === 'sm' ? 'size-3.5' : 'size-4'} />}
+      {isNegative && <RiArrowDownSFill className={size === 'sm' ? 'size-3.5' : 'size-4'} />}
       {formatPercent(value)}
-    </motion.span>
+    </span>
   )
 }
 
 // Keep backward compat
-export const DeltaIndicator = MetricDelta
+export const MetricDelta = DeltaBadge
+export const DeltaIndicator = DeltaBadge

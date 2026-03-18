@@ -1,5 +1,6 @@
 'use client'
 
+import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { cn } from '@/lib/utils'
 
 interface ChartCardProps {
@@ -15,29 +16,22 @@ export function ChartCard({ title, description, children, action, delta, classNa
   return (
     <div
       className={cn(
-        'rounded-xl border border-gray-200 bg-white shadow-sm',
-        'transition-all duration-200 hover:shadow-md',
+        'bg-[var(--color-surface)] rounded-[var(--radius-card)]',
+        'border border-[var(--color-border-subtle)]',
+        'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
+        'transition-shadow duration-[var(--duration-normal)]',
         className,
       )}
     >
       {/* Header */}
       <div className="flex items-start justify-between px-5 pt-5 pb-3">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-            {delta !== undefined && (
-              <span
-                className={cn(
-                  'rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
-                  delta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
-                )}
-              >
-                {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-              </span>
-            )}
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
+            {delta !== undefined && <DeltaBadge value={delta} size="sm" />}
           </div>
           {description && (
-            <p className="mt-1 text-xs text-gray-400">{description}</p>
+            <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">{description}</p>
           )}
         </div>
         {action}

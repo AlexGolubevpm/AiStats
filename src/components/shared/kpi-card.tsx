@@ -1,8 +1,8 @@
 'use client'
 
 import { SparkAreaChart } from '@/components/tremor/SparkAreaChart'
+import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { formatCurrency, formatNumber, formatPercent, formatCompact, cn } from '@/lib/utils'
-import { RiArrowUpSFill, RiArrowDownSFill } from '@remixicon/react'
 import type { AvailableChartColorsKeys } from '@/lib/chartUtils'
 
 /* ── Color map per metric ── */
@@ -18,7 +18,6 @@ const METRIC_CHART_COLOR: Record<string, AvailableChartColorsKeys> = {
   RPM: 'cyan',
 }
 
-/* ── Types ── */
 interface KPICardProps {
   label: string
   value: number
@@ -29,7 +28,6 @@ interface KPICardProps {
   className?: string
 }
 
-/* ── Component ── */
 export function KPICard({ label, value, delta, format = 'number', trend }: KPICardProps) {
   const isInvalid = isNaN(value)
   const chartColor = METRIC_CHART_COLOR[label] || 'blue'
@@ -49,48 +47,37 @@ export function KPICard({ label, value, delta, format = 'number', trend }: KPICa
     ? (trend.length > 14 ? trend.slice(-14) : trend).map((v, i) => ({ idx: i, value: v }))
     : null
 
-  const isPositive = delta !== undefined && delta > 0
-  const isNegative = delta !== undefined && delta < 0
-
   return (
     <div
       className={cn(
-        'relative rounded-xl border border-gray-200 bg-white p-5',
-        'shadow-sm transition-all duration-200',
-        'hover:shadow-md hover:-translate-y-0.5',
+        'relative bg-[var(--color-surface)] rounded-[var(--radius-card)]',
+        'border border-[var(--color-border-subtle)]',
+        'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
+        'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
+        'hover:-translate-y-0.5',
+        'p-4',
       )}
     >
       {/* Header: label + delta */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        {delta !== undefined && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
-              isPositive && 'bg-emerald-50 text-emerald-700',
-              isNegative && 'bg-red-50 text-red-700',
-              !isPositive && !isNegative && 'bg-gray-50 text-gray-600',
-            )}
-          >
-            {isPositive && <RiArrowUpSFill className="size-4" />}
-            {isNegative && <RiArrowDownSFill className="size-4" />}
-            {formatPercent(delta)}
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.04em] text-[var(--color-text-muted)]">
+          {label}
+        </p>
+        {delta !== undefined && <DeltaBadge value={delta} size="sm" />}
       </div>
 
       {/* Value */}
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-gray-900" style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <p className="mt-2 text-[28px] leading-tight font-bold tracking-tight text-[var(--color-text-primary)] tabular-nums sm:text-3xl">
         {formattedValue}
       </p>
 
       {/* Comparison */}
       {delta !== undefined && (
-        <p className="mt-1 text-xs text-gray-400">vs prev period</p>
+        <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">vs prev period</p>
       )}
 
       {/* Sparkline */}
-      <div className="mt-4">
+      <div className="mt-3">
         {sparkData ? (
           <SparkAreaChart
             data={sparkData}

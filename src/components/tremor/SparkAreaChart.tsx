@@ -7,6 +7,7 @@ import {
   Area,
   AreaChart as RechartsAreaChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
@@ -32,6 +33,8 @@ interface SparkAreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   connectNulls?: boolean
   type?: "default" | "stacked" | "percent"
   fill?: "gradient" | "solid" | "none"
+  showTooltip?: boolean
+  valueFormatter?: (value: number) => string
 }
 
 const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
@@ -48,6 +51,8 @@ const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
       type = "default",
       className,
       fill = "gradient",
+      showTooltip = true,
+      valueFormatter = (v: number) => v.toLocaleString(),
       ...other
     } = props
 
@@ -88,6 +93,21 @@ const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
           >
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
+            {showTooltip && (
+              <Tooltip
+                cursor={false}
+                isAnimationActive={false}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const v = payload[0]?.value
+                  return (
+                    <div className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold tabular-nums text-gray-900 shadow-md">
+                      {valueFormatter(Number(v))}
+                    </div>
+                  )
+                }}
+              />
+            )}
 
             {categories.map((category) => {
               const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, "")}`

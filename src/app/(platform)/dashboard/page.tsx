@@ -10,9 +10,15 @@ import { KPICard } from '@/components/shared/kpi-card'
 import { ChartCard } from '@/components/shared/chart-card'
 import { InsightCard } from '@/components/shared/insight-card'
 import { HealthBadge } from '@/components/shared/health-badge'
-import { MetricDelta } from '@/components/shared/delta-indicator'
+import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { SignalStrip } from '@/components/shared/signal-strip'
-import { KPICardSkeleton, ChartSkeleton } from '@/components/shared/loading-skeleton'
+import {
+  KPICardSkeleton,
+  ChartSkeleton,
+  SignalCardSkeleton,
+  BundleCardSkeleton,
+  InsightCardSkeleton,
+} from '@/components/shared/loading-skeleton'
 import { RevenueTrendChart } from '@/components/features/charts/revenue-trend-chart'
 import { TrafficTrendChart } from '@/components/features/charts/traffic-trend-chart'
 import { ProfitTrendChart } from '@/components/features/charts/profit-trend-chart'
@@ -21,8 +27,9 @@ import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact, cn } from '@/lib/utils'
 import {
   RiArrowRightSLine,
-  RiArrowUpSFill,
-  RiArrowDownSFill,
+  RiRefreshLine,
+  RiDatabase2Line,
+  RiErrorWarningLine,
 } from '@remixicon/react'
 import type { AnomalySeverity } from '@/types'
 
@@ -31,10 +38,10 @@ const PRIMARY_KPIS = ['Visitors', 'Ad Revenue', 'Total Revenue', 'Profit', 'ROMI
 const SECONDARY_KPIS = ['Ad Requests', 'Affiliate Revenue', 'Costs', 'RPM']
 
 const BUNDLE_ACCENTS: Record<string, string> = {
-  JAV: 'bg-red-500',
-  Gays: 'bg-blue-500',
-  Hentai: 'bg-violet-500',
-  Trans: 'bg-pink-500',
+  JAV: 'bg-[var(--color-bundle-jav)]',
+  Gays: 'bg-[var(--color-bundle-gays)]',
+  Hentai: 'bg-[var(--color-bundle-hentai)]',
+  Trans: 'bg-[var(--color-bundle-trans)]',
 }
 
 /* ── Types ── */
@@ -53,44 +60,35 @@ type InsightData = {
 
 /* ── Bundle Card ── */
 function BundleCard({ bundle }: { bundle: BundleData }) {
-  const accentClass = BUNDLE_ACCENTS[bundle.name] || 'bg-gray-500'
-  const isPositive = (bundle.delta ?? 0) >= 0
-  const isNegative = (bundle.delta ?? 0) < 0
+  const accentClass = BUNDLE_ACCENTS[bundle.name] || 'bg-gray-400'
 
   return (
     <Link
       href={`/bundles/${bundle.slug}`}
       className={cn(
-        'block min-w-[280px] flex-none no-underline',
-        'rounded-xl border border-gray-200 bg-white shadow-sm',
-        'transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
+        'block min-w-[260px] flex-none no-underline sm:min-w-[280px]',
+        'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
+        'border border-[var(--color-border-subtle)]',
+        'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
+        'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
+        'hover:-translate-y-0.5 focus-ring',
       )}
       style={{ color: 'inherit', textDecoration: 'none' }}
     >
       {/* Top accent */}
-      <div className={cn('h-[3px] rounded-t-xl', accentClass)} />
+      <div className={cn('h-[3px] rounded-t-[var(--radius-card)]', accentClass)} />
 
       <div className="p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <div className={cn('h-2.5 w-2.5 rounded-full', accentClass)} />
-            <span className="text-sm font-semibold text-gray-900">{bundle.name}</span>
+            <span className="text-sm font-semibold text-[var(--color-text-primary)]">{bundle.name}</span>
           </div>
           <div className="flex items-center gap-2">
             {bundle.healthScore != null && <HealthBadge score={bundle.healthScore} showLabel={false} size="sm" />}
-            {bundle.delta !== undefined && (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
-                  isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
-                )}
-              >
-                {isPositive ? <RiArrowUpSFill className="size-3" /> : <RiArrowDownSFill className="size-3" />}
-                {isPositive ? '+' : ''}{bundle.delta.toFixed(1)}%
-              </span>
-            )}
-            <RiArrowRightSLine className="size-4 text-gray-300" />
+            {bundle.delta !== undefined && <DeltaBadge value={bundle.delta} size="sm" />}
+            <RiArrowRightSLine className="size-4 text-[var(--color-text-disabled)]" />
           </div>
         </div>
 
@@ -103,11 +101,15 @@ function BundleCard({ bundle }: { bundle: BundleData }) {
             { label: 'ROMI', value: `${(bundle.romi || 0).toFixed(1)}%` },
           ].map(m => (
             <div key={m.label}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{m.label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{m.label}</p>
               <p
                 className={cn(
                   'mt-0.5 text-lg font-bold tabular-nums',
-                  m.positive === true ? 'text-emerald-600' : m.positive === false ? 'text-red-600' : 'text-gray-900',
+                  m.positive === true
+                    ? 'text-[var(--color-success-dark)]'
+                    : m.positive === false
+                      ? 'text-[var(--color-danger-dark)]'
+                      : 'text-[var(--color-text-primary)]',
                 )}
               >
                 {m.value}
@@ -117,9 +119,9 @@ function BundleCard({ bundle }: { bundle: BundleData }) {
         </div>
 
         {/* Footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
-          <span className="text-xs text-gray-400">{bundle.sitesCount || 0} sites</span>
-          {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
+        <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border-subtle)] pt-3">
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">{bundle.sitesCount || 0} sites</span>
+          {bundle.delta !== undefined && <DeltaBadge value={bundle.delta} size="sm" />}
         </div>
       </div>
     </Link>
@@ -187,13 +189,19 @@ function computeInsights(bundles: BundleData[], rawInsights: InsightData[]): Ins
 /* ── Skeleton ── */
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
-        <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <SignalCardSkeleton key={i} />)}
+        </div>
+        <div className="flex gap-4 overflow-hidden">
+          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <ChartSkeleton />
@@ -205,41 +213,68 @@ function DashboardSkeleton() {
   )
 }
 
+/* ── Empty State ── */
+function EmptyState() {
+  return (
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
+      <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-border-default)] bg-[var(--color-surface)] px-6 py-16 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary-50)]">
+          <RiDatabase2Line className="size-6 text-[var(--color-primary-500)]" />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">No data available yet</h3>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          Data will appear after syncing with AdSpyglass. Start a sync from Settings.
+        </p>
+        <Link
+          href="/settings"
+          className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-primary-500)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-primary-600)] focus-ring"
+        >
+          <RiRefreshLine className="size-4" />
+          Go to Settings
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+/* ── Error State ── */
+function ErrorState({ error }: { error: Error | unknown }) {
+  return (
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
+      <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-danger)] bg-[var(--color-danger-bg)] px-6 py-16 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white">
+          <RiErrorWarningLine className="size-6 text-[var(--color-danger)]" />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">Failed to load dashboard</h3>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          {error instanceof Error ? error.message : 'Unknown error — check server logs'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--color-danger-dark)] focus-ring"
+        >
+          <RiRefreshLine className="size-4" />
+          Retry
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ── Dashboard Content ── */
 function DashboardContent() {
   const { period, compare } = usePeriod()
   const { data, isLoading, error } = useDashboard(period, compare)
 
   if (isLoading) return <DashboardSkeleton />
-
-  if (error || !data) {
-    return (
-      <div className="mx-auto w-full max-w-[1440px] px-6 py-6">
-        <div className="rounded-xl border border-dashed border-red-300 bg-white p-10 text-center">
-          <p className="text-sm font-semibold text-red-600">Failed to load dashboard data</p>
-          <p className="mt-2 text-xs text-gray-400">
-            {error instanceof Error ? error.message : 'Unknown error — check server logs'}
-          </p>
-        </div>
-      </div>
-    )
-  }
+  if (error || !data) return <ErrorState error={error} />
 
   const hasKpis = data.kpis?.length > 0
   const hasBundles = data.bundles?.length > 0
   const hasTrend = data.trend?.length > 0
   const hasInsights = data.insights?.length > 0
 
-  if (!hasKpis && !hasBundles && !hasTrend) {
-    return (
-      <div className="mx-auto w-full max-w-[1440px] px-6 py-6">
-        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-10 text-center">
-          <p className="text-sm text-gray-500">No data available yet</p>
-          <p className="mt-2 text-xs text-gray-400">Data will appear after syncing with AdSpyglass</p>
-        </div>
-      </div>
-    )
-  }
+  if (!hasKpis && !hasBundles && !hasTrend) return <EmptyState />
 
   const allKpis = data.kpis as Array<{ label: string; value: number; delta?: number; format: 'currency' | 'number' | 'percent' | 'score' | 'compact'; trend?: number[] }>
   const primaryKpis = PRIMARY_KPIS.map(label => allKpis.find(k => k.label === label)).filter(Boolean)
@@ -249,8 +284,8 @@ function DashboardContent() {
 
   return (
     <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
-      <div className="mx-auto w-full max-w-[1440px] px-6 py-6 pb-12 overflow-hidden">
-        <div className="flex flex-col gap-7">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-16 overflow-hidden sm:px-6">
+        <div className="flex flex-col gap-6">
 
           {/* Coverage indicator */}
           {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
@@ -267,16 +302,14 @@ function DashboardContent() {
           {/* ── Primary KPIs ── */}
           {hasKpis && (
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 {primaryKpis.map((kpi, i) => (
                   <motion.div key={kpi!.label} custom={i} variants={fadeInUp}>
                     <KPICard {...kpi!} />
                   </motion.div>
                 ))}
               </div>
-
-              {/* ── Secondary KPIs ── */}
-              <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {secondaryKpis.map((kpi, i) => (
                   <motion.div key={kpi!.label} custom={i + 5} variants={fadeInUp}>
                     <KPICard {...kpi!} />
@@ -296,8 +329,8 @@ function DashboardContent() {
           {/* ── Bundle Cards ── */}
           {hasBundles && (
             <div>
-              <h2 className="mb-3 text-sm font-semibold text-gray-500">Bundles</h2>
-              <div className="flex gap-4 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
+              <h2 className="text-card-title mb-3">Bundles</h2>
+              <div className="flex gap-4 overflow-x-auto pb-1 hide-scrollbar">
                 {data.bundles.map((bundle: BundleData, i: number) => (
                   <motion.div key={bundle.id} custom={i + 10} variants={fadeInUp}>
                     <BundleCard bundle={bundle} />
@@ -310,36 +343,22 @@ function DashboardContent() {
           {/* ── Charts ── */}
           {hasTrend && (
             <div>
-              <h2 className="mb-3 text-sm font-semibold text-gray-500">Trends</h2>
+              <h2 className="text-card-title mb-3">Trends</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <motion.div custom={14} variants={fadeInUp}>
-                  <AnimatePresence mode="wait">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-                      <ChartCard title="Revenue" description={`${data.trend.length} days · ${compareLabel}`}>
-                        <RevenueTrendChart data={data.trend} />
-                      </ChartCard>
-                    </motion.div>
-                  </AnimatePresence>
+                  <ChartCard title="Revenue" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <RevenueTrendChart data={data.trend} />
+                  </ChartCard>
                 </motion.div>
-
                 <motion.div custom={15} variants={fadeInUp}>
-                  <AnimatePresence mode="wait">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-                      <ChartCard title="Traffic" description={`${data.trend.length} days · ${compareLabel}`}>
-                        <TrafficTrendChart data={data.trend} />
-                      </ChartCard>
-                    </motion.div>
-                  </AnimatePresence>
+                  <ChartCard title="Traffic" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <TrafficTrendChart data={data.trend} />
+                  </ChartCard>
                 </motion.div>
-
                 <motion.div custom={16} variants={fadeInUp}>
-                  <AnimatePresence mode="wait">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-                      <ChartCard title="Profit" description={`${data.trend.length} days · ${compareLabel}`}>
-                        <ProfitTrendChart data={data.trend} />
-                      </ChartCard>
-                    </motion.div>
-                  </AnimatePresence>
+                  <ChartCard title="Profit" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
+                    <ProfitTrendChart data={data.trend} />
+                  </ChartCard>
                 </motion.div>
               </div>
             </div>
@@ -348,7 +367,7 @@ function DashboardContent() {
           {/* ── Operational Insights ── */}
           {typedInsights.length > 0 && (
             <div>
-              <h2 className="mb-3 text-sm font-semibold text-gray-500">Insights</h2>
+              <h2 className="text-card-title mb-3">Insights</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {typedInsights.map((insight, i) => (
                   <motion.div key={i} custom={i + 17} variants={fadeInUp}>
@@ -368,7 +387,7 @@ function DashboardContent() {
 /* ── Page ── */
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--color-app-bg)]">
       <TopContextBar title="Dashboard" subtitle="Network overview and key metrics" showExport showCompare />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />

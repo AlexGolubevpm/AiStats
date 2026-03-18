@@ -1,7 +1,8 @@
 'use client'
 
 import { RiArrowDownLine, RiAlertLine, RiTrophyLine } from '@remixicon/react'
-import { formatCurrency, formatPercent, cn } from '@/lib/utils'
+import { DeltaBadge } from '@/components/shared/delta-indicator'
+import { formatCurrency, cn } from '@/lib/utils'
 
 /* ── Types ── */
 interface SignalData {
@@ -16,23 +17,23 @@ const SIGNAL_CONFIG = {
   drop: {
     icon: RiArrowDownLine,
     label: 'Biggest Drop',
-    color: 'text-red-600',
-    bg: 'bg-red-50',
-    border: 'border-l-red-500',
+    color: 'text-[var(--color-danger)]',
+    bg: 'bg-[var(--color-danger-bg)]',
+    border: 'border-l-[var(--color-danger)]',
   },
   risk: {
     icon: RiAlertLine,
     label: 'Main Risk',
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-l-amber-500',
+    color: 'text-[var(--color-warning)]',
+    bg: 'bg-[var(--color-warning-bg)]',
+    border: 'border-l-[var(--color-warning)]',
   },
   winner: {
     icon: RiTrophyLine,
     label: 'Top Performer',
-    color: 'text-violet-600',
-    bg: 'bg-violet-50',
-    border: 'border-l-violet-500',
+    color: 'text-[var(--color-primary-500)]',
+    bg: 'bg-[var(--color-primary-50)]',
+    border: 'border-l-[var(--color-primary-500)]',
   },
 } as const
 
@@ -44,28 +45,27 @@ function SignalCard({ signal }: { signal: SignalData }) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-gray-200 border-l-[3px] bg-white p-4',
-        'shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
+        'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
+        'border border-[var(--color-border-subtle)] border-l-[3px]',
+        'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
+        'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
+        'hover:-translate-y-0.5 p-4',
         config.border,
       )}
     >
       <div className="flex gap-3">
-        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', config.bg)}>
+        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)]', config.bg)}>
           <Icon className={cn('size-[18px]', config.color)} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className={cn('text-[10px] font-bold uppercase tracking-wider', config.color)}>
+          <p className={cn('text-[11px] font-bold uppercase tracking-wider', config.color)}>
             {config.label}
           </p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-gray-900 truncate">{signal.entity}</span>
-            {signal.type !== 'winner' && (
-              <span className={cn('text-xs font-semibold tabular-nums', signal.delta >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                {formatPercent(signal.delta)}
-              </span>
-            )}
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{signal.entity}</span>
+            {signal.type !== 'winner' && <DeltaBadge value={signal.delta} size="sm" />}
           </div>
-          <p className="mt-1 text-xs text-gray-500 truncate">{signal.reason}</p>
+          <p className="mt-1.5 text-xs font-medium text-[var(--color-text-muted)] line-clamp-2">{signal.reason}</p>
         </div>
       </div>
     </div>
@@ -129,8 +129,8 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
 
   return (
     <div>
-      <h2 className="mb-3 text-sm font-semibold text-gray-500">Network Signals</h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <h2 className="text-card-title mb-3">Network Signals</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {signals.slice(0, 3).map((signal, i) => (
           <SignalCard key={i} signal={signal} />
         ))}
