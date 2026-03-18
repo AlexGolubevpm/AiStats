@@ -2,7 +2,7 @@
 
 @theme {
   /* === Backgrounds === */
-  --color-app-bg: #F6F8FB;
+  --color-app-bg: #F4F6FB;
   --color-sidebar-bg: #F7F8FC;
   --color-surface: #FFFFFF;
   --color-surface-secondary: #F9FAFB;
@@ -209,4 +209,13 @@ body {
 }
 .focus-ring:focus-visible {
   box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary-500);
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

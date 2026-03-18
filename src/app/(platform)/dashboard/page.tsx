@@ -19,7 +19,7 @@ import { ProfitTrendChart } from '@/components/features/charts/profit-trend-char
 import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact } from '@/lib/utils'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ArrowRight } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
 const PRIMARY_KPIS = ['Visitors', 'Ad Revenue', 'Total Revenue', 'Profit', 'ROMI']
@@ -44,6 +44,7 @@ type InsightData = {
   severity: AnomalySeverity; type?: 'risk' | 'opportunity' | 'info' | 'winner' | 'loser'
 }
 
+/* ─── Bundle Summary Card ─── */
 function BundleSummaryCard({ bundle }: { bundle: BundleData }) {
   const accentColor = BUNDLE_COLORS[bundle.name] || bundle.color
 
@@ -51,81 +52,102 @@ function BundleSummaryCard({ bundle }: { bundle: BundleData }) {
     <Card
       component={Link}
       href={`/bundles/${bundle.slug}`}
-      padding="lg"
-      radius="xl"
-      shadow="sm"
-      withBorder
+      padding={0}
+      radius={20}
       styles={{
         root: {
-          borderColor: '#E5E7EB',
+          background: '#FFFFFF',
+          border: '1px solid #E6EAF0',
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
           textDecoration: 'none',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.16s ease',
           cursor: 'pointer',
+          minHeight: 180,
           '&:hover': {
             transform: 'translateY(-1px)',
-            boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)',
-            borderColor: '#D7DCE5',
+            boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
           },
         },
       }}
     >
-      {/* Header */}
-      <Group justify="space-between">
-        <Group gap="xs">
-          <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: accentColor }} />
-          <Text size="sm" fw={600} c="#111827">{bundle.name}</Text>
+      <Box style={{ padding: 20 }}>
+        {/* Header */}
+        <Group justify="space-between">
+          <Group gap={10}>
+            <Box style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: accentColor }} />
+            <Text style={{ fontSize: 20, fontWeight: 600, color: '#0F172A' }}>{bundle.name}</Text>
+          </Group>
+          <Group gap={8}>
+            {bundle.healthScore != null && <HealthBadge score={bundle.healthScore} showLabel={true} size="sm" />}
+            {bundle.delta !== undefined && (
+              <Badge
+                size="xs"
+                radius="md"
+                styles={{
+                  root: {
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: 11,
+                    color: bundle.delta >= 0 ? '#16A34A' : '#DC2626',
+                    backgroundColor: bundle.delta >= 0 ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)',
+                    border: 'none',
+                  },
+                }}
+              >
+                {bundle.delta >= 0 ? '+' : ''}{bundle.delta.toFixed(1)}%
+              </Badge>
+            )}
+            <ChevronRight size={16} color="#94A3B8" />
+          </Group>
         </Group>
-        <Group gap="xs">
-          {bundle.healthScore != null && <HealthBadge score={bundle.healthScore} showLabel={true} size="sm" />}
-          <ChevronRight size={16} color="#9CA3AF" />
+
+        {/* Metrics grid */}
+        <SimpleGrid cols={2} spacing={12} mt={16}>
+          <Box>
+            <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: '#6B7280' }}>
+              Ad Requests
+            </Text>
+            <Text style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {formatCompact(bundle.hits || 0)}
+            </Text>
+          </Box>
+          <Box>
+            <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: '#6B7280' }}>
+              Revenue
+            </Text>
+            <Text style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {formatCurrency(bundle.totalRevenue || 0)}
+            </Text>
+          </Box>
+          <Box>
+            <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: '#6B7280' }}>
+              Profit
+            </Text>
+            <Text style={{ fontSize: 26, fontWeight: 700, color: '#16A34A', fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {formatCurrency(bundle.profit || 0)}
+            </Text>
+          </Box>
+          <Box>
+            <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, color: '#6B7280' }}>
+              ROMI
+            </Text>
+            <Text style={{ fontSize: 26, fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {(bundle.romi || 0).toFixed(1)}%
+            </Text>
+          </Box>
+        </SimpleGrid>
+
+        {/* Footer */}
+        <Group justify="space-between" mt={16} pt={12} style={{ borderTop: '1px solid #E6EAF0' }}>
+          <Text style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>{bundle.sitesCount || 0} sites</Text>
+          {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
         </Group>
-      </Group>
-
-      {/* Metrics grid */}
-      <SimpleGrid cols={2} spacing="xs" mt="md">
-        <Box>
-          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
-            Ad Requests
-          </Text>
-          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {formatCompact(bundle.hits || 0)}
-          </Text>
-        </Box>
-        <Box>
-          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
-            Revenue
-          </Text>
-          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {formatCurrency(bundle.totalRevenue || 0)}
-          </Text>
-        </Box>
-        <Box>
-          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
-            Profit
-          </Text>
-          <Text size="md" fw={700} c="#039855" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {formatCurrency(bundle.profit || 0)}
-          </Text>
-        </Box>
-        <Box>
-          <Text size="xs" fw={600} tt="uppercase" c="#6B7280" style={{ letterSpacing: '0.04em', fontSize: 11 }}>
-            ROMI
-          </Text>
-          <Text size="md" fw={700} c="#111827" mt={2} style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {(bundle.romi || 0).toFixed(1)}%
-          </Text>
-        </Box>
-      </SimpleGrid>
-
-      {/* Footer */}
-      <Group justify="space-between" mt="md" pt="sm" style={{ borderTop: '1px solid #E5E7EB' }}>
-        <Text size="xs" fw={500} c="#6B7280">{bundle.sitesCount || 0} sites</Text>
-        {bundle.delta !== undefined && <MetricDelta value={bundle.delta} />}
-      </Group>
+      </Box>
     </Card>
   )
 }
 
+/* ─── Compute typed insights ─── */
 function computeTypedInsights(
   bundles: BundleData[],
   rawInsights: InsightData[]
@@ -205,13 +227,14 @@ function computeTypedInsights(
   return typed
 }
 
+/* ─── Chart fade in wrapper ─── */
 function ChartFadeIn({ children }: { children: React.ReactNode }) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       >
         {children}
       </motion.div>
@@ -219,17 +242,18 @@ function ChartFadeIn({ children }: { children: React.ReactNode }) {
   )
 }
 
+/* ─── Skeleton ─── */
 function DashboardSkeleton() {
   return (
-    <Box maw={1600} mx="auto" px="xl" py="xl">
-      <Stack gap="xl">
-        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4, xl: 5 }} spacing="md">
+    <Box maw={1600} w="100%" mx="auto" px={24} py={24}>
+      <Stack gap={32}>
+        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4, xl: 5 }} spacing={20}>
           {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </SimpleGrid>
-        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4 }} spacing="md">
+        <SimpleGrid cols={{ base: 2, sm: 3, lg: 4 }} spacing={20}>
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </SimpleGrid>
-        <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing={20}>
           <ChartSkeleton />
           <ChartSkeleton />
           <ChartSkeleton />
@@ -239,6 +263,7 @@ function DashboardSkeleton() {
   )
 }
 
+/* ─── Main Dashboard Content ─── */
 function DashboardContent() {
   const { period, compare } = usePeriod()
   const { data, isLoading } = useDashboard(period, compare)
@@ -254,11 +279,23 @@ function DashboardContent() {
 
   if (!hasKpis && !hasBundles && !hasTrend) {
     return (
-      <Box maw={1600} mx="auto" px="xl" py="xl">
-        <Card padding="xl" radius="xl" withBorder styles={{ root: { borderColor: '#E5E7EB', borderStyle: 'dashed' } }}>
+      <Box maw={1600} w="100%" mx="auto" px={24} py={24}>
+        <Card
+          padding="xl"
+          radius={20}
+          styles={{
+            root: {
+              background: '#FFFFFF',
+              border: '1px dashed #E6EAF0',
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
+            },
+          }}
+        >
           <Stack align="center" py="xl" gap="xs">
-            <Text size="sm" c="#6B7280">No data available yet</Text>
-            <Text size="xs" fw={500} c="#6B7280">Data will appear after syncing with AdSpyglass</Text>
+            <Text style={{ fontSize: 14, color: '#64748B' }}>No data available yet</Text>
+            <Text style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8' }}>
+              Data will appear after syncing with AdSpyglass
+            </Text>
           </Stack>
         </Card>
       </Box>
@@ -277,8 +314,8 @@ function DashboardContent() {
       animate="visible"
       variants={staggerContainer}
     >
-      <Box maw={1600} mx="auto" px="xl" py="xl" pb={48} style={{ overflow: 'hidden' }}>
-        <Stack gap="xl">
+      <Box maw={1600} w="100%" mx="auto" px={24} py={24} pb={40} style={{ overflow: 'hidden' }}>
+        <Stack gap={32}>
 
           {/* === Coverage indicator === */}
           {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
@@ -297,15 +334,17 @@ function DashboardContent() {
 
           {/* === KPI Section === */}
           {hasKpis && (
-            <Stack gap="md">
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 5 }} spacing="md">
+            <Stack gap={20}>
+              {/* Row 1: 5 primary KPIs */}
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 5 }} spacing={20}>
                 {primaryKpis.map((kpi, i) => (
                   <motion.div key={kpi!.label} custom={i} variants={fadeInUp}>
                     <KPICard {...kpi!} />
                   </motion.div>
                 ))}
               </SimpleGrid>
-              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+              {/* Row 2: 4 secondary KPIs */}
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing={20}>
                 {secondaryKpis.map((kpi, i) => (
                   <motion.div key={kpi!.label} custom={i + 5} variants={fadeInUp}>
                     <KPICard {...kpi!} />
@@ -322,28 +361,89 @@ function DashboardContent() {
             </motion.div>
           )}
 
-          {/* === Trends Section === */}
-          {hasTrend && (
+          {/* === Bundles "Trends" Section (horizontal scrollable like reference) === */}
+          {hasBundles && (
             <Box>
-              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  marginBottom: 16,
+                }}
+              >
                 Trends
               </Text>
-              <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
-                <motion.div custom={10} variants={fadeInUp}>
+              <Box style={{ position: 'relative' }}>
+                <Box
+                  style={{
+                    display: 'flex',
+                    gap: 20,
+                    overflowX: 'auto',
+                    paddingBottom: 4,
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                  className="hide-scrollbar"
+                >
+                  {data.bundles.map((bundle: BundleData, i: number) => (
+                    <motion.div
+                      key={bundle.id}
+                      custom={i + 13}
+                      variants={fadeInUp}
+                      style={{ minWidth: 280, flex: '0 0 auto' }}
+                    >
+                      <BundleSummaryCard bundle={bundle} />
+                    </motion.div>
+                  ))}
+                </Box>
+                {/* Scroll arrow */}
+                {data.bundles.length > 3 && (
+                  <Box
+                    style={{
+                      position: 'absolute',
+                      right: -10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '1px solid #E6EAF0',
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ArrowRight size={16} color="#64748B" />
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* === Charts Section === */}
+          {hasTrend && (
+            <Box>
+              <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing={20}>
+                <motion.div custom={17} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Revenue Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <RevenueTrendChart data={data.trend} />
                     </ChartCard>
                   </ChartFadeIn>
                 </motion.div>
-                <motion.div custom={11} variants={fadeInUp}>
+                <motion.div custom={18} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Traffic Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <TrafficTrendChart data={data.trend} />
                     </ChartCard>
                   </ChartFadeIn>
                 </motion.div>
-                <motion.div custom={12} variants={fadeInUp}>
+                <motion.div custom={19} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Profit Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <ProfitTrendChart data={data.trend} />
@@ -354,47 +454,22 @@ function DashboardContent() {
             </Box>
           )}
 
-          {/* === Bundles Section === */}
-          {hasBundles && (
-            <Box>
-              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
-                Bundles
-              </Text>
-              <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-                {data.bundles.map((bundle: BundleData, i: number) => (
-                  <motion.div key={bundle.id} custom={i + 13} variants={fadeInUp}>
-                    <BundleSummaryCard bundle={bundle} />
-                  </motion.div>
-                ))}
-              </SimpleGrid>
-            </Box>
-          )}
-
           {/* === Operational Insights === */}
           {typedInsights.length > 0 && (
             <Box>
-              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: '#0F172A',
+                  marginBottom: 16,
+                }}
+              >
                 Operational Insights
               </Text>
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing={20}>
                 {typedInsights.map((insight, i) => (
                   <motion.div key={i} custom={i + 17} variants={fadeInUp}>
-                    <InsightCard {...insight} />
-                  </motion.div>
-                ))}
-              </SimpleGrid>
-            </Box>
-          )}
-
-          {/* === Recent Anomalies === */}
-          {hasInsights && data.insights.length > 0 && (
-            <Box>
-              <Text size="lg" fw={600} c="#111827" mb="md" style={{ fontSize: 20 }}>
-                Recent Anomalies
-              </Text>
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                {data.insights.slice(0, 6).map((insight: InsightData, i: number) => (
-                  <motion.div key={i} custom={i + 21} variants={fadeInUp}>
                     <InsightCard {...insight} />
                   </motion.div>
                 ))}
@@ -410,7 +485,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Box bg="#F6F8FB" mih="100vh">
+    <Box style={{ background: '#F4F6FB', minHeight: '100vh' }}>
       <TopContextBar title="Dashboard" subtitle="Network overview and key metrics" showExport showCompare />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />

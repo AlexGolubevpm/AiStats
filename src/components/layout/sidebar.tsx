@@ -37,6 +37,51 @@ const utilityNav = [
 export function AppSidebar() {
   const pathname = usePathname()
 
+  const renderNavItem = (item: typeof primaryNav[number]) => {
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+    return (
+      <NavLink
+        key={item.name}
+        component={Link}
+        href={item.href}
+        label={item.name}
+        leftSection={<item.icon size={18} />}
+        active={isActive}
+        variant="light"
+        color="indigo"
+        styles={{
+          root: {
+            borderRadius: 12,
+            fontWeight: 500,
+            fontSize: 14,
+            height: 42,
+            paddingLeft: 14,
+            paddingRight: 14,
+            marginBottom: 2,
+            transition: 'background 0.14s ease',
+            ...(isActive
+              ? {
+                  backgroundColor: '#EEF2FF',
+                  color: '#4338CA',
+                  fontWeight: 600,
+                }
+              : {}),
+            '&:hover': {
+              backgroundColor: isActive ? '#EEF2FF' : '#F1F5F9',
+            },
+          },
+          label: {
+            fontSize: 14,
+            fontWeight: isActive ? 600 : 500,
+          },
+          section: {
+            color: isActive ? '#4F46E5' : undefined,
+          },
+        }}
+      />
+    )
+  }
+
   return (
     <Box
       h="100%"
@@ -44,13 +89,15 @@ export function AppSidebar() {
         display: 'flex',
         flexDirection: 'column',
         background: '#F7F8FC',
+        borderRight: '1px solid #E7EAF0',
+        width: 248,
       }}
     >
       {/* Brand zone */}
       <Box
-        px="lg"
+        px={20}
         style={{
-          height: 64,
+          height: 72,
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -59,59 +106,28 @@ export function AppSidebar() {
       >
         <Box
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: '#4F46E5',
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
           }}
         >
-          <Activity size={16} color="white" />
+          <Activity size={17} color="white" />
         </Box>
-        <Text fw={700} size="sm" c="#111827" style={{ letterSpacing: '-0.01em' }}>
-          AiStats
+        <Text fw={700} c="#0F172A" style={{ fontSize: 16, letterSpacing: '-0.01em' }}>
+          Analytics
         </Text>
       </Box>
 
       {/* Navigation */}
-      <ScrollArea flex={1} px="sm" py={4}>
-        {primaryNav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <NavLink
-              key={item.name}
-              component={Link}
-              href={item.href}
-              label={item.name}
-              leftSection={<item.icon size={18} />}
-              active={isActive}
-              variant="light"
-              color="indigo"
-              style={{
-                borderRadius: 12,
-                fontWeight: 500,
-                fontSize: 13,
-                marginBottom: 2,
-              }}
-              styles={{
-                root: {
-                  '&[dataActive]': {
-                    backgroundColor: '#EEF2FF',
-                    color: '#4338CA',
-                    fontWeight: 600,
-                  },
-                },
-                label: {
-                  fontSize: 13,
-                },
-              }}
-            />
-          )
-        })}
+      <ScrollArea flex={1} px={10} py={4}>
+        {primaryNav.map(renderNavItem)}
 
-        <Divider my="sm" color="#E5E7EB" />
+        <Divider my="sm" color="#E7EAF0" />
 
         <Text
           size="xs"
@@ -124,69 +140,19 @@ export function AppSidebar() {
         >
           Analytics
         </Text>
-        {analyticsNav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <NavLink
-              key={item.name}
-              component={Link}
-              href={item.href}
-              label={item.name}
-              leftSection={<item.icon size={18} />}
-              active={isActive}
-              variant="light"
-              color="indigo"
-              style={{
-                borderRadius: 12,
-                fontWeight: 500,
-                fontSize: 13,
-                marginBottom: 2,
-              }}
-              styles={{
-                label: {
-                  fontSize: 13,
-                },
-              }}
-            />
-          )
-        })}
+        {analyticsNav.map(renderNavItem)}
 
-        <Divider my="sm" color="#E5E7EB" />
+        <Divider my="sm" color="#E7EAF0" />
 
-        {utilityNav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <NavLink
-              key={item.name}
-              component={Link}
-              href={item.href}
-              label={item.name}
-              leftSection={<item.icon size={18} />}
-              active={isActive}
-              variant="light"
-              color="indigo"
-              style={{
-                borderRadius: 12,
-                fontWeight: 500,
-                fontSize: 13,
-                marginBottom: 2,
-              }}
-              styles={{
-                label: {
-                  fontSize: 13,
-                },
-              }}
-            />
-          )
-        })}
+        {utilityNav.map(renderNavItem)}
       </ScrollArea>
 
       {/* Footer */}
       <Box
-        px="lg"
+        px={20}
         py="sm"
         style={{
-          borderTop: '1px solid #E5E7EB',
+          borderTop: '1px solid #E7EAF0',
           flexShrink: 0,
         }}
       >
