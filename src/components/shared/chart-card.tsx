@@ -6,13 +6,15 @@ import { cn } from '@/lib/utils'
 interface ChartCardProps {
   title: string
   description?: string
+  subtitle?: string
+  sourceNote?: string
   children: React.ReactNode
   className?: string
   action?: React.ReactNode
   delta?: number
 }
 
-export function ChartCard({ title, description, children, action, delta, className }: ChartCardProps) {
+export function ChartCard({ title, description, subtitle, sourceNote, children, action, delta, className }: ChartCardProps) {
   return (
     <div
       className={cn(
@@ -30,8 +32,14 @@ export function ChartCard({ title, description, children, action, delta, classNa
             <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
             {delta !== undefined && <DeltaBadge value={delta} size="sm" />}
           </div>
+          {subtitle && (
+            <p className="mt-0.5 text-xs font-medium text-[var(--color-text-secondary)]">{subtitle}</p>
+          )}
           {description && (
             <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">{description}</p>
+          )}
+          {sourceNote && (
+            <p className="mt-1 text-[11px] text-[var(--color-text-disabled)]">{sourceNote}</p>
           )}
         </div>
         {action}

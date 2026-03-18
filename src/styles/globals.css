@@ -97,6 +97,28 @@
   --shadow-glow-warning: 0 0 0 3px rgba(247,144,9,0.15);
   --shadow-glow-danger: 0 0 0 3px rgba(240,68,56,0.15);
 
+  /* === Source status === */
+  --color-source-fresh: #059669;
+  --color-source-partial: #D97706;
+  --color-source-stale: #EA580C;
+  --color-source-missing: #9CA3AF;
+
+  /* === Health score === */
+  --color-health-excellent: #059669;
+  --color-health-good: #2563EB;
+  --color-health-warning: #D97706;
+  --color-health-critical: #DC2626;
+
+  /*
+   * Chart semantic color mapping:
+   *   Visits     → cyan
+   *   Ad Revenue → indigo
+   *   Affiliate  → pink
+   *   Total Rev  → blue
+   *   Costs      → amber
+   *   Profit     → emerald
+   */
+
   /* === Transitions === */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;

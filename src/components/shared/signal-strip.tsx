@@ -1,12 +1,11 @@
 'use client'
 
-import { RiArrowDownLine, RiAlertLine, RiTrophyLine } from '@remixicon/react'
+import { TrendingDown, AlertTriangle, Trophy, TrendingUp } from 'lucide-react'
 import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { formatCurrency, cn } from '@/lib/utils'
 
-/* ── Types ── */
 interface SignalData {
-  type: 'drop' | 'risk' | 'winner'
+  type: 'strongest' | 'drop' | 'risk' | 'recovery'
   entity: string
   value: number
   delta: number
@@ -14,30 +13,36 @@ interface SignalData {
 }
 
 const SIGNAL_CONFIG = {
+  strongest: {
+    icon: Trophy,
+    label: 'Top Performer',
+    color: 'text-[var(--color-primary-500)]',
+    bg: 'bg-[var(--color-primary-50)]',
+    border: 'border-l-[var(--color-primary-500)]',
+  },
   drop: {
-    icon: RiArrowDownLine,
+    icon: TrendingDown,
     label: 'Biggest Drop',
     color: 'text-[var(--color-danger)]',
     bg: 'bg-[var(--color-danger-bg)]',
     border: 'border-l-[var(--color-danger)]',
   },
   risk: {
-    icon: RiAlertLine,
+    icon: AlertTriangle,
     label: 'Main Risk',
     color: 'text-[var(--color-warning)]',
     bg: 'bg-[var(--color-warning-bg)]',
     border: 'border-l-[var(--color-warning)]',
   },
-  winner: {
-    icon: RiTrophyLine,
-    label: 'Top Performer',
-    color: 'text-[var(--color-primary-500)]',
-    bg: 'bg-[var(--color-primary-50)]',
-    border: 'border-l-[var(--color-primary-500)]',
+  recovery: {
+    icon: TrendingUp,
+    label: 'Recovery',
+    color: 'text-[var(--color-success)]',
+    bg: 'bg-[var(--color-success-bg)]',
+    border: 'border-l-[var(--color-success)]',
   },
 } as const
 
-/* ── Signal Card ── */
 function SignalCard({ signal }: { signal: SignalData }) {
   const config = SIGNAL_CONFIG[signal.type]
   const Icon = config.icon
@@ -49,30 +54,29 @@ function SignalCard({ signal }: { signal: SignalData }) {
         'border border-[var(--color-border-subtle)] border-l-[3px]',
         'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
         'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
-        'hover:-translate-y-0.5 p-4',
+        'hover:-translate-y-0.5 px-3 py-3',
         config.border,
       )}
     >
-      <div className="flex gap-3">
-        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)]', config.bg)}>
-          <Icon className={cn('size-[18px]', config.color)} />
+      <div className="flex gap-2.5">
+        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-control)]', config.bg)}>
+          <Icon size={16} strokeWidth={2} className={config.color} />
         </div>
         <div className="min-w-0 flex-1">
           <p className={cn('text-[11px] font-bold uppercase tracking-wider', config.color)}>
             {config.label}
           </p>
-          <div className="mt-1.5 flex items-baseline gap-2">
+          <div className="mt-1 flex items-baseline gap-2">
             <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{signal.entity}</span>
-            {signal.type !== 'winner' && <DeltaBadge value={signal.delta} size="sm" />}
+            {signal.type !== 'strongest' && <DeltaBadge value={signal.delta} size="sm" />}
           </div>
-          <p className="mt-1.5 text-xs font-medium text-[var(--color-text-muted)] line-clamp-2">{signal.reason}</p>
+          <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)] line-clamp-2">{signal.reason}</p>
         </div>
       </div>
     </div>
   )
 }
 
-/* ── Props ── */
 interface SignalStripProps {
   bundles: Array<{
     name: string; totalRevenue: number; profit: number;
@@ -119,7 +123,7 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
     const best = [...bundles].sort((a, b) => b.romi - a.romi)[0]
     if (best) {
       signals.push({
-        type: 'winner', entity: best.name, value: best.profit,
+        type: 'strongest', entity: best.name, value: best.profit,
         delta: best.romi, reason: `Best ROI with ${formatCurrency(best.profit)} profit`,
       })
     }

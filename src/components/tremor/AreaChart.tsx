@@ -3,7 +3,7 @@
 "use client"
 
 import React from "react"
-import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
   Area,
   CartesianGrid,
@@ -227,8 +227,8 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
           ref={scrollButtonsRef}
           className="absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1 bg-white"
         >
-          <ScrollButton icon={RiArrowLeftSLine} onClick={() => { setIsKeyDowned(null); scrollToDir("left") }} disabled={!hasScroll?.left} />
-          <ScrollButton icon={RiArrowRightSLine} onClick={() => { setIsKeyDowned(null); scrollToDir("right") }} disabled={!hasScroll?.right} />
+          <ScrollButton icon={ChevronLeft} onClick={() => { setIsKeyDowned(null); scrollToDir("left") }} disabled={!hasScroll?.left} />
+          <ScrollButton icon={ChevronRight} onClick={() => { setIsKeyDowned(null); scrollToDir("right") }} disabled={!hasScroll?.right} />
         </div>
       ) : null}
     </ol>

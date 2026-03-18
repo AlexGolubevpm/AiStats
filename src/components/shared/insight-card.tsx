@@ -2,14 +2,13 @@
 
 import Link from 'next/link'
 import {
-  RiTrophyLine,
-  RiArrowDownLine,
-  RiAlertLine,
-  RiArrowUpLine,
-  RiLightbulbLine,
-  RiArrowRightLine,
-  RiArrowRightSLine,
-} from '@remixicon/react'
+  Trophy,
+  TrendingDown,
+  AlertTriangle,
+  Lightbulb,
+  ArrowRight,
+  ChevronRight,
+} from 'lucide-react'
 import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { cn } from '@/lib/utils'
 import type { AnomalySeverity } from '@/types'
@@ -31,35 +30,35 @@ interface InsightCardProps {
 
 const TYPE_CONFIG = {
   winner: {
-    icon: RiTrophyLine,
+    icon: Trophy,
     color: 'text-[var(--color-success-dark)]',
     bg: 'bg-[var(--color-success-bg)]',
     border: 'border-l-[var(--color-success)]',
     label: 'Winner',
   },
   loser: {
-    icon: RiArrowDownLine,
+    icon: TrendingDown,
     color: 'text-[var(--color-danger-dark)]',
     bg: 'bg-[var(--color-danger-bg)]',
     border: 'border-l-[var(--color-danger)]',
     label: 'Declining',
   },
   risk: {
-    icon: RiAlertLine,
+    icon: AlertTriangle,
     color: 'text-[var(--color-warning-dark)]',
     bg: 'bg-[var(--color-warning-bg)]',
     border: 'border-l-[var(--color-warning)]',
     label: 'Risk',
   },
   opportunity: {
-    icon: RiArrowUpLine,
+    icon: Lightbulb,
     color: 'text-[var(--color-primary-600)]',
     bg: 'bg-[var(--color-primary-50)]',
     border: 'border-l-[var(--color-primary-500)]',
     label: 'Opportunity',
   },
   info: {
-    icon: RiLightbulbLine,
+    icon: Lightbulb,
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-l-blue-500',
@@ -75,12 +74,10 @@ function InsightContent(props: InsightCardProps) {
 
   return (
     <div className="flex gap-3 p-4">
-      {/* Icon */}
       <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)]', config.bg)}>
-        <Icon className={cn('size-[18px]', config.color)} />
+        <Icon size={18} strokeWidth={2} className={config.color} />
       </div>
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <p className={cn('text-[11px] font-bold uppercase tracking-wider', config.color)}>
           {config.label}
@@ -92,19 +89,18 @@ function InsightContent(props: InsightCardProps) {
           {props.delta !== undefined && <DeltaBadge value={props.delta} size="sm" />}
         </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">{props.reason}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)] line-clamp-2">{props.reason}</p>
 
         {props.action && href && (
-          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-600)] underline-offset-2 hover:underline">
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-600)] underline-offset-2 hover:underline line-clamp-1">
             {props.action}
-            <RiArrowRightLine className="size-3" />
+            <ArrowRight size={12} strokeWidth={2} />
           </span>
         )}
       </div>
 
-      {/* Chevron */}
       {href && (
-        <RiArrowRightSLine className="size-4 shrink-0 text-[var(--color-text-disabled)] mt-0.5" />
+        <ChevronRight size={16} strokeWidth={2} className="shrink-0 text-[var(--color-text-disabled)] mt-0.5" />
       )}
     </div>
   )
