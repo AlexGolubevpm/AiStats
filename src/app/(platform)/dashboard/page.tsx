@@ -266,10 +266,37 @@ function DashboardSkeleton() {
 /* ─── Main Dashboard Content ─── */
 function DashboardContent() {
   const { period, compare } = usePeriod()
-  const { data, isLoading } = useDashboard(period, compare)
+  const { data, isLoading, error } = useDashboard(period, compare)
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return <DashboardSkeleton />
+  }
+
+  if (error || !data) {
+    return (
+      <Box maw={1600} w="100%" mx="auto" px={24} py={24}>
+        <Card
+          padding="xl"
+          radius={20}
+          styles={{
+            root: {
+              background: '#FFFFFF',
+              border: '1px dashed #DC2626',
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
+            },
+          }}
+        >
+          <Stack align="center" py="xl" gap="xs">
+            <Text style={{ fontSize: 14, color: '#DC2626', fontWeight: 600 }}>
+              Failed to load dashboard data
+            </Text>
+            <Text style={{ fontSize: 12, color: '#64748B' }}>
+              {error instanceof Error ? error.message : 'Unknown error — check server logs'}
+            </Text>
+          </Stack>
+        </Card>
+      </Box>
+    )
   }
 
   const hasKpis = data.kpis && data.kpis.length > 0
