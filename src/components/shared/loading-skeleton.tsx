@@ -55,7 +55,7 @@ export function SignalCardSkeleton() {
 /* ── Bundle Card ── */
 export function BundleCardSkeleton() {
   return (
-    <div className="min-w-[260px] flex-none rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden sm:min-w-[280px]">
+    <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden">
       <Shimmer className="h-[3px] w-full rounded-none" />
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
@@ -128,26 +128,26 @@ export function PageSkeleton() {
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-6">
         {/* Primary KPIs */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         {/* Secondary KPIs */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
         </div>
         {/* Signals */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <SignalCardSkeleton key={i} />)}
         </div>
-        {/* Bundles */}
-        <div className="flex gap-4 overflow-hidden">
-          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
-        </div>
         {/* Charts */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <ChartSkeleton />
           <ChartSkeleton />
           <ChartSkeleton />
+        </div>
+        {/* Bundles */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ export const fadeInUp: Variants = {
     transition: {
       duration: 0.22,
       delay: i * STAGGER_DELAY,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.25, 0.1, 0.25, 1],
     },
   }),
 }
@@ -22,7 +22,7 @@ export const fadeIn: Variants = {
     transition: {
       duration: 0.22,
       delay: i * STAGGER_DELAY,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.25, 0.1, 0.25, 1],
     },
   }),
 }
@@ -34,7 +34,7 @@ export const scaleIn: Variants = {
     scale: 1,
     transition: {
       duration: 0.2,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.25, 0.1, 0.25, 1],
     },
   },
 }
@@ -55,7 +55,7 @@ export const pageTransition: Variants = {
     y: 0,
     transition: {
       duration: 0.25,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.25, 0.1, 0.25, 1],
     },
   },
   exit: {
@@ -73,7 +73,7 @@ export const slideInLeft: Variants = {
     x: 0,
     transition: {
       duration: 0.3,
-      ease: [0.16, 1, 0.3, 1],
+      ease: [0.25, 0.1, 0.25, 1],
     },
   },
   exit: {
@@ -83,4 +83,9 @@ export const slideInLeft: Variants = {
       ease: [0.4, 0, 1, 1],
     },
   },
+}
+
+export const hoverLift = {
+  whileHover: { y: -1 },
+  transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] },
 }
