@@ -1,8 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { Card, Group, Text, Badge, Box, ThemeIcon } from '@mantine/core'
-import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight, TrendingUp as TrendingUpIcon, ChevronRight } from 'lucide-react'
+import {
+  RiTrophyLine,
+  RiArrowDownLine,
+  RiAlertLine,
+  RiArrowUpLine,
+  RiLightbulbLine,
+  RiArrowRightLine,
+  RiArrowRightSLine,
+} from '@remixicon/react'
+import { DeltaBadge } from '@/components/shared/delta-indicator'
+import { cn } from '@/lib/utils'
 import type { AnomalySeverity } from '@/types'
 
 interface InsightCardProps {
@@ -20,204 +29,116 @@ interface InsightCardProps {
   className?: string
 }
 
-const typeConfig = {
+const TYPE_CONFIG = {
   winner: {
-    icon: Trophy,
-    borderColor: '#16A34A',
-    iconColor: '#16A34A',
-    iconBg: '#F0FDF4',
+    icon: RiTrophyLine,
+    color: 'text-[var(--color-success-dark)]',
+    bg: 'bg-[var(--color-success-bg)]',
+    border: 'border-l-[var(--color-success)]',
+    label: 'Winner',
   },
   loser: {
-    icon: TrendingDown,
-    borderColor: '#DC2626',
-    iconColor: '#DC2626',
-    iconBg: '#FEF2F2',
+    icon: RiArrowDownLine,
+    color: 'text-[var(--color-danger-dark)]',
+    bg: 'bg-[var(--color-danger-bg)]',
+    border: 'border-l-[var(--color-danger)]',
+    label: 'Declining',
   },
   risk: {
-    icon: AlertTriangle,
-    borderColor: '#D97706',
-    iconColor: '#D97706',
-    iconBg: '#FFFBEB',
+    icon: RiAlertLine,
+    color: 'text-[var(--color-warning-dark)]',
+    bg: 'bg-[var(--color-warning-bg)]',
+    border: 'border-l-[var(--color-warning)]',
+    label: 'Risk',
   },
   opportunity: {
-    icon: TrendingUpIcon,
-    borderColor: '#4F46E5',
-    iconColor: '#4F46E5',
-    iconBg: '#EEF2FF',
+    icon: RiArrowUpLine,
+    color: 'text-[var(--color-primary-600)]',
+    bg: 'bg-[var(--color-primary-50)]',
+    border: 'border-l-[var(--color-primary-500)]',
+    label: 'Opportunity',
   },
   info: {
-    icon: Lightbulb,
-    borderColor: '#06B6D4',
-    iconColor: '#06B6D4',
-    iconBg: '#F0F9FF',
+    icon: RiLightbulbLine,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    border: 'border-l-blue-500',
+    label: 'Info',
   },
+} as const
+
+function InsightContent(props: InsightCardProps) {
+  const type = props.type || 'info'
+  const config = TYPE_CONFIG[type]
+  const Icon = config.icon
+  const href = props.actionHref || (props.entitySlug && props.entityType === 'site' ? `/sites/${props.entitySlug}` : undefined)
+
+  return (
+    <div className="flex gap-3 p-4">
+      {/* Icon */}
+      <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)]', config.bg)}>
+        <Icon className={cn('size-[18px]', config.color)} />
+      </div>
+
+      {/* Content */}
+      <div className="min-w-0 flex-1">
+        <p className={cn('text-[11px] font-bold uppercase tracking-wider', config.color)}>
+          {config.label}
+        </p>
+
+        <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-[var(--color-text-primary)]">{props.metric}</span>
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">{props.entity}</span>
+          {props.delta !== undefined && <DeltaBadge value={props.delta} size="sm" />}
+        </div>
+
+        <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">{props.reason}</p>
+
+        {props.action && href && (
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-600)] underline-offset-2 hover:underline">
+            {props.action}
+            <RiArrowRightLine className="size-3" />
+          </span>
+        )}
+      </div>
+
+      {/* Chevron */}
+      {href && (
+        <RiArrowRightSLine className="size-4 shrink-0 text-[var(--color-text-disabled)] mt-0.5" />
+      )}
+    </div>
+  )
 }
 
-export function InsightCard({
-  entity,
-  entitySlug,
-  entityType,
-  metric,
-  value,
-  delta,
-  reason,
-  action,
-  actionHref,
-  severity,
-  type = 'info',
-}: InsightCardProps) {
-  const config = typeConfig[type]
-  const Icon = config.icon
-  const href = actionHref || (entitySlug && entityType === 'site' ? `/sites/${entitySlug}` : undefined)
+export function InsightCard(props: InsightCardProps) {
+  const type = props.type || 'info'
+  const config = TYPE_CONFIG[type]
+  const href = props.actionHref || (props.entitySlug && props.entityType === 'site' ? `/sites/${props.entitySlug}` : undefined)
 
-  const cardContent = (
-    <Box style={{ padding: 20 }}>
-      {/* Top row: icon + title + chevron */}
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group gap={12} align="flex-start" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-          <ThemeIcon
-            size={36}
-            radius={10}
-            variant="light"
-            styles={{
-              root: {
-                backgroundColor: config.iconBg,
-                color: config.iconColor,
-                flexShrink: 0,
-                border: 'none',
-              },
-            }}
-          >
-            <Icon size={18} />
-          </ThemeIcon>
-
-          <Box style={{ flex: 1, minWidth: 0 }}>
-            <Group gap={8} align="center">
-              <Text fw={600} c="#0F172A" truncate style={{ fontSize: 15 }}>
-                {metric}
-              </Text>
-            </Group>
-
-            <Group gap={8} mt={4} align="baseline">
-              <Text fw={600} c="#0F172A" style={{ fontSize: 15 }}>
-                {entity} bundle
-              </Text>
-              <Text
-                fw={600}
-                style={{
-                  fontVariantNumeric: 'tabular-nums',
-                  fontSize: 14,
-                  color: '#4B5563',
-                }}
-              >
-                {delta !== undefined && (
-                  <span style={{ color: delta >= 0 ? '#16A34A' : '#DC2626' }}>
-                    {delta >= 0 ? '>' : ''}{delta.toFixed(1)}%
-                  </span>
-                )}
-                {' '}
-                {delta !== undefined ? (delta >= 0 ? 'K previous' : 'K previous') : ''}
-              </Text>
-            </Group>
-
-            <Text c="#64748B" mt={8} style={{ fontSize: 13, lineHeight: 1.6 }}>
-              {reason}
-            </Text>
-
-            {action && href && (
-              <Text
-                component={Link}
-                href={href}
-                fw={600}
-                c="#4F46E5"
-                mt={10}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  textDecoration: 'none',
-                  transition: 'color 0.15s',
-                  fontSize: 13,
-                }}
-              >
-                {action}
-                <ArrowRight size={13} />
-              </Text>
-            )}
-            {action && !href && (
-              <Text
-                fw={600}
-                c="#4F46E5"
-                mt={10}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}
-              >
-                {action}
-                <ArrowRight size={13} />
-              </Text>
-            )}
-          </Box>
-        </Group>
-
-        {/* Right chevron */}
-        {href && (
-          <Box style={{ flexShrink: 0, marginTop: 2 }}>
-            <ChevronRight size={18} color="#94A3B8" />
-          </Box>
-        )}
-      </Group>
-    </Box>
+  const cardClasses = cn(
+    'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
+    'border border-[var(--color-border-subtle)] border-l-[3px]',
+    'shadow-[var(--shadow-card)]',
+    'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
+    config.border,
+    href && 'hover:shadow-[var(--shadow-elevated)] hover:-translate-y-0.5 focus-ring',
   )
 
   if (href) {
     return (
-      <Card
-        padding={0}
-        radius={18}
-        component={Link}
-        href={href}
-        styles={{
-          root: {
-            background: '#FFFFFF',
-            border: '1px solid #E6EAF0',
-            boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
-            transition: 'all 0.15s ease',
-            textDecoration: 'none',
-            cursor: 'pointer',
-            '&:hover': {
-              transform: 'translateY(-1px)',
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
-            },
-          },
-        }}
-      >
-        {cardContent}
-      </Card>
+      <Link href={href} className={cn(cardClasses, 'block no-underline')} style={{ color: 'inherit', textDecoration: 'none' }}>
+        <InsightContent {...props} />
+      </Link>
     )
   }
 
   return (
-    <Card
-      padding={0}
-      radius={18}
-      styles={{
-        root: {
-          background: '#FFFFFF',
-          border: '1px solid #E6EAF0',
-          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
-          transition: 'all 0.15s ease',
-          '&:hover': {
-            transform: 'translateY(-1px)',
-            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
-          },
-        },
-      }}
-    >
-      {cardContent}
-    </Card>
+    <div className={cardClasses}>
+      <InsightContent {...props} />
+    </div>
   )
 }
 
-// Specialized card variants
 export function WinnerCard(props: Omit<InsightCardProps, 'type'>) {
   return <InsightCard {...props} type="winner" />
 }
