@@ -168,20 +168,43 @@ export function InsightCard({
     </Box>
   )
 
+  if (href) {
+    return (
+      <Card
+        padding={0}
+        radius={18}
+        component={Link}
+        href={href}
+        styles={{
+          root: {
+            background: '#FFFFFF',
+            border: '1px solid #E6EAF0',
+            boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
+            transition: 'all 0.15s ease',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            '&:hover': {
+              transform: 'translateY(-1px)',
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
+            },
+          },
+        }}
+      >
+        {cardContent}
+      </Card>
+    )
+  }
+
   return (
     <Card
       padding={0}
       radius={18}
-      component={href ? Link : undefined}
-      href={href || undefined}
       styles={{
         root: {
           background: '#FFFFFF',
           border: '1px solid #E6EAF0',
           boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
           transition: 'all 0.15s ease',
-          textDecoration: 'none',
-          cursor: href ? 'pointer' : 'default',
           '&:hover': {
             transform: 'translateY(-1px)',
             boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
