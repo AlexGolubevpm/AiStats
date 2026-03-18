@@ -4,7 +4,6 @@ import { useId } from 'react'
 import { Card, Text, Group, Box, Badge } from '@mantine/core'
 import { ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { formatCurrency, formatNumber, formatPercent, formatCompact } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 const METRIC_COLORS: Record<string, { line: string; fill: string }> = {
   'Visitors': { line: '#4AA3D8', fill: '#4AA3D8' },
@@ -28,9 +27,35 @@ interface KPICardProps {
   className?: string
 }
 
+function formatPreviousCompact(value: number, format: string): string {
+  if (isNaN(value)) return ''
+  switch (format) {
+    case 'currency': {
+      if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+      if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+      return `$${value.toFixed(0)}`
+    }
+    case 'percent':
+      return `${value.toFixed(1)}%`
+    case 'score':
+      return value.toFixed(2)
+    case 'compact': {
+      if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+      if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+      return value.toFixed(0)
+    }
+    default: {
+      if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+      if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}K`
+      return value.toFixed(0)
+    }
+  }
+}
+
 export function KPICard({
   label,
   value,
+  previousValue,
   delta,
   format = 'number',
   trend,
@@ -66,9 +91,12 @@ export function KPICard({
     ? delta > 0 ? '#16A34A' : delta < 0 ? '#DC2626' : '#64748B'
     : '#64748B'
 
-  const DeltaIcon = delta !== undefined
-    ? delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus
-    : Minus
+  // Compute previous value from delta if not provided directly
+  const prevVal = previousValue ?? (delta !== undefined && delta !== 0 && !isInvalidValue
+    ? value / (1 + delta / 100)
+    : undefined)
+
+  const prevBadgeText = prevVal !== undefined ? formatPreviousCompact(prevVal, format) : undefined
 
   return (
     <Card
@@ -107,7 +135,7 @@ export function KPICard({
           >
             {label}
           </Text>
-          {delta !== undefined && (
+          {prevBadgeText && (
             <Badge
               size="xs"
               radius="md"
@@ -120,13 +148,14 @@ export function KPICard({
                   height: 18,
                   paddingLeft: 5,
                   paddingRight: 5,
-                  color: deltaColor,
-                  backgroundColor: delta > 0 ? 'rgba(22, 163, 74, 0.08)' : delta < 0 ? 'rgba(220, 38, 38, 0.08)' : 'rgba(100, 116, 139, 0.08)',
+                  color: colors.line,
+                  backgroundColor: `${colors.line}14`,
                   border: 'none',
+                  fontVariantNumeric: 'tabular-nums',
                 },
               }}
             >
-              {formatPercent(delta)}
+              {prevBadgeText}
             </Badge>
           )}
         </Group>
@@ -146,15 +175,12 @@ export function KPICard({
           {formattedValue}
         </Text>
 
-        {/* Delta row */}
+        {/* Delta row — uses ~ prefix like reference */}
         <Box style={{ marginBottom: 16 }}>
           {delta !== undefined && (
-            <Group gap={6} align="center">
-              <span
+            <Group gap={4} align="center">
+              <Text
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
                   fontSize: 13,
                   lineHeight: '18px',
                   fontWeight: 600,
@@ -162,9 +188,8 @@ export function KPICard({
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                <DeltaIcon size={13} />
-                {formatPercent(delta)}
-              </span>
+                ~{formatPercent(delta)}
+              </Text>
               <Text style={{ fontSize: 13, color: '#64748B', fontWeight: 500 }}>
                 vs prev
               </Text>
@@ -172,7 +197,7 @@ export function KPICard({
           )}
         </Box>
 
-        {/* Sparkline row */}
+        {/* Sparkline row — right-aligned, 46% width */}
         <Box style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
           {sparkData && (
             <Box style={{ width: '46%', height: 36 }}>

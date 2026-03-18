@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Card, Group, Text, Badge, Box, ThemeIcon } from '@mantine/core'
-import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight, TrendingUp as TrendingUpIcon } from 'lucide-react'
+import { Trophy, TrendingDown, AlertTriangle, Lightbulb, ArrowRight, TrendingUp as TrendingUpIcon, ChevronRight } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
 interface InsightCardProps {
@@ -70,16 +70,118 @@ export function InsightCard({
   const Icon = config.icon
   const href = actionHref || (entitySlug && entityType === 'site' ? `/sites/${entitySlug}` : undefined)
 
+  const cardContent = (
+    <Box style={{ padding: 20 }}>
+      {/* Top row: icon + title + chevron */}
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <Group gap={12} align="flex-start" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+          <ThemeIcon
+            size={36}
+            radius={10}
+            variant="light"
+            styles={{
+              root: {
+                backgroundColor: config.iconBg,
+                color: config.iconColor,
+                flexShrink: 0,
+                border: 'none',
+              },
+            }}
+          >
+            <Icon size={18} />
+          </ThemeIcon>
+
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            <Group gap={8} align="center">
+              <Text fw={600} c="#0F172A" truncate style={{ fontSize: 15 }}>
+                {metric}
+              </Text>
+            </Group>
+
+            <Group gap={8} mt={4} align="baseline">
+              <Text fw={600} c="#0F172A" style={{ fontSize: 15 }}>
+                {entity} bundle
+              </Text>
+              <Text
+                fw={600}
+                style={{
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: 14,
+                  color: '#4B5563',
+                }}
+              >
+                {delta !== undefined && (
+                  <span style={{ color: delta >= 0 ? '#16A34A' : '#DC2626' }}>
+                    {delta >= 0 ? '>' : ''}{delta.toFixed(1)}%
+                  </span>
+                )}
+                {' '}
+                {delta !== undefined ? (delta >= 0 ? 'K previous' : 'K previous') : ''}
+              </Text>
+            </Group>
+
+            <Text c="#64748B" mt={8} style={{ fontSize: 13, lineHeight: 1.6 }}>
+              {reason}
+            </Text>
+
+            {action && href && (
+              <Text
+                component={Link}
+                href={href}
+                fw={600}
+                c="#4F46E5"
+                mt={10}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  textDecoration: 'none',
+                  transition: 'color 0.15s',
+                  fontSize: 13,
+                }}
+              >
+                {action}
+                <ArrowRight size={13} />
+              </Text>
+            )}
+            {action && !href && (
+              <Text
+                fw={600}
+                c="#4F46E5"
+                mt={10}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}
+              >
+                {action}
+                <ArrowRight size={13} />
+              </Text>
+            )}
+          </Box>
+        </Group>
+
+        {/* Right chevron */}
+        {href && (
+          <Box style={{ flexShrink: 0, marginTop: 2 }}>
+            <ChevronRight size={18} color="#94A3B8" />
+          </Box>
+        )}
+      </Group>
+    </Box>
+  )
+
   return (
     <Card
       padding={0}
       radius={18}
+      component={href ? Link : undefined}
+      href={href || undefined}
       styles={{
         root: {
           background: '#FFFFFF',
           border: '1px solid #E6EAF0',
           boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
           transition: 'all 0.15s ease',
+          textDecoration: 'none',
+          cursor: href ? 'pointer' : 'default',
           '&:hover': {
             transform: 'translateY(-1px)',
             boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
@@ -87,104 +189,7 @@ export function InsightCard({
         },
       }}
     >
-      <Box style={{ padding: 20, display: 'flex', gap: 14 }}>
-        <ThemeIcon
-          size={36}
-          radius={10}
-          variant="light"
-          styles={{
-            root: {
-              backgroundColor: config.iconBg,
-              color: config.iconColor,
-              flexShrink: 0,
-              border: 'none',
-            },
-          }}
-        >
-          <Icon size={18} />
-        </ThemeIcon>
-
-        <Box style={{ flex: 1, minWidth: 0 }}>
-          <Group gap={8} align="center">
-            <Text fw={600} c="#0F172A" truncate style={{ fontSize: 15 }}>
-              {metric}
-            </Text>
-            <Badge
-              size="xs"
-              variant="light"
-              color="gray"
-              radius="xl"
-              styles={{ root: { textTransform: 'none', fontWeight: 500, fontSize: 10 } }}
-            >
-              {entityType}
-            </Badge>
-          </Group>
-
-          <Group gap={8} mt={6} align="baseline">
-            <Text fw={600} c="#0F172A" style={{ fontSize: 15 }}>
-              {entity}
-            </Text>
-            <Text
-              fw={600}
-              style={{
-                fontVariantNumeric: 'tabular-nums',
-                fontSize: 14,
-                color: '#4B5563',
-              }}
-            >
-              {value}
-            </Text>
-            {delta !== undefined && (
-              <Text
-                fw={600}
-                style={{
-                  fontVariantNumeric: 'tabular-nums',
-                  fontSize: 13,
-                  color: delta >= 0 ? '#16A34A' : '#DC2626',
-                }}
-              >
-                {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
-              </Text>
-            )}
-          </Group>
-
-          <Text c="#64748B" mt={8} style={{ fontSize: 13, lineHeight: 1.6 }}>
-            {reason}
-          </Text>
-
-          {action && href && (
-            <Text
-              component={Link}
-              href={href}
-              fw={600}
-              c="#4F46E5"
-              mt={10}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                textDecoration: 'none',
-                transition: 'color 0.15s',
-                fontSize: 13,
-              }}
-            >
-              {action}
-              <ArrowRight size={13} />
-            </Text>
-          )}
-          {action && !href && (
-            <Text
-              fw={600}
-              c="#4F46E5"
-              mt={10}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}
-            >
-              {action}
-              <ArrowRight size={13} />
-            </Text>
-          )}
-        </Box>
-      </Box>
+      {cardContent}
     </Card>
   )
 }

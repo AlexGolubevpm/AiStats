@@ -19,7 +19,7 @@ import { ProfitTrendChart } from '@/components/features/charts/profit-trend-char
 import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
 import { formatCurrency, formatCompact } from '@/lib/utils'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ArrowRight } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
 
 const PRIMARY_KPIS = ['Visitors', 'Ad Revenue', 'Total Revenue', 'Profit', 'ROMI']
@@ -361,8 +361,8 @@ function DashboardContent() {
             </motion.div>
           )}
 
-          {/* === Trends Section === */}
-          {hasTrend && (
+          {/* === Bundles "Trends" Section (horizontal scrollable like reference) === */}
+          {hasBundles && (
             <Box>
               <Text
                 style={{
@@ -374,51 +374,82 @@ function DashboardContent() {
               >
                 Trends
               </Text>
+              <Box style={{ position: 'relative' }}>
+                <Box
+                  style={{
+                    display: 'flex',
+                    gap: 20,
+                    overflowX: 'auto',
+                    paddingBottom: 4,
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                  className="hide-scrollbar"
+                >
+                  {data.bundles.map((bundle: BundleData, i: number) => (
+                    <motion.div
+                      key={bundle.id}
+                      custom={i + 13}
+                      variants={fadeInUp}
+                      style={{ minWidth: 280, flex: '0 0 auto' }}
+                    >
+                      <BundleSummaryCard bundle={bundle} />
+                    </motion.div>
+                  ))}
+                </Box>
+                {/* Scroll arrow */}
+                {data.bundles.length > 3 && (
+                  <Box
+                    style={{
+                      position: 'absolute',
+                      right: -10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '1px solid #E6EAF0',
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ArrowRight size={16} color="#64748B" />
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {/* === Charts Section === */}
+          {hasTrend && (
+            <Box>
               <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing={20}>
-                <motion.div custom={10} variants={fadeInUp}>
+                <motion.div custom={17} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Revenue Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <RevenueTrendChart data={data.trend} />
                     </ChartCard>
                   </ChartFadeIn>
                 </motion.div>
-                <motion.div custom={11} variants={fadeInUp}>
+                <motion.div custom={18} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Traffic Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <TrafficTrendChart data={data.trend} />
                     </ChartCard>
                   </ChartFadeIn>
                 </motion.div>
-                <motion.div custom={12} variants={fadeInUp}>
+                <motion.div custom={19} variants={fadeInUp}>
                   <ChartFadeIn>
                     <ChartCard title="Profit Trend" description={`${data.trend.length} days \u00B7 ${compareLabel}`}>
                       <ProfitTrendChart data={data.trend} />
                     </ChartCard>
                   </ChartFadeIn>
                 </motion.div>
-              </SimpleGrid>
-            </Box>
-          )}
-
-          {/* === Bundles Section === */}
-          {hasBundles && (
-            <Box>
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: 600,
-                  color: '#0F172A',
-                  marginBottom: 16,
-                }}
-              >
-                Bundles
-              </Text>
-              <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing={20}>
-                {data.bundles.map((bundle: BundleData, i: number) => (
-                  <motion.div key={bundle.id} custom={i + 13} variants={fadeInUp}>
-                    <BundleSummaryCard bundle={bundle} />
-                  </motion.div>
-                ))}
               </SimpleGrid>
             </Box>
           )}

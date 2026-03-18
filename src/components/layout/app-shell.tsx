@@ -19,18 +19,18 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <MantineAppShell
       navbar={{
-        width: 256,
+        width: 248,
         breakpoint: 'lg',
         collapsed: { mobile: !opened },
       }}
       padding={0}
       styles={{
         main: {
-          background: '#F6F8FB',
+          background: '#F4F6FB',
           minHeight: '100vh',
         },
         navbar: {
-          borderRight: '1px solid #E5E7EB',
+          borderRight: '1px solid #E7EAF0',
           background: '#F7F8FC',
         },
       }}
