@@ -1,122 +1,148 @@
-# Dashboard — Аналитическая документация
+# Dashboard — Аналитическая документация (Target State)
 
-Исчерпывающее описание данных, метрик, формул расчёта, графиков, спарклайнов и периодов на странице `/dashboard`.
+Данные, метрики, формулы расчёта, графики, спарклайны, периоды и source of truth для страницы `/dashboard`.
 
 ---
 
 ## Содержание
 
-1. [Архитектура данных](#1-архитектура-данных)
-2. [Периоды и режимы сравнения](#2-периоды-и-режимы-сравнения)
+1. [Архитектура данных и Source of Truth](#1-архитектура-данных-и-source-of-truth)
+2. [Периоды, сравнение и confidence](#2-периоды-сравнение-и-confidence)
 3. [API Dashboard](#3-api-dashboard)
 4. [KPI-метрики: полный список](#4-kpi-метрики)
 5. [Формулы расчёта всех метрик](#5-формулы-расчёта)
-6. [Delta (дельта изменения)](#6-delta)
+6. [Delta (дельта) и confidence](#6-delta-и-confidence)
 7. [Sparkline-данные](#7-sparkline-данные)
 8. [Network Signals — логика вычисления](#8-network-signals)
 9. [Bundle-метрики](#9-bundle-метрики)
 10. [Trend Charts — данные графиков](#10-trend-charts)
 11. [Insights — логика генерации](#11-insights)
-12. [Coverage — автобэкфилл](#12-coverage)
+12. [Coverage и Sync State](#12-coverage-и-sync-state)
 13. [Health Score на Dashboard](#13-health-score)
 14. [Anomaly Detection → Insights](#14-anomaly-detection)
-15. [Полная схема данных API Response](#15-api-response-schema)
+15. [Полная схема API Response](#15-api-response-schema)
 16. [Data Flow: от источника до UI](#16-data-flow)
+17. [Глоссарий метрик](#17-глоссарий)
 
 ---
 
-## 1. Архитектура данных
+## 1. Архитектура данных и Source of Truth
 
-### Источники данных на Dashboard
+### 1.1 Источники данных
 
-| Источник | Данные | Воркер | Таблица БД |
-|---|---|---|---|
-| **AdOK API** | hits, impressions, clicks, adRevenue, fillRate | `sync-adspyglass.ts` | `DailyMetric` |
-| **Yandex Metrica** | users (уникальные посетители) | `sync-yandex-metrica.ts` | `DailyMetric.users` |
-| **Google Sheets (Costs)** | costs (расходы по сайтам) | `sync-costs.ts` | `Cost` → `DailyMetric.costs` |
-| **Google Sheets (Affiliate)** | affiliateRevenue (партнёрский доход) | `sync-affiliate.ts` | `AffiliateRevenue` → `DailyMetric.affiliateRevenue` |
+| Источник | Канонические данные | **НЕ** использовать как |
+|---|---|---|
+| **Yandex Metrica** | Visits (users), Countries, GEO distribution, Tier distribution | Revenue source, ad metrics source |
+| **AdSpyglass (AdOK) API** | Ad Revenue, Impressions, Clicks, CTR, Fill Rate, eCPM, RPM, Revenue by format, Hits (ad requests) | Visits/GEO source (hits ≠ visits) |
+| **Google Sheets (Costs)** | Costs by site per day | Traffic source, revenue source |
+| **Google Sheets (Affiliate)** | Affiliate revenue by site per day | Traffic source, ad revenue source |
 
-### Цепочка обработки
+### 1.2 Source of Truth Rules (жёсткие)
+
+| Метрика / измерение | Source of Truth | Примечание |
+|---|---|---|
+| **Visits / Users** | Yandex Metrica | НЕ использовать `hits` из AdSpyglass |
+| **Countries / GEO / Tiers** | Yandex Metrica | — |
+| **Ad Revenue** | AdSpyglass API (`broker_income`) | — |
+| **Impressions, Clicks, CTR, Fill Rate** | AdSpyglass API | — |
+| **Costs** | Google Sheets (Costs) | — |
+| **Affiliate Revenue** | Google Sheets (Affiliate) | — |
+| **Total Revenue** | Computed: `adRevenue + affiliateRevenue` | Не из одного источника |
+| **Profit** | Computed: `totalRevenue - costs` | — |
+| **ROMI** | Computed: `((totalRevenue - costs) / costs) × 100` | — |
+| **RPM** | Computed: `(totalRevenue / users) × 1000` | Зависит от Yandex Metrica |
+
+> **Критично**: `hits` из AdSpyglass — это загрузки рекламного скрипта (ad requests), **НЕ** page views и **НЕ** users. На Dashboard в роли "Traffic" всегда используется `users` из Yandex Metrica.
+
+### 1.3 Sync State Layer
+
+Каждый источник данных имеет состояние свежести:
+
+| Состояние | Условие | Влияние на Dashboard |
+|---|---|---|
+| `fresh` | Последний sync < 6 часов назад, все записи complete | Данные показываются нормально |
+| `partial` | Данные есть, но не для всех дней в периоде, или один source incomplete | Delta помечается как `partial`, ChartCard показывает sourceNote |
+| `stale` | Последний sync > 24 часов назад | Amber banner: "Data may be outdated", DeltaBadge = `partial` |
+| `failed` | Последний sync завершился ошибкой | Red warning, данные могут быть неактуальны |
+| `mapping_issue` | Site не привязан к sheet row (costs/affiliate) | Affected metrics = `"—"`, note: "Mapping incomplete" |
+| `missing` | Источник не подключён (нет API key, нет sheet ID) | Affected metrics = `"—"`, note: "Not connected" |
+
+### 1.4 Поток данных
 
 ```
-Внешние API/Sheets
-       │
-       ▼
-Sync Workers (BullMQ)
-       │
-       ▼
-DailyMetric (raw per-site per-day)
-       │
-       ▼
-calculate-metrics worker
-(пересчёт derived: totalRevenue, profit, ROMI, RPM, CTR, eCPM, fillRate)
-       │
-       ▼
-Health Score Service + Anomaly Detector
-       │
-       ▼
-GET /api/dashboard?period=X&compare=Y
-       │
-       ▼
-aggregateNetworkMetrics() + aggregateBundleMetrics() + getNetworkTrend()
-       │
-       ▼
-JSON Response → useDashboard() hook → React Components
+Yandex Metrica API ─────────────► DailyMetric.users
+                                        │
+AdOK API (group_by=website) ────► DailyMetric (hits, impressions, clicks, adRevenue)
+AdOK API (group_by=ad_type) ────► FormatMetric
+AdOK API (group_by=country) ────► TierMetric
+                                        │
+Google Sheets (Costs) ──► Cost ─────────┤
+Google Sheets (Affiliate) ──► AffiliateRevenue ──┤
+                                        │
+                                        ▼
+                              calculate-metrics worker
+                              (derived: totalRevenue, profit, ROMI, RPM, CTR, eCPM, fillRate)
+                                        │
+                                   ┌────┴────┐
+                                   ▼         ▼
+                             HealthScore  Anomaly
+                                   │
+                                   ▼
+                        GET /api/dashboard → useDashboard() → React UI
 ```
 
 ---
 
-## 2. Периоды и режимы сравнения
+## 2. Периоды, сравнение и confidence
 
-### Доступные периоды
-
-**Источник**: `src/hooks/use-period.ts`
+### 2.1 Доступные периоды
 
 | Значение | Диапазон | Описание |
 |---|---|---|
 | `today` | `startOfDay(now)` → `endOfDay(now)` | Текущий день |
-| `yesterday` | `startOfDay(now - 1d)` → `endOfDay(now - 1d)` | Вчерашний день (по умолчанию) |
-| `7d` | `startOfDay(now - 6d)` → `endOfDay(now)` | Последние 7 дней |
-| `30d` | `startOfDay(now - 29d)` → `endOfDay(now)` | Последние 30 дней |
-| `90d` | `startOfDay(now - 89d)` → `endOfDay(now)` | Последние 90 дней |
+| `yesterday` | вчера (по умолчанию) | Вчерашний день |
+| `7d` | last 7 days | Последние 7 дней |
+| `30d` | last 30 days | Последние 30 дней |
+| `90d` | last 90 days | Последние 90 дней |
 | `custom` | `from` → `to` из URL params | Произвольный диапазон |
 
-**URL параметры**: `?period=7d&from=2025-01-01&to=2025-01-07&compare=prev_period`
+### 2.2 Режимы сравнения
 
-### Режимы сравнения
-
-**Источник**: `src/app/api/dashboard/route.ts:20-39`
-
-| Режим | Описание | Пример (для period=7d, Jan 8-14) |
+| Режим | Описание | Формула |
 |---|---|---|
-| `prev_period` (по умолчанию) | Зеркальный предыдущий период той же длины | Jan 1-7 |
-| `prev_7d` | 7 дней до начала текущего периода | Jan 1-7 |
-| `prev_day` | Один день до начала текущего периода | Jan 7 |
+| `prev_period` (default) | Зеркальный предыдущий период | `from - periodDays` → `to - periodDays` |
+| `prev_7d` | 7 дней до начала текущего | `from - 7d` → `from - 1d` |
+| `prev_day` | Один день до начала | `from - 1d` → `from - 1d` |
 
-### Формулы расчёта предыдущего периода
+### 2.3 Partial Day Rules
 
-```typescript
-// prev_period (default):
-prevFrom = startOfDay(from - periodDays)
-prevTo   = endOfDay(to - periodDays)
-// где periodDays = differenceInDays(to, from) + 1
+Если для текущего дня (`today`) один или более источников ещё не синхронизировались:
 
-// prev_7d:
-prevTo   = endOfDay(from - 1d)
-prevFrom = startOfDay(from - 7d)
+- Период помечается как `partial`
+- DeltaBadge показывает `partial` state (`~+12.3%`)
+- ChartCard получает `sourceNote`: "Today's data is incomplete"
+- Dashboard **не скрывает** данные — показывает что есть, но с предупреждением
 
-// prev_day:
-prevFrom = startOfDay(from - 1d)
-prevTo   = endOfDay(from - 1d)
-```
+### 2.4 Compare Validity
 
-### Подпись в UI
+Delta считается **valid** только если **оба** периода (current и compare) имеют достаточную полноту данных:
 
-| compare | compareLabel (в ChartCard description) |
-|---|---|
-| `prev_7d` | `"vs 7d ago"` |
-| `prev_day` | `"vs yesterday"` |
-| default | `"vs prev period"` |
+| Current coverage | Compare coverage | Delta state |
+|---|---|---|
+| ≥ 90% days | ≥ 90% days | `valid` — нормальный DeltaBadge |
+| ≥ 50% days | ≥ 50% days | `partial` — DeltaBadge с тильдой `~+12.3%` |
+| < 50% days | any | `not-comparable` — DeltaBadge показывает `n/a` |
+| any | < 50% days | `not-comparable` — `n/a` |
+| any | 0 days | `not-comparable` — `n/a` |
+
+### 2.5 Confidence Levels
+
+| Level | Условие | UI-эффект |
+|---|---|---|
+| `full` | Все источники `fresh`, coverage 100% для обоих периодов | Нормальное отображение |
+| `partial` | Один или более источников `partial`/`stale`, coverage 50-90% | Delta = `partial`, sparkline показывается, values с note |
+| `low` | Coverage < 50%, или ключевой источник `failed` | Delta = `not-comparable`, sparkline скрыт, values с strong warning |
+| `none` | Нет данных для периода | EmptyState для конкретной секции |
 
 ---
 
@@ -124,67 +150,80 @@ prevTo   = endOfDay(from - 1d)
 
 **Endpoint**: `GET /api/dashboard`
 
-**Файл**: `src/app/api/dashboard/route.ts`
-
 ### Query Parameters
 
 | Параметр | Тип | Default | Описание |
 |---|---|---|---|
-| `period` | `string` | `yesterday` | Период данных |
-| `from` | `string` (YYYY-MM-DD) | — | Начало (для custom) |
-| `to` | `string` (YYYY-MM-DD) | — | Конец (для custom) |
-| `compare` | `string` | `prev_period` | Режим сравнения |
+| `period` | string | `yesterday` | Период данных |
+| `from` | string | — | Начало (для custom) |
+| `to` | string | — | Конец (для custom) |
+| `compare` | string | `prev_period` | Режим сравнения |
 
 ### Последовательность обработки
 
 ```
 1. parsePeriodParam(searchParams) → { from, to }
 2. getComparisonRange(from, to, compare) → { prevFrom, prevTo }
-3. ensureDataCoverage(from, to) → coverage (non-blocking backfill)
-4. aggregateNetworkMetrics(from, to) → current
-5. aggregateNetworkMetrics(prevFrom, prevTo) → previous
-6. getNetworkTrend(trendFrom, to) → trend[]
-7. prisma.bundle.findMany() → allBundles
-8. aggregateBundleMetrics(bundleId, from, to) → per-bundle metrics
-9. prisma.anomaly.findMany() → anomalies → insights
-10. Return JSON { kpis, bundles, insights, trend, compareMode, coverage }
+3. ensureDataCoverage(from, to) → coverage
+4. checkSourceCompleteness(from, to) → sourceStatus (NEW)
+5. aggregateNetworkMetrics(from, to) → current
+6. aggregateNetworkMetrics(prevFrom, prevTo) → previous
+7. calculateNetworkHealth(from, to) → networkHealthScore (NEW)
+8. getNetworkTrend(trendFrom, to) → trend[]
+9. aggregateBundleMetrics per bundle → bundles[]
+10. prisma.anomaly.findMany → insights[]
+11. Return JSON { kpis, bundles, insights, trend, compareMode, coverage, sourceStatus }
 ```
 
 ### Trend Period Logic
 
 ```typescript
 const periodDays = differenceInDays(to, from) + 1
-const trendFrom = periodDays < 7 ? startOfDay(subDays(to, 6)) : from
-// Минимум 7 дней для спарклайнов, полный период для более длинных диапазонов
+const trendFrom = periodDays < 7
+  ? startOfDay(subDays(to, 6))  // минимум 7 дней для sparkline
+  : from                         // полный период для длинных
 ```
 
 ---
 
 ## 4. KPI-метрики
 
-### Полный список (9 KPI-карточек)
+### Primary KPIs (5 карточек, executive-уровень)
 
-| # | Группа | label | format | Данные для sparkline | Описание |
+| # | Метрика | label | format | Sparkline | Source of Truth |
 |---|---|---|---|---|---|
-| 1 | Primary | `Visitors` | `number` | `trend.map(d => d.users)` | Уникальные посетители (Yandex Metrica) |
-| 2 | Primary | `Ad Revenue` | `currency` | `trend.map(d => d.adRevenue)` | Доход от рекламы (AdOK broker_income) |
-| 3 | Primary | `Total Revenue` | `currency` | `trend.map(d => d.totalRevenue)` | Суммарный доход = Ad + Affiliate |
-| 4 | Primary | `Profit` | `currency` | `trend.map(d => d.profit)` | Чистая прибыль = Revenue - Costs |
-| 5 | Primary | `ROMI` | `percent` | `[]` (нет sparkline) | Return on Marketing Investment |
-| 6 | Secondary | `Ad Requests` | `number` | `trend.map(d => d.hits)` | Загрузки рекламного скрипта (AdOK hits) |
-| 7 | Secondary | `Affiliate Revenue` | `currency` | `trend.map(d => d.affiliateRevenue)` | Партнёрский доход (Google Sheets) |
-| 8 | Secondary | `Costs` | `currency` | `trend.map(d => d.costs)` | Операционные расходы (Google Sheets) |
-| 9 | Secondary | `RPM` | `currency` | `[]` (нет sparkline) | Revenue Per Mille (доход на 1000 users) |
+| 1 | **Visits** | `Visits` | `number` | да (cyan, line-only) | Yandex Metrica |
+| 2 | **Total Revenue** | `Total Revenue` | `currency` | да (indigo, line-only) | Computed (Ad + Affiliate) |
+| 3 | **Profit** | `Profit` | `currency` | да (emerald, line-only) | Computed (Revenue - Costs) |
+| 4 | **ROMI** | `ROMI` | `percent` | нет | Computed |
+| 5 | **Network Health** | `Network Health` | `score` | нет | Computed (weighted avg) |
 
-### Структура KPI-объекта в API
+### Secondary KPIs (4 карточки, supporting level)
+
+| # | Метрика | label | format | Sparkline | Source of Truth |
+|---|---|---|---|---|---|
+| 1 | **Ad Revenue** | `Ad Revenue` | `currency` | опционально (indigo) | AdSpyglass |
+| 2 | **Affiliate Revenue** | `Affiliate Revenue` | `currency` | нет | Google Sheets |
+| 3 | **Costs** | `Costs` | `currency` | да (amber) | Google Sheets |
+| 4 | **Revenue per 1000 Visits** | `Revenue per 1000 Visits` | `currency` | нет | Computed (RPM) |
+
+### Удалённые KPI
+
+| Метрика | Причина удаления | Куда перенести |
+|---|---|---|
+| ~~Ad Requests~~ | Не executive KPI. `hits` — технический показатель, не бизнес-метрика | Monetization drill-down или tooltip в site detail |
+
+### Структура KPI-объекта
 
 ```typescript
 {
-  label: string       // "Ad Revenue"
-  value: number       // 12450.00
-  delta: number       // 12.3 (процент изменения)
-  format: string      // "currency" | "number" | "percent"
-  trend: number[]     // [100, 110, 105, ...] (данные для sparkline)
+  label: string         // "Visits"
+  value: number         // 123456
+  delta: number         // 12.3 (процент)
+  deltaConfidence: 'full' | 'partial' | 'not-comparable'  // NEW
+  format: string        // "currency" | "number" | "percent" | "score"
+  trend: number[]       // данные для sparkline (пустой [] если нет sparkline)
+  sourceStatus: 'fresh' | 'partial' | 'stale' | 'missing'  // NEW
 }
 ```
 
@@ -192,21 +231,19 @@ const trendFrom = periodDays < 7 ? startOfDay(subDays(to, 6)) : from
 
 ## 5. Формулы расчёта
 
-### Базовые метрики (сырые данные)
+### 5.1 Базовые метрики (сырые данные)
 
 | Метрика | Источник | Единица |
 |---|---|---|
 | `users` | Yandex Metrica API | число |
-| `hits` | AdOK API (`hits`) | число |
-| `impressions` | AdOK API (`impressions`) | число |
-| `clicks` | AdOK API (`clicks`) | число |
+| `hits` | AdOK API | число |
+| `impressions` | AdOK API | число |
+| `clicks` | AdOK API | число |
 | `adRevenue` | AdOK API (`broker_income`) | USD |
-| `affiliateRevenue` | Google Sheets (Affiliate) | USD |
-| `costs` | Google Sheets (Costs) | USD |
+| `affiliateRevenue` | Google Sheets | USD |
+| `costs` | Google Sheets | USD |
 
-### Вычисляемые метрики (derived)
-
-**Источник**: `src/workers/calculate-metrics.ts` + `src/services/metrics.ts:97-120`
+### 5.2 Вычисляемые метрики
 
 ```
 totalRevenue = adRevenue + affiliateRevenue
@@ -218,10 +255,10 @@ ROMI = costs > 0
      : 0
      (%)
 
-RPM = users > 0
+RPM (Revenue per 1000 Visits) = users > 0
     ? (totalRevenue / users) × 1000
     : 0
-    ($ per 1000 users)
+    ($)
 
 CTR = impressions > 0
     ? (clicks / impressions) × 100
@@ -231,7 +268,7 @@ CTR = impressions > 0
 eCPM = impressions > 0
      ? (adRevenue / impressions) × 1000
      : 0
-     ($ per 1000 impressions)
+     ($)
 
 fillRate = hits > 0
          ? (impressions / hits) × 100
@@ -239,374 +276,338 @@ fillRate = hits > 0
          (%)
 ```
 
-### Агрегация
+### 5.3 Network Health (NEW)
 
-**Источник**: `src/services/metrics.ts:137-159`
-
-Для network/bundle/site уровней:
-
-```sql
--- Prisma aggregate
-SELECT
-  SUM(users)            AS users,
-  SUM(hits)             AS hits,
-  SUM(impressions)      AS impressions,
-  SUM(clicks)           AS clicks,
-  SUM(adRevenue)        AS adRevenue,
-  SUM(affiliateRevenue) AS affiliateRevenue,
-  SUM(totalRevenue)     AS totalRevenue,
-  SUM(costs)            AS costs,
-  SUM(profit)           AS profit
-FROM daily_metrics
-WHERE date BETWEEN {from} AND {to}
-  [AND site.bundleId = {bundleId}]  -- для bundle level
-  [AND siteId = {siteId}]           -- для site level
+```
+networkHealth = weightedAverage(
+  allSites.map(site => site.healthScore),
+  weights = allSites.map(site => site.totalRevenue)  // взвешено по revenue
+)
 ```
 
-Затем ROMI и RPM **пересчитываются из агрегатов** (не суммируются):
+Каждый site health score = взвешенная сумма 8 компонентов (см. раздел 13).
+
+Network Health для Dashboard — среднее всех site health scores, **взвешенное по totalRevenue** сайта. Крупные сайты влияют сильнее.
+
+Если данные incomplete:
+```
+networkHealthConfidence = allSites.every(s => s.healthScore != null)
+  ? 'full'
+  : allSites.filter(s => s.healthScore != null).length / allSites.length >= 0.5
+    ? 'partial'
+    : 'low'
+```
+
+### 5.4 Агрегация
+
+Для network/bundle/site:
+
+```sql
+SELECT
+  SUM(users), SUM(hits), SUM(impressions), SUM(clicks),
+  SUM(adRevenue), SUM(affiliateRevenue), SUM(totalRevenue),
+  SUM(costs), SUM(profit)
+FROM daily_metrics
+WHERE date BETWEEN {from} AND {to}
+```
+
+ROMI и RPM **пересчитываются из агрегатов** (не суммируются):
 
 ```typescript
 romi = costs > 0 ? ((totalRevenue - costs) / costs) * 100 : 0
 rpm  = users > 0 ? (totalRevenue / users) * 1000 : 0
 ```
 
-> **Важно**: ROMI и RPM не суммируются из дневных значений — они вычисляются заново из суммарных показателей за период. Это даёт корректное взвешенное значение.
+> **Важно**: ROMI и RPM — ratio metrics. Они вычисляются заново из суммарных показателей, а не суммируются из дневных значений. Иначе результат будет математически неверным.
 
 ---
 
-## 6. Delta (дельта изменения)
+## 6. Delta и Confidence
 
-### Формула
-
-**Источник**: `src/services/metrics.ts:434-439`
+### 6.1 Формула delta
 
 ```typescript
 function calculateDelta(current: number, previous: number): number {
-  if (previous === 0) {
-    return current > 0 ? 100 : 0    // если было 0, а стало >0 → +100%
-  }
+  if (previous === 0) return current > 0 ? 100 : 0
   return ((current - previous) / Math.abs(previous)) * 100
 }
 ```
 
-### Примеры
+### 6.2 Примеры
 
 | current | previous | delta | Объяснение |
 |---|---|---|---|
 | 150 | 100 | `+50.0%` | `(150-100)/100 × 100` |
 | 75 | 100 | `-25.0%` | `(75-100)/100 × 100` |
-| 100 | 0 | `+100.0%` | `previous === 0, current > 0` |
-| 0 | 0 | `0.0%` | `previous === 0, current === 0` |
-| -50 | -100 | `+50.0%` | `(-50-(-100))/|-100| × 100` |
+| 100 | 0 | `+100.0%` | Special case: was zero |
+| 0 | 0 | `0.0%` | Both zero |
 
-### Применение delta на Dashboard
+### 6.3 Delta Confidence (NEW)
 
-Каждая KPI-карточка получает delta:
+| Confidence | Условие | UI |
+|---|---|---|
+| `full` | Both periods coverage ≥ 90%, all sources fresh | Нормальный DeltaBadge: `+12.3%` |
+| `partial` | One period coverage 50-90%, or source stale | Subdued DeltaBadge: `~+12.3%` (тильда) |
+| `not-comparable` | Coverage < 50%, previous = 0 (misleading), source missing | Gray pill: `n/a` |
 
-```typescript
-// В API route:
-{
-  label: 'Ad Revenue',
-  value: current.adRevenue,          // сумма за текущий период
-  delta: calculateDelta(
-    current.adRevenue,               // текущий агрегат
-    previous.adRevenue               // предыдущий агрегат
-  ),
-  format: 'currency',
-  trend: trend.map(d => d.adRevenue) // дневные значения для sparkline
-}
-```
+### 6.4 Правила для partial delta
 
-Для бандлов delta рассчитывается по `totalRevenue`:
+Partial delta показывается когда:
+- Текущий или предыдущий период имеет coverage < 100%
+- Один из источников (Yandex Metrica, AdSpyglass, Costs, Affiliate) в состоянии `stale` или `partial`
+- Сравнение всё ещё показывается, но UI явно говорит что confidence низкий
 
-```typescript
-delta: calculateDelta(metrics.totalRevenue, prevMetrics.totalRevenue)
-```
+### 6.5 Правила для not-comparable
 
-### Отображение delta
-
-**Файл**: `src/components/shared/delta-indicator.tsx`
-
-```
-formatPercent(delta) → `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`
-
-Positive (>0): зелёный pill   ▲ +12.3%
-Negative (<0): красный pill   ▼ -5.7%
-Neutral (=0):  серый pill       +0.0%
-Invalid:       серый pill       —
-```
+Not-comparable показывается когда:
+- previous value = 0 и delta = 100% (математически верно, но бизнес-смысла нет)
+- Denominator приводит к misleading результату
+- Источник missing entirely для одного из периодов
+- Coverage < 50% для любого из периодов
 
 ---
 
 ## 7. Sparkline-данные
 
-### Источник данных
+### 7.1 Источник
 
-**Файл**: `src/services/metrics.ts:226-261` (функция `getNetworkTrend`)
+`getNetworkTrend(trendFrom, to)` → группировка DailyMetric по дате с SUM.
 
-```sql
--- Prisma groupBy
-SELECT
-  date,
-  SUM(hits) AS hits,
-  SUM(users) AS users,
-  SUM(adRevenue) AS adRevenue,
-  SUM(affiliateRevenue) AS affiliateRevenue,
-  SUM(totalRevenue) AS totalRevenue,
-  SUM(costs) AS costs,
-  SUM(profit) AS profit
-FROM daily_metrics
-WHERE date BETWEEN {trendFrom} AND {to}
-GROUP BY date
-ORDER BY date ASC
-```
+### 7.2 Trend period
 
-### Определение trendFrom
+| Период | Точек |
+|---|---|
+| today / yesterday | 7 (last 7 days minimum) |
+| 7d | 7 |
+| 30d | 30 |
+| 90d | 90 |
 
-```typescript
-const periodDays = differenceInDays(to, from) + 1
-const trendFrom = periodDays < 7
-  ? startOfDay(subDays(to, 6))  // минимум 7 дней для спарклайна
-  : from                         // полный период для длинных периодов
-```
+На фронтенде: если > 14 точек → `trend.slice(-14)` (последние 14).
 
-| Период | periodDays | trendFrom | trend points |
+### 7.3 Маппинг метрик на sparkline data
+
+| KPI | Sparkline data | Цвет | Показывать |
 |---|---|---|---|
-| today | 1 | 6 дней назад | 7 точек |
-| yesterday | 1 | 6 дней назад | 7 точек |
-| 7d | 7 | from (7 дней назад) | 7 точек |
-| 30d | 30 | from (29 дней назад) | 30 точек |
-| 90d | 90 | from (89 дней назад) | 90 точек |
+| Visits | `trend.map(d => d.users)` | cyan | ✅ Всегда |
+| Total Revenue | `trend.map(d => d.totalRevenue)` | indigo | ✅ Всегда |
+| Profit | `trend.map(d => d.profit)` | emerald | ✅ Всегда |
+| Costs | `trend.map(d => d.costs)` | amber | ✅ Optional |
+| Ad Revenue | `trend.map(d => d.adRevenue)` | indigo | ✅ Optional |
+| ROMI | — | — | ❌ Ratio metric, шумный подневно |
+| Network Health | — | — | ❌ Композитный скор, неинформативен |
+| Affiliate Revenue | — | — | ❌ Часто нестабильный |
+| Revenue per 1000 Visits | — | — | ❌ Noisy metric |
 
-### Обработка на фронтенде
+### 7.4 Sparkline rendering rules
 
-**Файл**: `src/components/shared/kpi-card.tsx:46-48`
-
-```typescript
-const sparkData = trend && trend.length > 1
-  ? (trend.length > 14 ? trend.slice(-14) : trend)  // максимум 14 точек
-    .map((v, i) => ({ idx: i, value: v }))
-  : null
-```
-
-| Условие | Результат |
-|---|---|
-| `trend` = null/undefined | Пустой placeholder `h-10` |
-| `trend.length <= 1` | Пустой placeholder `h-10` |
-| `trend.length <= 14` | Все точки отображаются |
-| `trend.length > 14` | Последние 14 точек (`slice(-14)`) |
-
-### Маппинг trend → sparkline по метрике
-
-| KPI | Данные sparkline |
-|---|---|
-| Visitors | `trend.map(d => d.users)` |
-| Ad Revenue | `trend.map(d => d.adRevenue)` |
-| Affiliate Revenue | `trend.map(d => d.affiliateRevenue)` |
-| Total Revenue | `trend.map(d => d.totalRevenue)` |
-| Costs | `trend.map(d => d.costs)` |
-| Profit | `trend.map(d => d.profit)` |
-| Ad Requests | `trend.map(d => d.hits)` |
-| ROMI | `[]` — нет sparkline (ratio, не суммируется подневно) |
-| RPM | `[]` — нет sparkline (ratio, не суммируется подневно) |
+- **Line-only** (никакого area fill)
+- **strokeWidth**: `1.75px`
+- **height**: `22px` (primary) / `20px` (secondary)
+- Если < 3 точек данных → не рендерить sparkline, показать placeholder
+- Если все значения одинаковые (flat line) → не рендерить
+- Если source `stale` или `partial` → sparkline показывается с пониженной opacity (0.5)
 
 ---
 
-## 8. Network Signals — логика вычисления
+## 8. Network Signals
 
-**Файл**: `src/components/shared/signal-strip.tsx:87-127`
+### 8.1 Четыре типа сигналов
 
-Секция вычисляет до 3 сигналов из `bundles[]` и `insights[]`.
+| # | Тип | Что показывает | Логика выбора |
+|---|---|---|---|
+| 1 | **Strongest Bundle** | Лучший бандл по ROMI | `bundles.sort((a,b) => b.romi - a.romi)[0]` if romi > 0 |
+| 2 | **Biggest Revenue Drop** | Бандл с наибольшим падением | `bundles.filter(b => b.delta < 0).sort((a,b) => a.delta - b.delta)[0]` |
+| 3 | **Highest Risk** | Главный risk из anomalies или worst health | Priority 1: insight type='risk', severity critical/high. Fallback: bundle with worst healthScore |
+| 4 | **Best Recovery** | Бандл с наибольшим ростом после прошлого падения | `bundles.filter(b => b.delta > 0 && b.prevDelta < 0).sort(...)` (NEW) |
 
-### Signal 1: Biggest Drop
-
-```typescript
-const sorted = bundles
-  .filter(b => b.delta !== undefined)
-  .sort((a, b) => (a.delta ?? 0) - (b.delta ?? 0))  // от минимального delta
-
-if (sorted[0].delta < 0) {
-  signal = {
-    type: 'drop',
-    entity: sorted[0].name,
-    value: sorted[0].totalRevenue,
-    delta: sorted[0].delta,
-    reason: `Revenue dropped ${абс_изменение} vs previous period`
-  }
-}
-```
-
-**Формула абсолютного изменения**:
-```
-abs_change = totalRevenue × (|delta| / 100)
-```
-
-### Signal 2: Main Risk
-
-```typescript
-// Приоритет 1: insight с type='risk' и severity high/critical
-const risks = insights.filter(i => i.type === 'risk' && (i.severity === 'high' || i.severity === 'critical'))
-
-if (risks.length > 0) {
-  signal = { type: 'risk', entity: risks[0].entity, ... }
-}
-
-// Приоритет 2 (fallback): бандл с наихудшим healthScore
-else {
-  const worst = bundles.sort((a, b) => (a.healthScore ?? 100) - (b.healthScore ?? 100))[0]
-  signal = { type: 'risk', entity: worst.name, reason: `${name} needs attention — check traffic and ad performance` }
-}
-```
-
-### Signal 3: Top Performer
+### 8.2 Signal 1: Strongest Bundle
 
 ```typescript
 const best = bundles.sort((a, b) => b.romi - a.romi)[0]
-
-if (best) {
-  signal = {
-    type: 'winner',
-    entity: best.name,
-    value: best.profit,
-    delta: best.romi,        // показывает ROMI вместо revenue delta
-    reason: `Best ROI with ${profit} profit`
-  }
+if (best && best.romi > 0) → {
+  type: 'strongest',
+  entity: best.name,
+  keyMetric: `ROMI: ${best.romi.toFixed(1)}%`,
+  reason: `Best ROI with ${formatCurrency(best.profit)} profit`
 }
 ```
+
+### 8.3 Signal 2: Biggest Revenue Drop
+
+```typescript
+const worstDelta = bundles
+  .filter(b => b.delta !== undefined && b.delta < 0)
+  .sort((a, b) => a.delta - b.delta)[0]
+
+if (worstDelta) → {
+  type: 'drop',
+  entity: worstDelta.name,
+  keyMetric: `${worstDelta.delta.toFixed(1)}%`,
+  reason: `Revenue dropped ${formatCurrency(absChange)} vs previous period`
+}
+```
+
+### 8.4 Signal 3: Highest Risk
+
+```typescript
+// Priority 1: anomaly-based risk
+const risks = insights.filter(i => i.type === 'risk' && ['critical','high'].includes(i.severity))
+if (risks.length > 0) → signal from risks[0]
+
+// Priority 2: health-based risk
+const worstHealth = bundles.sort((a,b) => (a.healthScore ?? 100) - (b.healthScore ?? 100))[0]
+if (worstHealth) → {
+  type: 'risk',
+  entity: worstHealth.name,
+  keyMetric: `Health: ${worstHealth.healthScore}/100`,
+  reason: `${name} needs attention — check traffic and ad performance`
+}
+```
+
+### 8.5 Signal 4: Best Recovery (NEW)
+
+```typescript
+const recovering = bundles.filter(b =>
+  b.delta !== undefined && b.delta > 0 &&
+  b.prevPeriodDelta !== undefined && b.prevPeriodDelta < 0
+).sort((a, b) => b.delta - a.delta)[0]
+
+if (recovering) → {
+  type: 'recovery',
+  entity: recovering.name,
+  keyMetric: `+${recovering.delta.toFixed(1)}%`,
+  reason: `Recovered from ${recovering.prevPeriodDelta.toFixed(1)}% decline`
+}
+```
+
+Если recovery signal нет (никто не восстановился) — показать 3 сигнала вместо 4.
 
 ---
 
 ## 9. Bundle-метрики
 
-### Данные для каждого бандла
-
-**Источник**: `src/app/api/dashboard/route.ts:128-146`
+### 9.1 Данные для каждого бандла
 
 ```typescript
-const bundle = {
-  id: bundle.id,
-  name: bundle.name,           // "JAV", "Gays", "Hentai", "Trans"
-  slug: bundle.slug,           // "jav", "gays", "hentai", "trans"
-  color: bundle.color,         // HEX цвет
-  sitesCount: bundle.sites.length,  // количество сайтов в бандле
+{
+  id: string,
+  name: string,            // "JAV"
+  slug: string,            // "jav"
+  color: string,           // "#EF4444"
+  sitesCount: number,      // 5
 
-  // Из aggregateBundleMetrics(bundleId, from, to):
-  users: number,
-  hits: number,
-  impressions: number,
-  clicks: number,
+  // Metrics:
+  users: number,           // Visits (Yandex Metrica)
+  totalRevenue: number,    // Ad + Affiliate
+  profit: number,
+  romi: number,
+  healthScore: number,     // 0-100
+
+  // Comparison:
+  delta: number,           // % change totalRevenue vs prev period
+  deltaConfidence: string, // 'full' | 'partial' | 'not-comparable'
+
+  // Share:
+  revenueShare: number,    // % of network total revenue (NEW)
+}
+```
+
+### 9.2 Метрики, отображаемые в BundleSummaryCard
+
+| Метрика | Формат | Источник |
+|---|---|---|
+| **Visits** | `formatCompact(users)` → `"12.5K"` | Yandex Metrica |
+| **Revenue** | `formatCurrency(totalRevenue)` → `"$1,234.00"` | Computed |
+| **Profit** | `formatCurrency(profit)` → `"$890.00"` (green/red) | Computed |
+| **ROMI** | `${romi.toFixed(1)}%` → `"156.3%"` | Computed |
+
+> **Изменение**: `Ad Requests (hits)` убран из bundle card. Заменён на `Visits (users)`.
+
+### 9.3 Revenue Share
+
+```typescript
+revenueShare = (bundle.totalRevenue / networkTotal.totalRevenue) * 100
+```
+
+Показывается в footer: `"Revenue share: 34%"`.
+
+### 9.4 Health в bundle
+
+HealthBadge (pill) в header карточки. Значение = среднее арифметическое healthScore всех сайтов бандла.
+
+---
+
+## 10. Trend Charts
+
+### 10.1 Общее
+
+Все графики используют `data.trend[]` из API.
+
+### 10.2 TrendPoint structure
+
+```typescript
+{
+  date: string,            // "2025-01-15"
+  users: number,           // visitors (Yandex Metrica) — source of truth for traffic
+  hits: number,            // ad requests (AdSpyglass) — NOT used on Dashboard charts
   adRevenue: number,
   affiliateRevenue: number,
   totalRevenue: number,
   costs: number,
   profit: number,
-  romi: number,                // ((totalRevenue - costs) / costs) × 100
-  rpm: number,                 // (totalRevenue / users) × 1000
-
-  // Delta:
-  delta: calculateDelta(metrics.totalRevenue, prevMetrics.totalRevenue)
 }
 ```
 
-### Метрики, отображаемые в BundleCard
-
-| Метрика | Формат | Функция |
-|---|---|---|
-| Ad Requests | compact | `formatCompact(bundle.hits)` → `"12.5K"` |
-| Revenue | currency | `formatCurrency(bundle.totalRevenue)` → `"$1,234.00"` |
-| Profit | currency | `formatCurrency(bundle.profit)` → `"$890.00"` (зелёный/красный) |
-| ROMI | percent | `${bundle.romi.toFixed(1)}%` → `"156.3%"` |
-
-### Health Score в BundleCard
-
-Если у бандла есть `healthScore` (рассчитывается `calculate-metrics` worker → `health-score.ts`):
-
-```
-Healthy: ≥80 → зелёный badge "85/100"
-Warning: 60-79 → жёлтый badge "72/100"
-Critical: <60 → красный badge "45/100"
-```
-
----
-
-## 10. Trend Charts — данные графиков
-
-### Общее
-
-Все три графика используют один и тот же массив `data.trend[]` из API response.
-
-### Структура TrendPoint
-
-```typescript
-interface TrendPoint {
-  date: string           // "2025-01-15" (YYYY-MM-DD)
-  hits: number           // ad requests
-  users: number          // visitors
-  adRevenue: number      // ad revenue (USD)
-  affiliateRevenue: number // affiliate revenue (USD)
-  totalRevenue: number   // total (USD)
-  costs: number          // costs (USD)
-  profit: number         // profit (USD)
-}
-```
-
-### Revenue Trend Chart
-
-**Файл**: `src/components/features/charts/revenue-trend-chart.tsx`
+### 10.3 Revenue Trend Chart
 
 | Параметр | Значение |
 |---|---|
-| **X-axis** | `date` (YYYY-MM-DD) |
-| **Y-axis** | USD |
-| **Categories** | `adRevenue` (violet), `affiliateRevenue` (fuchsia) |
-| **Тип** | Stacked area (два наложенных area) |
-| **Fill** | Gradient (5% opacity → 0%) |
-| **Y formatter** | `$X.XX` (<1000) или `$X.XK` (≥1000) |
-| **Height** | 288px |
-| **Legend** | Показана (adRevenue, affiliateRevenue) |
-| **Grid** | Горизонтальные линии, stroke gray-200 |
-| **Empty state** | `"No revenue data available"` (center, gray-400) |
-
-### Traffic Trend Chart
-
-**Файл**: `src/components/features/charts/traffic-trend-chart.tsx`
-
-| Параметр | Значение |
-|---|---|
-| **Categories** | `hits` (cyan) |
-| **Y formatter** | `XK` (≥1000) или plain number |
-| **Тип** | Single area |
-
-### Profit Trend Chart
-
-**Файл**: `src/components/features/charts/profit-trend-chart.tsx`
-
-| Параметр | Значение |
-|---|---|
-| **Categories** | `profit` (emerald) |
+| **Primary series** | `totalRevenue` (indigo) |
+| **Optional split** | `adRevenue` (indigo) + `affiliateRevenue` (pink) |
+| **Rule** | Если split ухудшает readability → только `totalRevenue` |
 | **Y formatter** | `$X.XX` / `$X.XK` |
-| **autoMinValue** | `true` — Y-axis может уходить в отрицательные значения |
-| **Тип** | Single area |
+| **Height** | `288px` |
 
-### Tooltip на графиках
+### 10.4 Traffic Trend Chart
 
-При наведении на точку отображается:
-```
-┌────────────────────────────────┐
-│ 2025-01-15                      │
-├────────────────────────────────┤
-│ ● adRevenue         $1,234.00  │
-│ ● affiliateRevenue  $456.00    │
-└────────────────────────────────┘
-```
+| Параметр | Значение |
+|---|---|
+| **Series** | `users` (cyan) — **Yandex Metrica visits** |
+| **Rule** | **НЕ** использовать `hits` (ad requests) |
+| **Y formatter** | `XK` / plain number |
+
+> **Критично**: Traffic на Dashboard = `users` из Yandex Metrica. Это реальные уникальные посетители. `hits` — загрузки рекламного скрипта, это другая метрика.
+
+### 10.5 Profit Trend Chart
+
+| Параметр | Значение |
+|---|---|
+| **Series** | `profit` (emerald) |
+| **autoMinValue** | `true` (может быть отрицательным) |
+| **Optional (future)** | Costs overlay (amber dashed line) |
+| **Optional (future)** | Volatility marker |
+
+### 10.6 Costs Trend (optional, future)
+
+| Параметр | Значение |
+|---|---|
+| **Series** | `costs` (amber) |
+| **Type** | Line only, no fill |
+
+### 10.7 Source-aware rendering
+
+Если данные для серии incomplete (not all days have data):
+
+1. **Tooltip**: показывает `"(partial)"` для дней с неполными данными
+2. **Legend**: отмечает серию как partial (subdued color)
+3. **Gap handling**: `connectNulls=true` для непрерывной линии, но missing days отмечаются визуально
+4. **ChartCard header**: `sourceNote` предупреждает о неполноте
 
 ---
 
-## 11. Insights — логика генерации
+## 11. Insights
 
-### Серверные insights (anomalies)
-
-**Источник**: `src/app/api/dashboard/route.ts:149-170`
+### 11.1 Серверные insights (anomalies)
 
 ```sql
 SELECT * FROM anomalies
@@ -616,268 +617,257 @@ ORDER BY date DESC
 LIMIT 10
 ```
 
-Каждая аномалия маппится в insight:
+Маппинг: `spike`/`drop` → `type: 'risk'`, остальное → `type: 'info'`.
 
-```typescript
-{
-  entity: anomaly.site.name,        // имя сайта
-  entitySlug: anomaly.site.slug,
-  entityType: 'site',
-  metric: anomaly.metric,           // "users", "adRevenue", "costs", etc.
-  value: anomaly.actual.toFixed(2),
-  delta: anomaly.delta,             // процент отклонения
-  reason: anomaly.description
-    ?? `${type} detected: expected ${expected}, got ${actual}`,
-  action: `Investigate ${type} anomaly on ${metric}`,
-  severity: anomaly.severity,       // "critical" | "high" | "medium" | "low"
-  type: anomaly.type === 'spike' || anomaly.type === 'drop'
-    ? 'risk'
-    : 'info'
-}
-```
+### 11.2 Клиентские insights (computeInsights)
 
-### Клиентские insights (computeInsights)
+4 архетипа, каждый с явным экспортом:
 
-**Источник**: `src/app/(platform)/dashboard/page.tsx:132-187`
-
-Функция `computeInsights(bundles, rawInsights)` генерирует до 4 типизированных инсайтов:
-
-#### 1. Opportunity (рост revenue)
-
-```typescript
-const bestGain = bundles
-  .filter(b => b.delta !== undefined && b.delta > 0)
-  .sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))[0]
-
-if (bestGain) → {
-  type: 'opportunity',
-  entity: bestGain.name,
-  metric: 'Revenue Growth',
-  value: formatCurrency(bestGain.totalRevenue),
-  delta: bestGain.delta,
-  reason: `${name} is the fastest growing bundle. Consider allocating more traffic.`,
-  action: `View ${name} details`,
-  actionHref: `/bundles/${slug}`,
-  severity: 'low'
-}
-```
-
-#### 2. Risk (из rawInsights)
-
-```typescript
-const sortedRisks = rawInsights
-  .filter(i => i.type === 'risk')
-  .sort((a, b) => {
-    const weights = { critical: 4, high: 3, medium: 2, low: 1 }
-    return weights[b.severity] - weights[a.severity]
-  })
-
-if (sortedRisks[0]) → { ...sortedRisks[0], type: 'risk' }
-```
-
-#### 3. Loser (падение revenue)
-
-```typescript
-const worstDrop = bundles
-  .filter(b => b.delta !== undefined && b.delta < 0)
-  .sort((a, b) => (a.delta ?? 0) - (b.delta ?? 0))[0]
-
-if (worstDrop) → {
-  type: 'loser',
-  severity: worstDrop.delta < -20 ? 'high' : 'medium',
-  reason: `${name} revenue declined significantly. Check traffic sources and site health.`,
-  action: `Investigate ${name}`,
-  actionHref: `/bundles/${slug}`
-}
-```
-
-#### 4. Winner (лучший ROMI)
+#### WinnerCard — лучший по ROMI
 
 ```typescript
 const bestRomi = bundles.sort((a, b) => b.romi - a.romi)[0]
-
 if (bestRomi && bestRomi.romi > 0) → {
   type: 'winner',
   metric: 'ROMI',
+  entity: bestRomi.name,
   value: `${romi.toFixed(1)}%`,
+  delta: bestRomi.delta,
   reason: `Best return on investment: ${profit} profit from ${totalRevenue} revenue.`,
-  action: `View ${name} performance`,
-  actionHref: `/bundles/${slug}`,
+  // MAX 2 short lines
+  action: `View ${name} performance`,  // MAX 1 short line
   severity: 'low'
 }
 ```
 
+#### LoserCard — наибольшее падение revenue
+
+```typescript
+const worstDrop = bundles
+  .filter(b => b.delta < 0)
+  .sort((a, b) => a.delta - b.delta)[0]
+
+severity = delta < -50 ? 'critical' : delta < -30 ? 'high' : delta < -15 ? 'medium' : 'low'
+
+→ { type: 'loser', reason: MAX 2 lines, action: MAX 1 line }
+```
+
+#### RiskCard — главный risk
+
+```typescript
+const topRisk = rawInsights
+  .filter(i => i.type === 'risk')
+  .sort(by severity weight: critical=4, high=3, medium=2, low=1)[0]
+
+→ { type: 'risk', severity: from anomaly }
+```
+
+#### OpportunityCard — наибольший рост
+
+```typescript
+const bestGain = bundles
+  .filter(b => b.delta > 0)
+  .sort((a, b) => b.delta - a.delta)[0]
+
+→ { type: 'opportunity', reason: MAX 2 lines, action: MAX 1 line }
+```
+
+### 11.3 Text limits (жёсткие)
+
+| Элемент | Лимит |
+|---|---|
+| label | 1 слово |
+| title | metric + entity + delta — 1 строка |
+| reason | Максимум 2 короткие строки |
+| action | Максимум 1 строка |
+
+### 11.4 Severity rules
+
+| Тип | Как определяется severity |
+|---|---|
+| **Winner** | Всегда `low` |
+| **Opportunity** | Всегда `low` |
+| **Loser** | `delta < -50%` → critical, `< -30%` → high, `< -15%` → medium, else low |
+| **Risk** | Из anomaly severity (critical/high/medium/low) |
+
 ---
 
-## 12. Coverage — автобэкфилл
+## 12. Coverage и Sync State
 
-**Источник**: `src/services/data-coverage.ts`
+### 12.1 Data Coverage
 
-### Как работает
-
-При каждом запросе к `/api/dashboard`:
+При каждом запросе к Dashboard API:
 
 ```typescript
 const coverage = await ensureDataCoverage(from, to)
 ```
 
-1. **Проверка покрытия**: есть ли записи в `daily_metrics` за каждый день запрошенного диапазона
-2. **Бэкфилл**: если пропущены дни → BullMQ задачи на sync-adspyglass, sync-yandex-metrica, sync-costs, sync-affiliate
-3. **Ресинк**: если период пересекается с последними 3 днями и последний sync >6 часов назад → данные пересинкиваются (late-arriving data)
+1. **Проверка**: записи в `daily_metrics` за каждый день диапазона
+2. **Бэкфилл**: пропущены дни → BullMQ задачи
+3. **Ресинк**: период пересекается с last 3 days и last sync > 6h → resync
 
-### Отображение на Dashboard
+### 12.2 Source Completeness (NEW)
 
 ```typescript
-// Индикатор покрытия (Coverage Badge):
-{data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
-  <Badge variant="light" color="indigo" size="lg" radius="lg">
-    Loading historical data for {data.coverage.missingDates} missing days...
-  </Badge>
-)}
-```
-
-### API response coverage
-
-```json
+const sourceStatus = await checkSourceCompleteness(from, to)
+// Returns:
 {
-  "coverage": {
-    "complete": false,       // все ли дни покрыты данными
-    "missingDates": 5,       // количество пропущенных дней
-    "syncTriggered": true,   // запущен ли бэкфилл
-    "resyncTriggered": true  // запущен ли ресинк свежих данных
+  yandexMetrica: 'fresh' | 'partial' | 'stale' | 'missing',
+  adspyglass:    'fresh' | 'partial' | 'stale' | 'missing',
+  costs:         'fresh' | 'partial' | 'stale' | 'missing' | 'mapping_issue',
+  affiliate:     'fresh' | 'partial' | 'stale' | 'missing' | 'mapping_issue',
+  overall:       'fresh' | 'partial' | 'stale',
+  lastSyncBySource: {
+    yandexMetrica: '2025-01-15T12:00:00Z',
+    adspyglass:    '2025-01-15T14:30:00Z',
+    costs:         '2025-01-14T08:00:00Z',
+    affiliate:     '2025-01-14T08:00:00Z',
   }
 }
 ```
 
+### 12.3 Coverage API response
+
+```json
+{
+  "coverage": {
+    "complete": false,
+    "missingDates": 5,
+    "syncTriggered": true,
+    "resyncTriggered": true,
+    "coveragePercent": 78
+  },
+  "sourceStatus": {
+    "yandexMetrica": "fresh",
+    "adspyglass": "fresh",
+    "costs": "stale",
+    "affiliate": "partial",
+    "overall": "partial"
+  }
+}
+```
+
+### 12.4 UI реакция на coverage
+
+| Состояние | UI |
+|---|---|
+| `coverage.complete = true`, all sources fresh | Нормальное отображение, DataFreshnessSummary скрыт |
+| `coverage.complete = false`, sync triggered | Badge: `"Loading historical data for X missing days..."` |
+| One source stale | DataFreshnessSummary показывает stale pill, DeltaBadge = partial |
+| Source missing | DataFreshnessSummary показывает missing pill, affected KPIs = `"—"` |
+
 ---
 
-## 13. Health Score на Dashboard
+## 13. Health Score
 
-**Используется в**: BundleCard → `HealthBadge`
-
-Health Score — композитный балл 0-100, рассчитывается ежедневно воркером `calculate-metrics`.
-
-### 8 компонентов
+### 13.1 Компоненты (per site)
 
 | Компонент | Вес | Формула |
 |---|---|---|
-| `profitQuality` | 20% | `min(100, max(0, profit > 0 ? 60 + (profit/totalRevenue)×100 : 20))` |
-| `romiQuality` | 15% | `min(100, max(0, romi > 150 ? 80 + (romi-150)/5 : romi×0.5))` |
-| `revenueTrend` | 15% | `min(100, max(0, 50 + ((avgLast3 - avgFirst3)/avgFirst3)×200))` |
-| `costPressure` | 10% | `min(100, max(0, 100 - (costs/totalRevenue)×100))` |
-| `formatQuality` | 10% | `min(100, numFormats × 20)` (5+ форматов = 100) |
-| `tierQuality` | 10% | `min(100, max(0, 30 + tier1Share × 100))` |
+| `profitQuality` | 20% | `clamp(0, 100, profit > 0 ? 60 + (profit/totalRevenue)×100 : 20)` |
+| `romiQuality` | 15% | `clamp(0, 100, romi > 150 ? 80 + (romi-150)/5 : romi×0.5)` |
+| `revenueTrend` | 15% | `clamp(0, 100, 50 + ((avgLast3 - avgFirst3)/avgFirst3)×200)` |
+| `costPressure` | 10% | `clamp(0, 100, 100 - (costs/totalRevenue)×100)` |
+| `formatQuality` | 10% | `min(100, numFormats × 20)` |
+| `tierQuality` | 10% | `clamp(0, 100, 30 + tier1Share × 100)` |
 | `anomalyPressure` | 10% | `max(0, 100 - numAnomalies × 15)` |
-| `stability` | 10% | `min(100, max(0, 100 - CV×200))` |
+| `stability` | 10% | `clamp(0, 100, 100 - CV×200)` |
 
-### Статусы
+### 13.2 Network Health
 
-| Балл | Статус | Цвет badge |
+```
+networkHealth = Σ(siteHealth[i] × siteRevenue[i]) / Σ(siteRevenue[i])
+```
+
+Взвешенное среднее, где вес = totalRevenue сайта.
+
+### 13.3 Статусы
+
+| Балл | Статус | Цвет |
 |---|---|---|
 | ≥ 80 | `healthy` | green |
-| 60-79 | `warning` | yellow |
+| 60-79 | `warning` | yellow/amber |
 | < 60 | `critical` | red |
-
-### Агрегация на уровне бандла
-
-Среднее арифметическое `healthScore` всех сайтов бандла за текущую дату.
 
 ---
 
 ## 14. Anomaly Detection → Insights
 
-**Источник**: `src/services/anomaly-detector.ts`
+### 14.1 Типы аномалий
 
-Сравнивает значения текущего дня с **7-дневным скользящим средним** (не включая текущий день).
-
-### Типы аномалий
-
-| Тип | Метрика | Условие | Severity |
+| Тип | Метрика | Порог | Severity |
 |---|---|---|---|
-| `traffic_drop` | `users` | Падение > 20% от 7д среднего | `critical` |
-| `revenue_spike` | `adRevenue` | Рост > 15% от 7д среднего | `high` |
-| `revenue_drop` | `adRevenue` | Падение > 15% от 7д среднего | `high` |
-| `cost_spike` | `costs` | Рост > 25% от 7д среднего | `high` |
-| `fill_rate_drop` | `fillRate` | Падение > 10% от 7д среднего | `medium` |
-| `romi_critical` | `romi` | ROMI < 100% (ниже окупаемости) | `critical` |
+| `traffic_drop` | `users` | > 20% падение от 7d avg | `critical` |
+| `revenue_spike` | `adRevenue` | > 15% рост | `high` |
+| `revenue_drop` | `adRevenue` | > 15% падение | `high` |
+| `cost_spike` | `costs` | > 25% рост | `high` |
+| `fill_rate_drop` | `fillRate` | > 10% падение | `medium` |
+| `romi_critical` | `romi` | < 100% | `critical` |
 
-### Формула аномалии
-
-```
-delta = ((actual - average_7d) / average_7d) × 100
-```
-
-### Хранение
-
-```sql
-INSERT INTO anomalies (siteId, date, type, metric, severity, expected, actual, delta, description, resolved)
-```
-
-### Маппинг в Dashboard insights
+### 14.2 Формула
 
 ```
-anomaly.type = 'spike' или 'drop' → insight.type = 'risk'
-anomaly.type = другое              → insight.type = 'info'
+delta = ((actual - avg_7d) / avg_7d) × 100
+```
+
+### 14.3 Маппинг в Insights
+
+```
+anomaly type = 'spike' | 'drop' → insight type = 'risk'
+anomaly type = other → insight type = 'info'
 ```
 
 ---
 
 ## 15. API Response Schema
 
-### Полная структура `GET /api/dashboard?period=7d&compare=prev_period`
+### Полная структура `GET /api/dashboard`
 
 ```typescript
 {
-  // KPI-карточки (9 штук)
   kpis: Array<{
-    label: string                    // "Visitors", "Ad Revenue", ...
-    value: number                    // 123456
-    delta: number                    // +12.3 (процент)
-    format: 'currency' | 'number' | 'percent'
-    trend: number[]                  // [100, 110, 105, ...] до 90 точек
+    label: string                         // "Visits", "Total Revenue", ...
+    value: number
+    delta: number                         // процент изменения
+    deltaConfidence: 'full' | 'partial' | 'not-comparable'  // NEW
+    format: 'currency' | 'number' | 'percent' | 'score'
+    trend: number[]                       // для sparkline (пустой если нет)
+    sourceStatus: 'fresh' | 'partial' | 'stale' | 'missing'  // NEW
   }>
 
-  // Бандлы (4 штуки: JAV, Gays, Hentai, Trans)
   bundles: Array<{
-    id: string                       // UUID
-    name: string                     // "JAV"
-    slug: string                     // "jav"
-    color: string                    // "#EF4444"
-    sitesCount: number               // 5
-    users: number                    // 50000
-    hits: number                     // 120000
-    impressions: number              // 95000
-    clicks: number                   // 3200
-    adRevenue: number                // 1200.00
-    affiliateRevenue: number         // 340.00
-    totalRevenue: number             // 1540.00
-    costs: number                    // 650.00
-    profit: number                   // 890.00
-    romi: number                     // 136.9
-    rpm: number                      // 30.80
-    delta: number                    // +15.2 (по totalRevenue vs prev period)
-    healthScore?: number             // 85 (0-100)
+    id: string
+    name: string
+    slug: string
+    color: string
+    sitesCount: number
+    users: number                         // Visits (Yandex Metrica)
+    totalRevenue: number
+    profit: number
+    romi: number
+    healthScore: number | null            // 0-100
+    delta: number                         // по totalRevenue
+    deltaConfidence: string               // NEW
+    revenueShare: number                  // % от network total, NEW
   }>
 
-  // Аномалии → инсайты (до 10)
   insights: Array<{
-    entity: string                   // "gayxhub.com"
-    entitySlug: string               // "gayxhub-com"
+    entity: string
+    entitySlug: string
     entityType: 'site'
-    metric: string                   // "users", "adRevenue"
-    value: string                    // "1234.00"
-    delta: number                    // -25.3
-    reason: string                   // "Traffic dropped 25.3% below 7-day average"
-    action: string                   // "Investigate drop anomaly on users"
+    metric: string
+    value: string
+    delta: number
+    reason: string                        // MAX 2 short lines
+    action: string                        // MAX 1 line
     severity: 'critical' | 'high' | 'medium' | 'low'
     type: 'risk' | 'info'
   }>
 
-  // Тренд (дневные данные для графиков и спарклайнов)
   trend: Array<{
-    date: string                     // "2025-01-15"
-    hits: number
-    users: number
+    date: string                          // "YYYY-MM-DD"
+    users: number                         // visits (Yandex Metrica)
+    hits: number                          // ad requests (NOT for dashboard charts)
     adRevenue: number
     affiliateRevenue: number
     totalRevenue: number
@@ -885,127 +875,136 @@ anomaly.type = другое              → insight.type = 'info'
     profit: number
   }>
 
-  // Режим сравнения
   compareMode: 'prev_period' | 'prev_7d' | 'prev_day'
 
-  // Статус покрытия данных
   coverage: {
-    complete: boolean                // true если все дни покрыты
-    missingDates: number             // кол-во пропущенных дней
-    syncTriggered: boolean           // запущен ли бэкфилл
-    resyncTriggered: boolean         // запущен ли ресинк
+    complete: boolean
+    missingDates: number
+    coveragePercent: number               // NEW
+    syncTriggered: boolean
+    resyncTriggered: boolean
+  }
+
+  sourceStatus: {                         // NEW section
+    yandexMetrica: 'fresh' | 'partial' | 'stale' | 'missing'
+    adspyglass: 'fresh' | 'partial' | 'stale' | 'missing'
+    costs: 'fresh' | 'partial' | 'stale' | 'missing' | 'mapping_issue'
+    affiliate: 'fresh' | 'partial' | 'stale' | 'missing' | 'mapping_issue'
+    overall: 'fresh' | 'partial' | 'stale'
+  }
+
+  networkHealth: {                        // NEW section
+    score: number                         // 0-100
+    status: 'healthy' | 'warning' | 'critical'
+    confidence: 'full' | 'partial' | 'low'
   }
 }
 ```
 
 ---
 
-## 16. Data Flow: от источника до UI
+## 16. Data Flow
 
-### Полная цепочка для метрики "Ad Revenue"
+### Полная цепочка для "Visits" KPI
 
 ```
-1. AdOK API (cron every 6h)
-   GET /api/statistics?group_by=website&date_from=...&date_to=...
-   → broker_income = 45.20 (для сайта gayxhub.com за 2025-01-15)
+1. Yandex Metrica API (cron sync)
+   → users = 5,420 для gayxhub.com за 2025-01-15
 
-2. sync-adspyglass worker
-   → INSERT/UPSERT INTO daily_metrics SET adRevenue = 45.20
+2. sync-yandex-metrica worker
+   → UPSERT daily_metrics SET users = 5420
      WHERE siteId = 'xxx' AND date = '2025-01-15'
 
-3. calculate-metrics worker (cron every 4h, offset 30min)
-   → totalRevenue = adRevenue + affiliateRevenue = 45.20 + 12.30 = 57.50
-   → profit = totalRevenue - costs = 57.50 - 25.00 = 32.50
-   → UPDATE daily_metrics SET totalRevenue, profit, romi, rpm, ...
-
-4. anomaly-detector (внутри calculate-metrics)
-   → 7-day avg adRevenue = 38.00
-   → delta = ((45.20 - 38.00) / 38.00) × 100 = +18.9%
-   → 18.9% > 15% threshold → INSERT anomaly (revenue_spike, high)
-
-5. health-score service
-   → score = weighted_sum(profitQuality, romiQuality, ...) = 82
-   → INSERT health_scores SET score = 82, status = 'healthy'
-
-6. GET /api/dashboard?period=7d&compare=prev_period
+3. GET /api/dashboard?period=7d
    → aggregateNetworkMetrics(Jan 8, Jan 14)
-     → SUM(adRevenue) = $1,234.50 (current)
+     → SUM(users) = 38,450 (current)
    → aggregateNetworkMetrics(Jan 1, Jan 7)
-     → SUM(adRevenue) = $1,100.00 (previous)
-   → calculateDelta(1234.50, 1100.00) = +12.2%
-   → getNetworkTrend(Jan 8, Jan 14)
-     → [{date:"2025-01-08", adRevenue:160}, {date:"2025-01-09", adRevenue:175}, ...]
+     → SUM(users) = 35,200 (previous)
+   → calculateDelta(38450, 35200) = +9.2%
+   → checkSourceCompleteness → yandexMetrica: 'fresh'
+   → deltaConfidence = 'full'
 
-7. Frontend: useDashboard('7d', 'prev_period')
-   → TanStack Query → fetch('/api/dashboard?period=7d&compare=prev_period')
-   → data.kpis[1] = { label: "Ad Revenue", value: 1234.50, delta: 12.2, format: "currency", trend: [160,175,...] }
-
-8. KPICard renders:
-   ┌──────────────────────────────┐
-   │  AD REVENUE       [+12.2%]  │  ← DeltaBadge (emerald pill)
-   │  $1,234.50                   │  ← formatCurrency(1234.50)
-   │  vs prev period              │
-   │  ▁▂▃▅▇█▆▅▃▂▁▃▅              │  ← SparkAreaChart (violet, 7 points)
-   └──────────────────────────────┘
-
-9. RevenueTrendChart renders:
-   AreaChart с 7 точками:
-     X: ["2025-01-08", ..., "2025-01-14"]
-     Y1 (violet): [160, 175, 190, 180, 172, 185, 173]  ← adRevenue
-     Y2 (fuchsia): [22, 25, 18, 30, 28, 24, 19]        ← affiliateRevenue
-```
-
-### Полная цепочка для Network Signal "Biggest Drop"
-
-```
-1. Все бандлы получены с delta
-
-   JAV:    totalRevenue = $1,540, delta = +15.2%
-   Gays:   totalRevenue = $2,100, delta = -8.3%
-   Hentai: totalRevenue = $890,   delta = -22.1%  ← наименьший delta
-   Trans:  totalRevenue = $1,200, delta = +3.5%
-
-2. SignalStrip.computeSignals():
-   sorted = [Hentai(-22.1%), Gays(-8.3%), Trans(+3.5%), JAV(+15.2%)]
-   sorted[0].delta = -22.1% < 0 → signal created
-
-3. Signal:
-   {
-     type: 'drop',
-     entity: 'Hentai',
-     value: 890,
-     delta: -22.1,
-     reason: "Revenue dropped $196.57 vs previous period"
-             // 890 × (22.1 / 100) = $196.69
+4. Response:
+   kpis[0] = {
+     label: "Visits",
+     value: 38450,
+     delta: 9.2,
+     deltaConfidence: "full",
+     format: "number",
+     trend: [5100, 5300, 5600, 5420, 5550, 5680, 5800],
+     sourceStatus: "fresh"
    }
 
-4. SignalCard renders:
-   ┌───┬───────────────────────────────────────┐
-   │ ▌ │ 🔻 BIGGEST DROP                        │
-   │ ▌ │    Hentai  [-22.1%]                    │
-   │ ▌ │    Revenue dropped $196.57 vs prev...  │
-   └───┴───────────────────────────────────────┘
+5. PrimaryKpiCard renders:
+   ┌──────────────────────────────┐
+   │  VISITS             [+9.2%]  │  ← DeltaBadge (emerald, full confidence)
+   │  38,450                      │  ← formatNumber
+   │  ▁▂▃▅▇█▆▅                   │  ← MiniSparkline (cyan, line-only, h-22px)
+   └──────────────────────────────┘
+```
+
+### Полная цепочка для "Network Health" KPI
+
+```
+1. calculate-metrics worker (every 4h)
+   → Per site: healthScore = weighted_sum(8 components)
+   → gayxhub.com: 85, translove.com: 72, javhub.com: 91, ...
+
+2. GET /api/dashboard?period=7d
+   → All sites with healthScore + totalRevenue
+   → networkHealth = Σ(score × revenue) / Σ(revenue)
+     = (85×1200 + 72×800 + 91×1500 + ...) / (1200+800+1500+...)
+     = 84.2
+   → confidence = all sites have score → 'full'
+
+3. Response:
+   networkHealth = { score: 84, status: 'healthy', confidence: 'full' }
+   kpis[4] = { label: "Network Health", value: 84, format: "score", ... }
+
+4. NetworkHealthCard renders:
+   ┌──────────────────────────────┐
+   │  NETWORK HEALTH              │
+   │  84 / 100                    │
+   │  ● healthy                   │
+   └──────────────────────────────┘
+```
+
+### Partial data scenario
+
+```
+1. Costs sheet not synced for 2 days (Jan 13, Jan 14)
+   → sourceStatus.costs = 'partial'
+   → sourceStatus.overall = 'partial'
+
+2. Dashboard renders:
+   - DataFreshnessSummary: [● Metrica: fresh] [● AdSpyglass: fresh] [● Costs: partial] [● Affiliate: fresh]
+   - Profit KPI: delta shows `~+8.1%` (partial confidence)
+   - ROMI KPI: delta shows `~+12.3%` (partial confidence)
+   - ChartCard "Profit": sourceNote = "⚠ Costs data missing for 2 days"
+   - BundleCards: profit/ROMI values normal but deltaConfidence = 'partial'
 ```
 
 ---
 
-## Глоссарий метрик
+## 17. Глоссарий
 
-| Метрика | Описание | Единица | Формула |
-|---|---|---|---|
-| **Users / Visitors** | Уникальные посетители | число | Yandex Metrica API |
-| **Hits / Ad Requests** | Загрузки рекламного скрипта | число | AdOK API hits |
-| **Impressions** | Показы рекламы | число | AdOK API impressions |
-| **Clicks** | Клики по рекламе | число | AdOK API clicks |
-| **Ad Revenue** | Доход от рекламной сети | USD | AdOK API broker_income |
-| **Affiliate Revenue** | Партнёрский доход | USD | Google Sheets |
-| **Total Revenue** | Суммарный доход | USD | `adRevenue + affiliateRevenue` |
-| **Costs** | Операционные расходы | USD | Google Sheets |
-| **Profit** | Чистая прибыль | USD | `totalRevenue - costs` |
-| **ROMI** | Return on Marketing Investment | % | `((totalRevenue - costs) / costs) × 100` |
-| **RPM** | Revenue Per Mille | USD | `(totalRevenue / users) × 1000` |
-| **CTR** | Click-Through Rate | % | `(clicks / impressions) × 100` |
-| **eCPM** | Effective Cost Per Mille | USD | `(adRevenue / impressions) × 1000` |
-| **Fill Rate** | Процент заполнения | % | `(impressions / hits) × 100` |
-| **Health Score** | Композитный балл здоровья | 0-100 | Взвешенная сумма 8 компонентов |
-| **Delta** | Процент изменения | % | `((current - previous) / |previous|) × 100` |
+| Метрика | Описание | Единица | Формула | Source of Truth |
+|---|---|---|---|---|
+| **Visits** | Уникальные посетители | число | — | Yandex Metrica |
+| **Ad Requests** | Загрузки рекламного скрипта | число | — | AdSpyglass (НЕ для Dashboard) |
+| **Impressions** | Показы рекламы | число | — | AdSpyglass |
+| **Clicks** | Клики по рекламе | число | — | AdSpyglass |
+| **Ad Revenue** | Доход от рекламы | USD | `broker_income` | AdSpyglass |
+| **Affiliate Revenue** | Партнёрский доход | USD | — | Google Sheets |
+| **Total Revenue** | Суммарный доход | USD | `adRevenue + affiliateRevenue` | Computed |
+| **Costs** | Операционные расходы | USD | — | Google Sheets |
+| **Profit** | Чистая прибыль | USD | `totalRevenue - costs` | Computed |
+| **ROMI** | Return on Marketing Investment | % | `((totalRevenue - costs) / costs) × 100` | Computed |
+| **RPM** | Revenue per 1000 Visits | USD | `(totalRevenue / users) × 1000` | Computed |
+| **CTR** | Click-Through Rate | % | `(clicks / impressions) × 100` | Computed |
+| **eCPM** | Effective Cost Per Mille | USD | `(adRevenue / impressions) × 1000` | Computed |
+| **Fill Rate** | Процент заполнения | % | `(impressions / hits) × 100` | Computed |
+| **Network Health** | Взвешенный health score сети | 0-100 | `Σ(siteHealth × siteRevenue) / Σ(siteRevenue)` | Computed |
+| **Health Score** (site) | Композитный health сайта | 0-100 | Взвешенная сумма 8 компонентов | Computed |
+| **Delta** | Процент изменения | % | `((current - previous) / \|previous\|) × 100` | Computed |
+| **Revenue Share** | Доля бандла в сети | % | `(bundle.totalRevenue / network.totalRevenue) × 100` | Computed |
