@@ -1,157 +1,128 @@
 /**
  * DashboardNormalizer
  *
- * Merges source payloads into a unified internal structure.
- * Uses the shared site-matching utility (same as sync workers)
- * for consistent domain resolution across the entire app.
+ * Reads from the SAME dailyMetric table that bundles/sites/forecast pages use.
+ * Produces NormalizedData for the metrics-engine and signal-engine.
+ *
+ * This is the single source of truth — sync workers write to dailyMetric,
+ * ALL pages (including dashboard) read from it.
  */
 
 import { prisma } from '@/lib/db'
-import { cleanDomain } from '@/services/adspyglass'
-import { buildSiteKeyMap, matchSite, normalizeSites } from '@/services/site-matching'
-import type { SiteRef } from '@/services/site-matching'
+import { Prisma } from '@prisma/client'
 import { generateDateRange } from './period-resolver'
 import type {
-  TrafficPayload,
-  MonetizationPayload,
-  CostsPayload,
-  AffiliatePayload,
   NormalizedSiteDay,
   NormalizedData,
   SourceName,
   SourceStatus,
 } from './types'
 
+function toNum(val: Prisma.Decimal | number | null | undefined): number | null {
+  if (val == null) return null
+  if (typeof val === 'number') return val
+  return Number(val)
+}
+
 /**
- * Normalize and merge all source payloads into a unified structure.
+ * Load normalized data from DB for a date range.
+ * Same dailyMetric table that /api/bundles, /api/sites, /api/forecast use.
  */
 export async function normalize(
-  traffic: TrafficPayload,
-  monetization: MonetizationPayload,
-  costs: CostsPayload,
-  affiliate: AffiliatePayload,
   from: string,
   to: string,
 ): Promise<NormalizedData> {
-  // Load all active sites with bundle info
-  const sites = await prisma.site.findMany({
-    where: { isActive: true },
-    select: {
-      id: true,
-      name: true,
-      domain: true,
-      slug: true,
-      bundleId: true,
-      sheetName: true,
+  const fromDate = new Date(from + 'T00:00:00.000Z')
+  const toDate = new Date(to + 'T23:59:59.999Z')
+
+  // Query dailyMetric — exact same table other pages read
+  const rows = await prisma.dailyMetric.findMany({
+    where: {
+      date: { gte: fromDate, lte: toDate },
+      site: { isActive: true },
     },
+    include: {
+      site: {
+        select: { id: true, name: true, bundleId: true },
+      },
+    },
+    orderBy: { date: 'asc' },
   })
-
-  // Build shared matching structures (same as sync workers)
-  const siteRefs: SiteRef[] = sites.map(s => ({
-    id: s.id, domain: s.domain, name: s.name, slug: s.slug, sheetName: s.sheetName,
-  }))
-  const keyMap = buildSiteKeyMap(siteRefs)
-  const normalizedSites = normalizeSites(siteRefs)
-
-  // Remap external API keys → cleanDomain(site.domain) for each source
-  const trafficByDomain = remapSourceKeys(traffic.visitsBySite, keyMap, normalizedSites)
-  const revenueBySite = remapSourceKeys(monetization.revenueBySite, keyMap, normalizedSites)
-  const impressionsBySite = remapSourceKeys(monetization.impressionsBySite, keyMap, normalizedSites)
-  const clicksBySite = remapSourceKeys(monetization.clicksBySite, keyMap, normalizedSites)
-  const hitsBySite = remapSourceKeys(monetization.hitsBySite, keyMap, normalizedSites)
-  const costsBySite = remapSourceKeys(costs.costsBySite, keyMap, normalizedSites)
-  const affiliateBySite = remapSourceKeys(affiliate.revenueBySite, keyMap, normalizedSites)
 
   const dateRange = generateDateRange(from, to)
   const result: NormalizedSiteDay[] = []
 
-  for (const site of sites) {
-    const domainKey = cleanDomain(site.domain)
+  for (const row of rows) {
+    const date = row.date.toISOString().split('T')[0]
+    const users = row.users
+    const adRevenue = toNum(row.adRevenue)
+    const affiliateRevenue = toNum(row.affiliateRevenue)
+    const costs = toNum(row.costs)
+    const impressions = row.impressions
+    const clicks = row.clicks
+    const hits = row.hits
 
-    for (const date of dateRange) {
-      const visits = resolveFromSiteMap(trafficByDomain, domainKey, date)
-      const adRevenue = resolveFromSiteMap(revenueBySite, domainKey, date)
-      const impressions = resolveFromSiteMap(impressionsBySite, domainKey, date)
-      const clicks = resolveFromSiteMap(clicksBySite, domainKey, date)
-      const hits = resolveFromSiteMap(hitsBySite, domainKey, date)
-      const costVal = resolveFromSiteMap(costsBySite, domainKey, date)
-      const affRevenue = resolveFromSiteMap(affiliateBySite, domainKey, date)
-
-      result.push({
-        siteId: site.id,
-        siteName: site.name,
-        bundleId: site.bundleId,
-        date,
-        visits,
-        adRevenue,
-        affiliateRevenue: affRevenue,
-        costs: costVal,
-        impressions,
-        clicks,
-        hits,
-        sourceCompleteness: {
-          yandex: visits !== null,
-          adSpyglass: adRevenue !== null,
-          costs: costVal !== null,
-          affiliate: affRevenue !== null,
-        },
-      })
-    }
+    result.push({
+      siteId: row.siteId,
+      siteName: row.site.name,
+      bundleId: row.site.bundleId,
+      date,
+      visits: users != null && users > 0 ? users : null,
+      adRevenue: adRevenue != null && adRevenue > 0 ? adRevenue : null,
+      affiliateRevenue: affiliateRevenue != null && affiliateRevenue > 0 ? affiliateRevenue : null,
+      costs: costs != null && costs > 0 ? costs : null,
+      impressions: impressions != null && impressions > 0 ? impressions : null,
+      clicks: clicks != null && clicks > 0 ? clicks : null,
+      hits: hits != null && hits > 0 ? hits : null,
+      sourceCompleteness: {
+        yandex: users != null && users > 0,
+        adSpyglass: (adRevenue != null && adRevenue > 0) || (impressions != null && impressions > 0),
+        costs: costs != null && costs > 0,
+        affiliate: affiliateRevenue != null && affiliateRevenue > 0,
+      },
+    })
   }
+
+  // Determine source statuses based on actual data presence
+  const sourceStatuses = buildSourceStatuses(result)
 
   return {
     sites: result,
     dateRange,
-    sourceStatuses: {
-      yandex: traffic.source,
-      adSpyglass: monetization.source,
-      costs: costs.source,
-      affiliate: affiliate.source,
-    },
+    sourceStatuses,
   }
 }
 
 /**
- * Remap external API keys to canonical site domain keys.
- * Uses the shared matchSite utility so matching is identical to sync workers.
+ * Build source statuses by checking if we have data for each source.
+ * Since we read from DB, "freshness" = when sync last ran.
  */
-function remapSourceKeys(
-  sourceMap: Map<string, Map<string, number>>,
-  keyMap: Map<string, SiteRef>,
-  normalizedSites: ReturnType<typeof normalizeSites>,
-): Map<string, Map<string, number>> {
-  const remapped = new Map<string, Map<string, number>>()
+function buildSourceStatuses(
+  rows: NormalizedSiteDay[],
+): Record<SourceName, SourceStatus> {
+  const now = new Date().toISOString()
 
-  for (const [externalKey, dateMap] of sourceMap) {
-    const site = matchSite(externalKey, keyMap, normalizedSites)
-    if (site) {
-      const canonical = cleanDomain(site.domain)
-      // Merge if multiple external keys map to same site
-      const existing = remapped.get(canonical)
-      if (existing) {
-        for (const [date, value] of dateMap) {
-          existing.set(date, (existing.get(date) ?? 0) + value)
-        }
-      } else {
-        remapped.set(canonical, new Map(dateMap))
-      }
+  const hasYandex = rows.some(r => r.sourceCompleteness.yandex)
+  const hasAdSpyglass = rows.some(r => r.sourceCompleteness.adSpyglass)
+  const hasCosts = rows.some(r => r.sourceCompleteness.costs)
+  const hasAffiliate = rows.some(r => r.sourceCompleteness.affiliate)
+
+  function status(source: SourceName, hasData: boolean): SourceStatus {
+    return {
+      source,
+      status: hasData ? 'fresh' : 'stale',
+      completeness: hasData ? 'complete' : 'incomplete',
+      lastFetchedAt: now,
+      lastSuccessfulAt: hasData ? now : null,
+      freshnessMinutes: null,
+      notes: hasData ? [] : [`No ${source} data found in DB for this period`],
     }
   }
 
-  return remapped
-}
-
-/**
- * Resolve a value from a site map by domain key + date.
- * Returns null if not found (preserving "no data" vs "zero" distinction).
- */
-function resolveFromSiteMap(
-  siteMap: Map<string, Map<string, number>>,
-  domainKey: string,
-  date: string,
-): number | null {
-  const dateMap = siteMap.get(domainKey)
-  if (!dateMap) return null
-  const val = dateMap.get(date)
-  return val !== undefined ? val : null
+  return {
+    yandex: status('yandex', hasYandex),
+    adSpyglass: status('adSpyglass', hasAdSpyglass),
+    costs: status('costs', hasCosts),
+    affiliate: status('affiliate', hasAffiliate),
+  }
 }

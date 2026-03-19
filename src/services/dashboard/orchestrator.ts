@@ -1,16 +1,15 @@
 /**
  * DashboardQueryOrchestrator
  *
- * Main entry point for Dashboard query assembly.
- * Implements the full live query flow:
+ * Single data path: reads from dailyMetric DB (same as bundles/sites/forecast).
+ * Sync workers write data → all pages read from the same DB.
  *
- * 1. Parse request → resolve period
+ * Flow:
+ * 1. Resolve period
  * 2. Check cache
- * 3. Fetch all sources in parallel (Yandex, AdOK, Google Sheets)
- * 4. Normalize & merge
- * 5. Compute metrics, health, signals, insights
- * 6. Cache result
- * 7. Return response
+ * 3. Read from DB (via normalizer)
+ * 4. Compute KPIs, trends, bundles, health, signals, insights
+ * 5. Cache & return
  */
 
 import { prisma } from '@/lib/db'
@@ -19,12 +18,6 @@ import {
   parsePeriodType,
   parseCompareMode,
 } from './period-resolver'
-import {
-  fetchTrafficPayload,
-  fetchMonetizationPayload,
-  fetchCostsPayload,
-  fetchAffiliatePayload,
-} from './adapters'
 import { normalize } from './normalizer'
 import {
   computeKpis,
@@ -42,19 +35,10 @@ import {
 import { getCached, setCache } from './cache-service'
 import type {
   DashboardResponse,
-  PeriodType,
-  CompareMode,
   CompletenessStatus,
   BusinessTargets,
-  TrafficPayload,
-  MonetizationPayload,
-  CostsPayload,
-  AffiliatePayload,
 } from './types'
 import { DEFAULT_TARGETS } from './types'
-
-/** Per-source fetch timeout (ms). Prevents one slow API from blocking all. */
-const SOURCE_TIMEOUT_MS = 15_000
 
 export interface DashboardQuery {
   period?: string | null
@@ -94,51 +78,27 @@ export async function executeDashboardQuery(
     }
   }
 
-  // 3. Fetch all sources in parallel (with per-source timeouts)
-  const [traffic, monetization, costs, affiliate] = await Promise.all([
-    withTimeout(fetchTrafficPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyTraffic('timeout')),
-    withTimeout(fetchMonetizationPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyMonetization('timeout')),
-    withTimeout(fetchCostsPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyCosts('timeout')),
-    withTimeout(fetchAffiliatePayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
-  ])
-
-  // Also fetch compare period in parallel
-  const [compareTraffic, compareMonetization, compareCosts, compareAffiliate] = await Promise.all([
-    withTimeout(fetchTrafficPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyTraffic('timeout')),
-    withTimeout(fetchMonetizationPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyMonetization('timeout')),
-    withTimeout(fetchCostsPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyCosts('timeout')),
-    withTimeout(fetchAffiliatePayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
-  ])
-
-  // 3b. Log source fetch results for diagnostics
-  console.log('[Dashboard] Source results:', {
-    traffic: { status: traffic.source.status, notes: traffic.source.notes, sites: traffic.visitsBySite.size },
-    monetization: { status: monetization.source.status, notes: monetization.source.notes, sites: monetization.revenueBySite.size },
-    costs: { status: costs.source.status, notes: costs.source.notes, sites: costs.costsBySite.size },
-    affiliate: { status: affiliate.source.status, notes: affiliate.source.notes, sites: affiliate.revenueBySite.size },
-  })
-
-  // 4. Normalize current and compare data
+  // 3. Read from DB — same dailyMetric table that bundles/sites/forecast use
   const [currentData, compareData] = await Promise.all([
-    normalize(traffic, monetization, costs, affiliate, period.current.from, period.current.to),
-    normalize(compareTraffic, compareMonetization, compareCosts, compareAffiliate, period.compare.from, period.compare.to),
+    normalize(period.current.from, period.current.to),
+    normalize(period.compare.from, period.compare.to),
   ])
 
-  // 5. Compute trends (current period)
+  // 4. Compute trends
   const { series: trends, byDate: trendByDate } = computeTrends(currentData)
 
-  // 6. Compute network health
+  // 5. Compute network health
   const currentAgg = aggregateRows(currentData.sites)
   const previousAgg = aggregateRows(compareData.sites)
   const health = computeNetworkHealth(currentData, currentAgg, previousAgg)
 
-  // 7. Load business targets from settings
+  // 6. Load business targets from settings
   const targets = await loadTargets()
 
-  // 8. Compute KPIs
+  // 7. Compute KPIs
   const kpis = computeKpis(currentData, compareData, trendByDate, health, targets)
 
-  // 9. Compute bundles
+  // 8. Compute bundles
   let bundles = computeBundles(currentData, compareData, targets)
 
   // Fill bundle metadata from DB
@@ -151,18 +111,18 @@ export async function executeDashboardQuery(
     return meta ? { ...b, name: meta.name, slug: meta.slug, color: meta.color } : b
   })
 
-  // 10. Compute signals and insights
+  // 9. Compute signals and insights
   const signals = computeSignals(bundles, currentData, compareData, targets)
   const insights = computeInsights(bundles, currentData, compareData, targets)
   const warnings = computeWarnings(currentData, period.includesToday)
 
-  // 11. Compute executive summary
+  // 10. Executive summary
   const executiveSummary = computeExecutiveSummary(bundles, health, kpis)
 
-  // 12. Compute overall completeness
+  // 11. Completeness
   const completeness = computeOverallCompleteness(currentData, compareData)
 
-  // 13. Build response
+  // 12. Build response
   const response: DashboardResponse = {
     sourceStatus: currentData.sourceStatuses,
     completeness,
@@ -177,7 +137,7 @@ export async function executeDashboardQuery(
     cachedAt: null,
   }
 
-  // 14. Cache
+  // 13. Cache
   setCache(
     period.periodType,
     compareMode,
@@ -209,49 +169,6 @@ function resolveStatusList(statuses: CompletenessStatus[]): CompletenessStatus {
   if (statuses.every(s => s === 'complete')) return 'complete'
   if (statuses.some(s => s === 'incomplete')) return 'incomplete'
   return 'partial'
-}
-
-/**
- * Race a promise against a timeout. Returns fallback on timeout instead of throwing.
- */
-async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>
-  const timeout = new Promise<T>((resolve) => {
-    timer = setTimeout(() => resolve(fallback), ms)
-  })
-  try {
-    return await Promise.race([promise, timeout])
-  } finally {
-    clearTimeout(timer!)
-  }
-}
-
-function makeFailedStatus(source: import('./types').SourceName, reason: string): import('./types').SourceStatus {
-  return {
-    source,
-    status: 'failed',
-    completeness: 'incomplete',
-    lastFetchedAt: new Date().toISOString(),
-    lastSuccessfulAt: null,
-    freshnessMinutes: null,
-    notes: [`Source ${reason}: request timed out after ${SOURCE_TIMEOUT_MS / 1000}s`],
-  }
-}
-
-function emptyTraffic(reason: string): TrafficPayload {
-  return { source: makeFailedStatus('yandex', reason), visitsBySite: new Map(), totalVisitsByDate: new Map() }
-}
-function emptyMonetization(reason: string): MonetizationPayload {
-  return {
-    source: makeFailedStatus('adSpyglass', reason),
-    revenueBySite: new Map(), impressionsBySite: new Map(), clicksBySite: new Map(), hitsBySite: new Map(), totalByDate: new Map(),
-  }
-}
-function emptyCosts(reason: string): CostsPayload {
-  return { source: makeFailedStatus('costs', reason), costsBySite: new Map(), totalByDate: new Map(), unmatchedRows: 0, mappingIssues: [] }
-}
-function emptyAffiliate(reason: string): AffiliatePayload {
-  return { source: makeFailedStatus('affiliate', reason), revenueBySite: new Map(), totalByDate: new Map(), unmatchedRows: 0, mappingIssues: [] }
 }
 
 async function loadTargets(): Promise<BusinessTargets> {
