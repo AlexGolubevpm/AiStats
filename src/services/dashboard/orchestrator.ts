@@ -46,8 +46,18 @@ import type {
   CompareMode,
   CompletenessStatus,
   BusinessTargets,
+  TrafficPayload,
+  MonetizationPayload,
+  CostsPayload,
+  AffiliatePayload,
 } from './types'
 import { DEFAULT_TARGETS } from './types'
+
+/** Per-source fetch timeout (ms). Prevents one slow API from blocking all. */
+const SOURCE_TIMEOUT_MS = 15_000
+
+/** Total orchestrator timeout (ms). Safety net for the entire query. */
+const QUERY_TIMEOUT_MS = 30_000
 
 export interface DashboardQuery {
   period?: string | null
@@ -87,20 +97,20 @@ export async function executeDashboardQuery(
     }
   }
 
-  // 3. Fetch all sources in parallel
+  // 3. Fetch all sources in parallel (with per-source timeouts)
   const [traffic, monetization, costs, affiliate] = await Promise.all([
-    fetchTrafficPayload(period.current.from, period.current.to),
-    fetchMonetizationPayload(period.current.from, period.current.to),
-    fetchCostsPayload(period.current.from, period.current.to),
-    fetchAffiliatePayload(period.current.from, period.current.to),
+    withTimeout(fetchTrafficPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyTraffic('timeout')),
+    withTimeout(fetchMonetizationPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyMonetization('timeout')),
+    withTimeout(fetchCostsPayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyCosts('timeout')),
+    withTimeout(fetchAffiliatePayload(period.current.from, period.current.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
   ])
 
   // Also fetch compare period in parallel
   const [compareTraffic, compareMonetization, compareCosts, compareAffiliate] = await Promise.all([
-    fetchTrafficPayload(period.compare.from, period.compare.to),
-    fetchMonetizationPayload(period.compare.from, period.compare.to),
-    fetchCostsPayload(period.compare.from, period.compare.to),
-    fetchAffiliatePayload(period.compare.from, period.compare.to),
+    withTimeout(fetchTrafficPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyTraffic('timeout')),
+    withTimeout(fetchMonetizationPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyMonetization('timeout')),
+    withTimeout(fetchCostsPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyCosts('timeout')),
+    withTimeout(fetchAffiliatePayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
   ])
 
   // 4. Normalize current and compare data
@@ -194,6 +204,49 @@ function resolveStatusList(statuses: CompletenessStatus[]): CompletenessStatus {
   if (statuses.every(s => s === 'complete')) return 'complete'
   if (statuses.some(s => s === 'incomplete')) return 'incomplete'
   return 'partial'
+}
+
+/**
+ * Race a promise against a timeout. Returns fallback on timeout instead of throwing.
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms)
+  })
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    clearTimeout(timer!)
+  }
+}
+
+function makeFailedStatus(source: import('./types').SourceName, reason: string): import('./types').SourceStatus {
+  return {
+    source,
+    status: 'failed',
+    completeness: 'incomplete',
+    lastFetchedAt: new Date().toISOString(),
+    lastSuccessfulAt: null,
+    freshnessMinutes: null,
+    notes: [`Source ${reason}: request timed out after ${SOURCE_TIMEOUT_MS / 1000}s`],
+  }
+}
+
+function emptyTraffic(reason: string): TrafficPayload {
+  return { source: makeFailedStatus('yandex', reason), visitsBySite: new Map(), totalVisitsByDate: new Map() }
+}
+function emptyMonetization(reason: string): MonetizationPayload {
+  return {
+    source: makeFailedStatus('adSpyglass', reason),
+    revenueBySite: new Map(), impressionsBySite: new Map(), clicksBySite: new Map(), hitsBySite: new Map(), totalByDate: new Map(),
+  }
+}
+function emptyCosts(reason: string): CostsPayload {
+  return { source: makeFailedStatus('costs', reason), costsBySite: new Map(), totalByDate: new Map(), unmatchedRows: 0, mappingIssues: [] }
+}
+function emptyAffiliate(reason: string): AffiliatePayload {
+  return { source: makeFailedStatus('affiliate', reason), revenueBySite: new Map(), totalByDate: new Map(), unmatchedRows: 0, mappingIssues: [] }
 }
 
 async function loadTargets(): Promise<BusinessTargets> {

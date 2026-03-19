@@ -20,11 +20,17 @@ export async function fetchMonetizationPayload(
   }
 
   try {
-    // Parallel fetch: daily totals + per-website breakdown
-    const [dailyRows, websiteRows] = await Promise.all([
-      adok.fetchReport({ from, to, group_by: 'date' }),
-      adok.fetchReport({ from, to, group_by: 'website' }),
+    // Parallel fetch: daily totals + per-website breakdown (15s timeout)
+    const results = await Promise.race([
+      Promise.all([
+        adok.fetchReport({ from, to, group_by: 'date' }),
+        adok.fetchReport({ from, to, group_by: 'website' }),
+      ]),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AdOK API timed out after 15s')), 15_000),
+      ),
     ])
+    const [dailyRows, websiteRows] = results
 
     // Build total by date
     const totalByDate = new Map<string, {

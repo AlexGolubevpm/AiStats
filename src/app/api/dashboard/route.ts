@@ -25,11 +25,14 @@ import { NextRequest } from 'next/server'
 import { executeDashboardQuery } from '@/services/dashboard'
 import { jsonResponse, errorResponse } from '@/lib/api-utils'
 
+/** Maximum time the dashboard query may run before we return an error. */
+const REQUEST_TIMEOUT_MS = 30_000
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
 
-    const response = await executeDashboardQuery({
+    const queryPromise = executeDashboardQuery({
       period: searchParams.get('period'),
       compare: searchParams.get('compare'),
       from: searchParams.get('from'),
@@ -37,9 +40,19 @@ export async function GET(request: NextRequest) {
       forceRefresh: searchParams.get('refresh') === '1',
     })
 
+    const response = await Promise.race([
+      queryPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Dashboard query timed out')), REQUEST_TIMEOUT_MS),
+      ),
+    ])
+
     return jsonResponse(response)
   } catch (error) {
     console.error('Dashboard API error:', error)
-    return errorResponse('Failed to load dashboard data')
+    const message = error instanceof Error && error.message.includes('timed out')
+      ? 'Dashboard query timed out — one or more data sources may be unreachable. Cached data may still appear on retry.'
+      : 'Failed to load dashboard data'
+    return errorResponse(message)
   }
 }
