@@ -44,11 +44,11 @@
   --color-danger: #F04438;
   --color-danger-dark: #D92D20;
 
-  /* === Bundle accents === */
-  --color-bundle-gays: #3B82F6;
-  --color-bundle-trans: #EC4899;
-  --color-bundle-jav: #EF4444;
-  --color-bundle-hentai: #8B5CF6;
+  /* === Bundle accents (pt 18: muted palette — -400 shades for softer look) === */
+  --color-bundle-gays: #60A5FA;
+  --color-bundle-trans: #F472B6;
+  --color-bundle-jav: #F87171;
+  --color-bundle-hentai: #A78BFA;
 
   /* === Chart palette === */
   --color-chart-blue: #4F46E5;
@@ -118,6 +118,11 @@
    *   Costs      → amber
    *   Profit     → emerald
    */
+
+  /* === Section tints (pt 15) === */
+  --color-section-kpi-bg: rgba(249, 250, 251, 0.5);
+  --color-section-insights-risk-bg: rgba(254, 243, 242, 0.4);
+  --color-section-insights-bg: rgba(249, 250, 251, 0.3);
 
   /* === Transitions === */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
