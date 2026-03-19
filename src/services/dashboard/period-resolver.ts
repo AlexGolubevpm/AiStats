@@ -7,15 +7,25 @@
  */
 
 import { format, subDays, differenceInCalendarDays } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
 import type { PeriodType, CompareMode, ResolvedPeriod } from './types'
 
 /** Canonical business timezone. All dates bucketed in this zone. */
 const CANONICAL_TZ = 'Europe/Moscow'
 
-/** Get "now" in canonical timezone */
+/** Get "now" in canonical timezone using native Intl (no date-fns-tz needed). */
 function nowInTz(): Date {
-  return toZonedTime(new Date(), CANONICAL_TZ)
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: CANONICAL_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parseInt(parts.find(p => p.type === type)!.value, 10)
+
+  return new Date(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
 }
 
 /** Format a Date as YYYY-MM-DD */
