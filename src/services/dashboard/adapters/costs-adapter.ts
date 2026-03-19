@@ -5,7 +5,7 @@
  * Source of truth for: costs per site/date.
  */
 
-import { googleSheets } from '@/services/google-sheets'
+import { GoogleSheetsService } from '@/services/google-sheets'
 import { prisma } from '@/lib/db'
 import type { SourceStatus, CostsPayload } from '../types'
 
@@ -17,9 +17,24 @@ export async function fetchCostsPayload(
   const notes: string[] = []
 
   try {
+    // Load sheet ID from DB settings (same as sync workers)
+    const costsSetting = await prisma.setting.findUnique({ where: { key: 'costs_sheet_id' } })
+    const costsSheetId = costsSetting?.value as string | undefined
+
+    if (!costsSheetId) {
+      return {
+        source: makeStatus('failed', 'incomplete', null, ['Costs sheet not configured in Settings']),
+        costsBySite: new Map(),
+        totalByDate: new Map(),
+        unmatchedRows: 0,
+        mappingIssues: [],
+      }
+    }
+
+    const service = new GoogleSheetsService(costsSheetId)
     const fromDate = new Date(from)
     const toDate = new Date(to)
-    const rows = await googleSheets.fetchCosts(fromDate, toDate)
+    const rows = await service.fetchCosts(fromDate, toDate)
 
     // Load sites for matching
     const sites = await prisma.site.findMany({

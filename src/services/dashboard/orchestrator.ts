@@ -113,6 +113,14 @@ export async function executeDashboardQuery(
     withTimeout(fetchAffiliatePayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
   ])
 
+  // 3b. Log source fetch results for diagnostics
+  console.log('[Dashboard] Source results:', {
+    traffic: { status: traffic.source.status, notes: traffic.source.notes, sites: traffic.visitsBySite.size },
+    monetization: { status: monetization.source.status, notes: monetization.source.notes, sites: monetization.revenueBySite.size },
+    costs: { status: costs.source.status, notes: costs.source.notes, sites: costs.costsBySite.size },
+    affiliate: { status: affiliate.source.status, notes: affiliate.source.notes, sites: affiliate.revenueBySite.size },
+  })
+
   // 4. Normalize current and compare data
   const [currentData, compareData] = await Promise.all([
     normalize(traffic, monetization, costs, affiliate, period.current.from, period.current.to),

@@ -55,6 +55,22 @@ export async function normalize(
   const dateRange = generateDateRange(from, to)
   const result: NormalizedSiteDay[] = []
 
+  // Log domain mapping for diagnostics
+  const dbDomains = sites.map(s => s.domain.toLowerCase().replace(/^www\./, ''))
+  const adokDomains = [...monetization.revenueBySite.keys()]
+  const trafficDomains = [...traffic.visitsBySite.keys()]
+  const costDomains = [...costs.costsBySite.keys()]
+  const affDomains = [...affiliate.revenueBySite.keys()]
+  console.log('[Normalizer] Domain mapping:', {
+    dbSites: dbDomains,
+    adokKeys: adokDomains,
+    trafficKeys: trafficDomains,
+    costKeys: costDomains,
+    affiliateKeys: affDomains,
+    adokMatches: dbDomains.filter(d => adokDomains.includes(d)),
+    adokMisses: dbDomains.filter(d => !adokDomains.includes(d)),
+  })
+
   for (const site of sites) {
     const domainKey = site.domain.toLowerCase().replace(/^www\./, '')
 

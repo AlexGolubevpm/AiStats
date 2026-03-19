@@ -5,7 +5,7 @@
  * Source of truth for: affiliate/partner revenue per site/date.
  */
 
-import { googleSheets } from '@/services/google-sheets'
+import { GoogleSheetsService } from '@/services/google-sheets'
 import { prisma } from '@/lib/db'
 import type { SourceStatus, AffiliatePayload } from '../types'
 
@@ -17,9 +17,24 @@ export async function fetchAffiliatePayload(
   const notes: string[] = []
 
   try {
+    // Load sheet ID from DB settings (same as sync workers)
+    const affiliateSetting = await prisma.setting.findUnique({ where: { key: 'affiliate_sheet_id' } })
+    const affiliateSheetId = affiliateSetting?.value as string | undefined
+
+    if (!affiliateSheetId) {
+      return {
+        source: makeStatus('failed', 'incomplete', null, ['Affiliate sheet not configured in Settings']),
+        revenueBySite: new Map(),
+        totalByDate: new Map(),
+        unmatchedRows: 0,
+        mappingIssues: [],
+      }
+    }
+
+    const service = new GoogleSheetsService(undefined, affiliateSheetId)
     const fromDate = new Date(from)
     const toDate = new Date(to)
-    const rows = await googleSheets.fetchAffiliateRevenue(fromDate, toDate)
+    const rows = await service.fetchAffiliateRevenue(fromDate, toDate)
 
     const sites = await prisma.site.findMany({
       where: { isActive: true },
