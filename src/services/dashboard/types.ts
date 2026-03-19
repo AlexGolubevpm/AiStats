@@ -75,6 +75,9 @@ export interface TrendSeries {
   revenue: TrendPoint[]
   traffic: TrendPoint[]
   profit: TrendPoint[]
+  costs: TrendPoint[]
+  adRevenue: TrendPoint[]
+  affiliateRevenue: TrendPoint[]
 }
 
 export interface TrendMeta {

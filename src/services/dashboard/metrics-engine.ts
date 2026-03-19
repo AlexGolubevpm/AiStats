@@ -241,6 +241,9 @@ export function computeTrends(
   const revenue: TrendPoint[] = []
   const traffic: TrendPoint[] = []
   const profit: TrendPoint[] = []
+  const costs: TrendPoint[] = []
+  const adRevenue: TrendPoint[] = []
+  const affiliateRevenue: TrendPoint[] = []
 
   for (const date of sortedDates) {
     const agg = byDate.get(date)!
@@ -259,10 +262,25 @@ export function computeTrends(
       value: agg.profit,
       completeness: agg.profit != null ? 'complete' : 'incomplete',
     })
+    costs.push({
+      date,
+      value: agg.costs,
+      completeness: agg.costs != null ? 'complete' : 'incomplete',
+    })
+    adRevenue.push({
+      date,
+      value: agg.adRevenue,
+      completeness: agg.adRevenue != null ? 'complete' : 'incomplete',
+    })
+    affiliateRevenue.push({
+      date,
+      value: agg.affiliateRevenue,
+      completeness: agg.affiliateRevenue != null ? 'complete' : 'incomplete',
+    })
   }
 
   return {
-    series: { revenue, traffic, profit },
+    series: { revenue, traffic, profit, costs, adRevenue, affiliateRevenue },
     byDate,
   }
 }

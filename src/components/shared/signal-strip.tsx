@@ -91,6 +91,18 @@ interface SignalStripProps {
 export function SignalStrip({ bundles, insights }: SignalStripProps) {
   const signals: SignalData[] = []
 
+  // Strongest bundle (by ROMI)
+  if (bundles.length > 0) {
+    const best = [...bundles].sort((a, b) => b.romi - a.romi)[0]
+    if (best) {
+      signals.push({
+        type: 'strongest', entity: best.name, value: best.profit,
+        delta: best.romi, reason: `Best ROI with ${formatCurrency(best.profit)} profit`,
+      })
+    }
+  }
+
+  // Biggest drop
   if (bundles.length > 0) {
     const sorted = [...bundles].filter(b => b.delta !== undefined).sort((a, b) => (a.delta ?? 0) - (b.delta ?? 0))
     if (sorted.length > 0 && (sorted[0].delta ?? 0) < 0) {
@@ -102,6 +114,7 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
     }
   }
 
+  // Risk
   const risks = insights.filter(i => i.type === 'risk' && (i.severity === 'high' || i.severity === 'critical'))
   if (risks.length > 0) {
     const r = risks[0]
@@ -119,12 +132,16 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
     }
   }
 
+  // Recovery — bundle with best positive delta (recovering after drop)
   if (bundles.length > 0) {
-    const best = [...bundles].sort((a, b) => b.romi - a.romi)[0]
-    if (best) {
+    const recovering = [...bundles]
+      .filter(b => b.delta !== undefined && b.delta > 0)
+      .sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))[0]
+    if (recovering) {
       signals.push({
-        type: 'strongest', entity: best.name, value: best.profit,
-        delta: best.romi, reason: `Best ROI with ${formatCurrency(best.profit)} profit`,
+        type: 'recovery', entity: recovering.name, value: recovering.totalRevenue,
+        delta: recovering.delta ?? 0,
+        reason: `${recovering.name} revenue up ${(recovering.delta ?? 0).toFixed(1)}% — momentum building`,
       })
     }
   }
@@ -134,8 +151,8 @@ export function SignalStrip({ bundles, insights }: SignalStripProps) {
   return (
     <div>
       <h2 className="text-card-title mb-3">Network Signals</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {signals.slice(0, 3).map((signal, i) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {signals.slice(0, 4).map((signal, i) => (
           <SignalCard key={i} signal={signal} />
         ))}
       </div>

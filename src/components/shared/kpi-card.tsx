@@ -7,7 +7,8 @@ import type { AvailableChartColorsKeys } from '@/lib/chartUtils'
 
 /* ── Color map per metric ── */
 const METRIC_CHART_COLOR: Record<string, AvailableChartColorsKeys> = {
-  Visitors: 'blue',
+  Visitors: 'cyan',
+  Visits: 'cyan',
   'Ad Revenue': 'violet',
   'Total Revenue': 'blue',
   Profit: 'emerald',
@@ -16,6 +17,21 @@ const METRIC_CHART_COLOR: Record<string, AvailableChartColorsKeys> = {
   'Affiliate Revenue': 'pink',
   Costs: 'amber',
   RPM: 'cyan',
+  'Revenue / 1K Visits': 'cyan',
+}
+
+/* ── Accent border colors per metric ── */
+const METRIC_ACCENT_BORDER: Record<string, string> = {
+  Visitors: 'border-l-[#06B6D4]',
+  Visits: 'border-l-[#06B6D4]',
+  'Total Revenue': 'border-l-[#6366F1]',
+  Profit: 'border-l-[#10B981]',
+  ROMI: 'border-l-[#F59E0B]',
+  RPM: 'border-l-[#06B6D4]',
+  'Ad Revenue': 'border-l-[#4F46E5]',
+  'Affiliate Revenue': 'border-l-[#EC4899]',
+  Costs: 'border-l-[#F59E0B]',
+  'Revenue / 1K Visits': 'border-l-[#6366F1]',
 }
 
 interface KPICardProps {
@@ -28,9 +44,10 @@ interface KPICardProps {
   className?: string
 }
 
-export function KPICard({ label, value, delta, format = 'number', trend }: KPICardProps) {
+export function KPICard({ label, value, previousValue, delta, format = 'number', trend, className }: KPICardProps) {
   const isInvalid = isNaN(value)
   const chartColor = METRIC_CHART_COLOR[label] || 'blue'
+  const accentBorder = METRIC_ACCENT_BORDER[label] || 'border-l-[#6366F1]'
 
   const formattedValue = (() => {
     if (isInvalid) return '\u2014'
@@ -43,6 +60,17 @@ export function KPICard({ label, value, delta, format = 'number', trend }: KPICa
     }
   })()
 
+  const formattedPrevious = previousValue != null && !isNaN(previousValue)
+    ? (() => {
+        switch (format) {
+          case 'currency': return formatCurrency(previousValue)
+          case 'percent':  return `${previousValue.toFixed(1)}%`
+          case 'compact':  return formatCompact(previousValue)
+          default:         return formatNumber(previousValue)
+        }
+      })()
+    : null
+
   const sparkData = trend && trend.length > 1
     ? (trend.length > 14 ? trend.slice(-14) : trend).map((v, i) => ({ idx: i, value: v }))
     : null
@@ -51,11 +79,13 @@ export function KPICard({ label, value, delta, format = 'number', trend }: KPICa
     <div
       className={cn(
         'relative bg-[var(--color-surface)] rounded-[var(--radius-card)]',
-        'border border-[var(--color-border-subtle)]',
+        'border border-[var(--color-border-subtle)] border-l-[3px]',
         'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
         'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
         'hover:-translate-y-0.5',
-        'p-4',
+        'p-5',
+        accentBorder,
+        className,
       )}
     >
       {/* Header: label + delta */}
@@ -67,12 +97,15 @@ export function KPICard({ label, value, delta, format = 'number', trend }: KPICa
       </div>
 
       {/* Value */}
-      <p className="mt-2 text-[28px] leading-tight font-bold tracking-tight text-[var(--color-text-primary)] tabular-nums sm:text-3xl">
+      <p className="mt-2 text-[38px] leading-[42px] font-bold tracking-tight text-[var(--color-text-primary)] tabular-nums">
         {formattedValue}
       </p>
 
-      {/* Comparison */}
-      {delta !== undefined && (
+      {/* Previous value */}
+      {formattedPrevious && (
+        <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">was {formattedPrevious}</p>
+      )}
+      {!formattedPrevious && delta !== undefined && (
         <p className="mt-1 text-xs font-medium text-[var(--color-text-muted)]">vs prev period</p>
       )}
 
@@ -85,10 +118,10 @@ export function KPICard({ label, value, delta, format = 'number', trend }: KPICa
             categories={['value']}
             colors={[chartColor]}
             fill="gradient"
-            className="h-10 w-full"
+            className="h-12 w-full"
           />
         ) : (
-          <div className="h-10" />
+          <div className="h-12" />
         )}
       </div>
     </div>
