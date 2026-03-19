@@ -2,11 +2,11 @@
  * DashboardQueryOrchestrator
  *
  * Main entry point for Dashboard query assembly.
- * Implements the full live query flow from spec §9:
+ * Implements the full live query flow:
  *
  * 1. Parse request → resolve period
  * 2. Check cache
- * 3. Fetch all sources in parallel
+ * 3. Fetch all sources in parallel (Yandex, AdOK, Google Sheets)
  * 4. Normalize & merge
  * 5. Compute metrics, health, signals, insights
  * 6. Cache result
@@ -55,9 +55,6 @@ import { DEFAULT_TARGETS } from './types'
 
 /** Per-source fetch timeout (ms). Prevents one slow API from blocking all. */
 const SOURCE_TIMEOUT_MS = 15_000
-
-/** Total orchestrator timeout (ms). Safety net for the entire query. */
-const QUERY_TIMEOUT_MS = 30_000
 
 export interface DashboardQuery {
   period?: string | null
@@ -112,6 +109,14 @@ export async function executeDashboardQuery(
     withTimeout(fetchCostsPayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyCosts('timeout')),
     withTimeout(fetchAffiliatePayload(period.compare.from, period.compare.to), SOURCE_TIMEOUT_MS, emptyAffiliate('timeout')),
   ])
+
+  // 3b. Log source fetch results for diagnostics
+  console.log('[Dashboard] Source results:', {
+    traffic: { status: traffic.source.status, notes: traffic.source.notes, sites: traffic.visitsBySite.size },
+    monetization: { status: monetization.source.status, notes: monetization.source.notes, sites: monetization.revenueBySite.size },
+    costs: { status: costs.source.status, notes: costs.source.notes, sites: costs.costsBySite.size },
+    affiliate: { status: affiliate.source.status, notes: affiliate.source.notes, sites: affiliate.revenueBySite.size },
+  })
 
   // 4. Normalize current and compare data
   const [currentData, compareData] = await Promise.all([

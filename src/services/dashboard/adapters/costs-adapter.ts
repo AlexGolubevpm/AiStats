@@ -2,10 +2,12 @@
  * CostsSheetAdapter
  *
  * Returns normalized costs payload from Google Sheets.
- * Source of truth for: costs per site/date.
+ * Uses shared site-matching utility (same logic as sync-costs worker).
  */
 
-import { googleSheets } from '@/services/google-sheets'
+import { GoogleSheetsService } from '@/services/google-sheets'
+import { cleanDomain } from '@/services/adspyglass'
+import { buildSiteKeyMap, matchSite, normalizeSites } from '@/services/site-matching'
 import { prisma } from '@/lib/db'
 import type { SourceStatus, CostsPayload } from '../types'
 
@@ -17,17 +19,33 @@ export async function fetchCostsPayload(
   const notes: string[] = []
 
   try {
+    // Load sheet ID from DB settings (same as sync workers)
+    const costsSetting = await prisma.setting.findUnique({ where: { key: 'costs_sheet_id' } })
+    const costsSheetId = costsSetting?.value as string | undefined
+
+    if (!costsSheetId) {
+      return {
+        source: makeStatus('failed', 'incomplete', null, ['Costs sheet not configured in Settings']),
+        costsBySite: new Map(),
+        totalByDate: new Map(),
+        unmatchedRows: 0,
+        mappingIssues: [],
+      }
+    }
+
+    const service = new GoogleSheetsService(costsSheetId)
     const fromDate = new Date(from)
     const toDate = new Date(to)
-    const rows = await googleSheets.fetchCosts(fromDate, toDate)
+    const rows = await service.fetchCosts(fromDate, toDate)
 
-    // Load sites for matching
+    // Load sites for matching (shared utility)
     const sites = await prisma.site.findMany({
       where: { isActive: true },
       select: { id: true, domain: true, name: true, slug: true, sheetName: true },
     })
 
-    const siteByKey = buildSiteKeyMap(sites)
+    const keyMap = buildSiteKeyMap(sites)
+    const normalized = normalizeSites(sites)
 
     const costsBySite = new Map<string, Map<string, number>>()
     const totalByDate = new Map<string, number>()
@@ -35,10 +53,9 @@ export async function fetchCostsPayload(
     const mappingIssues: string[] = []
 
     for (const row of rows) {
-      // Filter to requested date range
       if (row.date < from || row.date > to) continue
 
-      const site = matchSite(row.siteName, siteByKey)
+      const site = matchSite(row.siteName, keyMap, normalized)
       if (!site) {
         unmatchedRows++
         if (!mappingIssues.includes(row.siteName)) {
@@ -47,11 +64,11 @@ export async function fetchCostsPayload(
         continue
       }
 
-      // Aggregate by site domain + date
-      if (!costsBySite.has(site.domain)) {
-        costsBySite.set(site.domain, new Map())
+      const domain = cleanDomain(site.domain)
+      if (!costsBySite.has(domain)) {
+        costsBySite.set(domain, new Map())
       }
-      const siteMap = costsBySite.get(site.domain)!
+      const siteMap = costsBySite.get(domain)!
       siteMap.set(row.date, (siteMap.get(row.date) ?? 0) + row.amount)
       totalByDate.set(row.date, (totalByDate.get(row.date) ?? 0) + row.amount)
     }
@@ -81,36 +98,6 @@ export async function fetchCostsPayload(
       mappingIssues: [],
     }
   }
-}
-
-interface SiteRef {
-  id: string
-  domain: string
-  name: string
-  slug: string
-  sheetName: string | null
-}
-
-function buildSiteKeyMap(sites: SiteRef[]): Map<string, SiteRef> {
-  const map = new Map<string, SiteRef>()
-  for (const site of sites) {
-    const norm = site.domain.toLowerCase().replace(/^www\./, '')
-    map.set(norm, site)
-    map.set(site.name.toLowerCase(), site)
-    map.set(site.slug.toLowerCase(), site)
-    if (site.sheetName) {
-      map.set(site.sheetName.toLowerCase(), site)
-    }
-    // Also without TLD
-    const withoutTld = norm.replace(/\.[^.]+$/, '')
-    map.set(withoutTld, site)
-  }
-  return map
-}
-
-function matchSite(rawName: string, keyMap: Map<string, SiteRef>): SiteRef | null {
-  const lower = rawName.toLowerCase().trim().replace(/^www\./, '').replace(/\/$/, '')
-  return keyMap.get(lower) ?? null
 }
 
 function makeStatus(

@@ -4,12 +4,10 @@
  * GET /api/dashboard
  *
  * Query params:
- *   period    — today | yesterday | 7d | 30d | custom  (default: 7d)
- *   compare   — prev_period | prev_7d | prev_day       (default: prev_period)
+ *   period    — today | yesterday | 7d | 30d | 90d | custom  (default: 7d)
+ *   compare   — prev_period | prev_7d | prev_day             (default: prev_period)
  *   from, to  — YYYY-MM-DD (for custom period)
  *   refresh   — 1 to force cache bypass
- *
- * Response: DashboardResponse (see services/dashboard/types.ts)
  *
  * Architecture:
  *   1. Resolve canonical period
