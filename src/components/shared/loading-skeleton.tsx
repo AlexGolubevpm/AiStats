@@ -127,6 +127,12 @@ export function PageSkeleton() {
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-6">
+        {/* Data Freshness */}
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Shimmer key={i} className="h-7 w-28 rounded-full" />
+          ))}
+        </div>
         {/* Primary KPIs */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
@@ -137,12 +143,12 @@ export function PageSkeleton() {
         </div>
         {/* Signals */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <SignalCardSkeleton key={i} />)}
+          {Array.from({ length: 3 }).map((_, i) => <SignalCardSkeleton key={i} />)}
         </div>
         {/* Charts + Sidebar */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          <div className="lg:col-span-8"><ChartSkeleton /></div>
-          <div className="lg:col-span-4 flex flex-col gap-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="md:col-span-8"><ChartSkeleton /></div>
+          <div className="md:col-span-4 flex flex-col gap-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
                 <Shimmer className="h-3 w-16" />
@@ -154,6 +160,18 @@ export function PageSkeleton() {
         {/* Bundles */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
+        </div>
+        {/* Bundle Comparison + Summary */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="md:col-span-8"><ChartSkeleton /></div>
+          <div className="md:col-span-4 flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
+                <Shimmer className="h-3 w-20" />
+                <Shimmer className="mt-2 h-7 w-24" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
