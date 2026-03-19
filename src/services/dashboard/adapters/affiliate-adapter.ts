@@ -2,10 +2,12 @@
  * AffiliateSheetAdapter
  *
  * Returns normalized affiliate revenue payload from Google Sheets.
- * Source of truth for: affiliate/partner revenue per site/date.
+ * Uses shared site-matching utility (same logic as sync-affiliate worker).
  */
 
 import { GoogleSheetsService } from '@/services/google-sheets'
+import { cleanDomain } from '@/services/adspyglass'
+import { buildSiteKeyMap, matchSite, normalizeSites } from '@/services/site-matching'
 import { prisma } from '@/lib/db'
 import type { SourceStatus, AffiliatePayload } from '../types'
 
@@ -41,7 +43,8 @@ export async function fetchAffiliatePayload(
       select: { id: true, domain: true, name: true, slug: true, sheetName: true },
     })
 
-    const siteByKey = buildSiteKeyMap(sites)
+    const keyMap = buildSiteKeyMap(sites)
+    const normalized = normalizeSites(sites)
 
     const revenueBySite = new Map<string, Map<string, number>>()
     const totalByDate = new Map<string, number>()
@@ -51,7 +54,7 @@ export async function fetchAffiliatePayload(
     for (const row of rows) {
       if (row.date < from || row.date > to) continue
 
-      const site = matchSite(row.siteName, siteByKey)
+      const site = matchSite(row.siteName, keyMap, normalized)
       if (!site) {
         unmatchedRows++
         if (!mappingIssues.includes(row.siteName)) {
@@ -60,10 +63,11 @@ export async function fetchAffiliatePayload(
         continue
       }
 
-      if (!revenueBySite.has(site.domain)) {
-        revenueBySite.set(site.domain, new Map())
+      const domain = cleanDomain(site.domain)
+      if (!revenueBySite.has(domain)) {
+        revenueBySite.set(domain, new Map())
       }
-      const siteMap = revenueBySite.get(site.domain)!
+      const siteMap = revenueBySite.get(domain)!
       siteMap.set(row.date, (siteMap.get(row.date) ?? 0) + row.amount)
       totalByDate.set(row.date, (totalByDate.get(row.date) ?? 0) + row.amount)
     }
@@ -93,35 +97,6 @@ export async function fetchAffiliatePayload(
       mappingIssues: [],
     }
   }
-}
-
-interface SiteRef {
-  id: string
-  domain: string
-  name: string
-  slug: string
-  sheetName: string | null
-}
-
-function buildSiteKeyMap(sites: SiteRef[]): Map<string, SiteRef> {
-  const map = new Map<string, SiteRef>()
-  for (const site of sites) {
-    const norm = site.domain.toLowerCase().replace(/^www\./, '')
-    map.set(norm, site)
-    map.set(site.name.toLowerCase(), site)
-    map.set(site.slug.toLowerCase(), site)
-    if (site.sheetName) {
-      map.set(site.sheetName.toLowerCase(), site)
-    }
-    const withoutTld = norm.replace(/\.[^.]+$/, '')
-    map.set(withoutTld, site)
-  }
-  return map
-}
-
-function matchSite(rawName: string, keyMap: Map<string, SiteRef>): SiteRef | null {
-  const lower = rawName.toLowerCase().trim().replace(/^www\./, '').replace(/\/$/, '')
-  return keyMap.get(lower) ?? null
 }
 
 function makeStatus(
