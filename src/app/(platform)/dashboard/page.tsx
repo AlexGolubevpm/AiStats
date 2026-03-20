@@ -1,363 +1,54 @@
 'use client'
 
-import { Suspense, useState, useMemo } from 'react'
+import { Suspense, useMemo, useRef } from 'react'
 import { Badge } from '@mantine/core'
-import { motion } from 'framer-motion'
-import { fadeInUp, staggerContainer } from '@/lib/motion'
+import { motion, useInView } from 'framer-motion'
+import { fadeInUp } from '@/lib/motion'
 import Link from 'next/link'
 import { TopContextBar } from '@/components/layout/topbar'
 import { KPICard } from '@/components/shared/kpi-card'
-import { ChartCard } from '@/components/shared/chart-card'
 import { InsightCard } from '@/components/shared/insight-card'
-import { HealthBadge } from '@/components/shared/health-badge'
-import { DeltaBadge } from '@/components/shared/delta-indicator'
 import { SignalStrip } from '@/components/shared/signal-strip'
 import { DataFreshnessSummary } from '@/components/shared/data-freshness-summary'
 import { NetworkHealthCard } from '@/components/shared/network-health-card'
-import {
-  KPICardSkeleton,
-  ChartSkeleton,
-  SignalCardSkeleton,
-  BundleCardSkeleton,
-  InsightCardSkeleton,
-} from '@/components/shared/loading-skeleton'
-import { AreaChart } from '@/components/tremor/AreaChart'
+import { BundleCard } from '@/components/features/dashboard/bundle-card'
+import { TabbedChart } from '@/components/features/dashboard/tabbed-chart'
+import { BundleComparisonChart } from '@/components/features/dashboard/bundle-comparison'
+import { PerformanceSummary } from '@/components/features/dashboard/performance-summary'
+import { DashboardSkeleton } from '@/components/features/dashboard/dashboard-skeleton'
+import { CriticalAlertBanner } from '@/components/features/dashboard/critical-alert-banner'
+import { RevenueComposition } from '@/components/features/dashboard/revenue-composition'
 import { useDashboard } from '@/hooks/use-api'
 import { usePeriod } from '@/hooks/use-period'
-import { formatCurrency, formatCompact, cn } from '@/lib/utils'
-import {
-  ChevronRight,
-  RefreshCw,
-  Database,
-  AlertCircle,
-  TrendingUp,
-  DollarSign,
-  Activity,
-  BarChart2,
-} from 'lucide-react'
+import { formatCurrency, cn } from '@/lib/utils'
+import { RefreshCw, Database, AlertCircle } from 'lucide-react'
 import type { AnomalySeverity } from '@/types'
-import type { DashboardKpi, DashboardBundle, DashboardInsight, DashboardSignal, TrendPoint } from '@/services/dashboard/types'
+import type { DashboardKpi, DashboardBundle, DashboardInsight, TrendPoint } from '@/services/dashboard/types'
 
-/* ── Constants ── */
-const BUNDLE_ACCENTS: Record<string, string> = {
-  JAV: 'bg-[var(--color-bundle-jav)]',
-  Gays: 'bg-[var(--color-bundle-gays)]',
-  Hentai: 'bg-[var(--color-bundle-hentai)]',
-  Trans: 'bg-[var(--color-bundle-trans)]',
-}
-
-const TREND_TABS = [
-  { key: 'revenue', label: 'Revenue', icon: DollarSign },
-  { key: 'traffic', label: 'Traffic', icon: Activity },
-  { key: 'profit', label: 'Profit', icon: TrendingUp },
-] as const
-
-type TrendTab = (typeof TREND_TABS)[number]['key']
-
-/* ── Trend data transforms ── */
-function hasRealData(points: TrendPoint[]): boolean {
-  return points.some(pt => pt.value !== null && pt.value !== 0)
-}
-
-function buildRevenueChartData(
-  adRevenue: TrendPoint[],
-  affiliateRevenue: TrendPoint[],
-  totalRevenue: TrendPoint[],
-) {
-  if (!hasRealData(totalRevenue)) return []
-  return totalRevenue.map((pt, i) => ({
-    date: pt.date,
-    adRevenue: adRevenue[i]?.value ?? 0,
-    affiliateRevenue: affiliateRevenue[i]?.value ?? 0,
-    totalRevenue: pt.value ?? 0,
-  }))
-}
-
-function buildTrafficChartData(traffic: TrendPoint[]) {
-  if (!hasRealData(traffic)) return []
-  return traffic.map(pt => ({ date: pt.date, visits: pt.value ?? 0 }))
-}
-
-function buildProfitChartData(profit: TrendPoint[]) {
-  if (!hasRealData(profit)) return []
-  return profit.map(pt => ({ date: pt.date, profit: pt.value ?? 0 }))
-}
-
-/* ── Empty chart placeholder ── */
-function ChartEmptyState({ metric }: { metric: string }) {
-  return (
-    <div className="flex h-80 items-center justify-center">
-      <div className="text-center">
-        <BarChart2 size={32} strokeWidth={1.5} className="mx-auto text-[var(--color-text-disabled)]" />
-        <p className="mt-2 text-sm font-medium text-[var(--color-text-muted)]">No {metric} data available</p>
-        <p className="mt-0.5 text-xs text-[var(--color-text-disabled)]">Data will appear once sources are synced</p>
-      </div>
-    </div>
-  )
-}
-
-/* ── Bundle Card ── */
-function BundleCard({ bundle }: { bundle: DashboardBundle }) {
-  const accentClass = BUNDLE_ACCENTS[bundle.name] || 'bg-gray-400'
+/* ── pt 24: Section with intersection observer animation ── */
+function AnimatedSection({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: '-40px' })
 
   return (
-    <Link
-      href={`/bundles/${bundle.slug}`}
-      className={cn(
-        'block no-underline',
-        'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-        'border border-[var(--color-border-subtle)]',
-        'shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)]',
-        'transition-all duration-[var(--duration-normal)] ease-[var(--ease-out-expo)]',
-        'hover:-translate-y-0.5 focus-ring',
-      )}
-      style={{ color: 'inherit', textDecoration: 'none' }}
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 10 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+      transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+      className={className}
     >
-      {/* Top accent */}
-      <div className={cn('h-[3px] rounded-t-[var(--radius-card)]', accentClass)} />
-
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className={cn('h-2.5 w-2.5 rounded-full', accentClass)} />
-            <span className="text-sm font-semibold text-[var(--color-text-primary)]">{bundle.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {bundle.health != null && <HealthBadge score={bundle.health} showLabel={false} size="sm" />}
-            {bundle.delta !== null && bundle.delta !== undefined && <DeltaBadge value={bundle.delta} size="sm" />}
-            <ChevronRight size={16} strokeWidth={2} className="text-[var(--color-text-disabled)]" />
-          </div>
-        </div>
-
-        {/* Metrics 2x2 */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {[
-            { label: 'Visits', value: formatCompact(bundle.visits || 0) },
-            { label: 'Revenue', value: formatCurrency(bundle.totalRevenue || 0) },
-            { label: 'Profit', value: formatCurrency(bundle.profit || 0), positive: (bundle.profit ?? 0) > 0 },
-            { label: 'ROMI', value: `${(bundle.romi || 0).toFixed(1)}%` },
-          ].map(m => (
-            <div key={m.label}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{m.label}</p>
-              <p
-                className={cn(
-                  'mt-0.5 text-lg font-bold tabular-nums',
-                  m.positive === true
-                    ? 'text-[var(--color-success-dark)]'
-                    : m.positive === false
-                      ? 'text-[var(--color-danger-dark)]'
-                      : 'text-[var(--color-text-primary)]',
-                )}
-              >
-                {m.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border-subtle)] pt-3">
-          <span className="text-xs font-medium text-[var(--color-text-muted)]">{bundle.sitesCount || 0} sites</span>
-          {bundle.momentum && (
-            <span className={cn(
-              'text-[11px] font-semibold capitalize',
-              bundle.momentum === 'accelerating' ? 'text-[var(--color-success)]' :
-              bundle.momentum === 'decelerating' ? 'text-[var(--color-danger)]' :
-              'text-[var(--color-text-muted)]',
-            )}>
-              {bundle.momentum}
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
+      {children}
+    </motion.div>
   )
 }
 
-/* ── Tabbed Chart ── */
-function TabbedChart({ trends, dayCount, compareLabel }: {
-  trends: { revenue: TrendPoint[]; traffic: TrendPoint[]; profit: TrendPoint[]; adRevenue: TrendPoint[]; affiliateRevenue: TrendPoint[] }
-  dayCount: number
-  compareLabel: string
-}) {
-  const [activeTab, setActiveTab] = useState<TrendTab>('revenue')
-
-  const revenueData = useMemo(() => buildRevenueChartData(trends.adRevenue, trends.affiliateRevenue, trends.revenue), [trends])
-  const trafficData = useMemo(() => buildTrafficChartData(trends.traffic), [trends])
-  const profitData = useMemo(() => buildProfitChartData(trends.profit), [trends])
-
-  const tabHasData: Record<TrendTab, boolean> = {
-    revenue: revenueData.length > 0,
-    traffic: trafficData.length > 0,
-    profit: profitData.length > 0,
-  }
-
+/* ── pt 5: Section Header ── */
+function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <ChartCard
-      title="Performance Trends"
-      description={`${dayCount} days · ${compareLabel}`}
-      action={
-        <div role="tablist" aria-label="Trend charts" className="flex gap-1 rounded-[var(--radius-control)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-secondary)] p-0.5">
-          {TREND_TABS.map(tab => {
-            const Icon = tab.icon
-            const disabled = !tabHasData[tab.key]
-            return (
-              <button
-                key={tab.key}
-                role="tab"
-                aria-selected={activeTab === tab.key}
-                aria-controls={`chart-panel-${tab.key}`}
-                disabled={disabled}
-                onClick={() => !disabled && setActiveTab(tab.key)}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold transition-all',
-                  disabled
-                    ? 'cursor-not-allowed text-[var(--color-text-disabled)] opacity-50'
-                    : activeTab === tab.key
-                      ? 'bg-[var(--color-surface)] text-[var(--color-primary-600)] shadow-[var(--shadow-xs)]'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]',
-                )}
-              >
-                <Icon size={13} strokeWidth={2} />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-      }
-    >
-      <div id={`chart-panel-${activeTab}`} role="tabpanel" aria-label={`${activeTab} chart`}>
-        {activeTab === 'revenue' && (revenueData.length > 0 ? (
-          <AreaChart
-            data={revenueData}
-            index="date"
-            categories={['adRevenue', 'affiliateRevenue']}
-            colors={['violet', 'fuchsia']}
-            valueFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toFixed(2)}`}
-            showLegend={true}
-            showGridLines={true}
-            className="h-80"
-            fill="gradient"
-            yAxisWidth={56}
-          />
-        ) : (
-          <ChartEmptyState metric="revenue" />
-        ))}
-        {activeTab === 'traffic' && (trafficData.length > 0 ? (
-          <AreaChart
-            data={trafficData}
-            index="date"
-            categories={['visits']}
-            colors={['cyan']}
-            valueFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v.toString()}
-            showLegend={true}
-            showGridLines={true}
-            className="h-80"
-            fill="gradient"
-            yAxisWidth={56}
-          />
-        ) : (
-          <ChartEmptyState metric="traffic" />
-        ))}
-        {activeTab === 'profit' && (profitData.length > 0 ? (
-          <AreaChart
-            data={profitData}
-            index="date"
-            categories={['profit']}
-            colors={['emerald']}
-            valueFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toFixed(2)}`}
-            showLegend={true}
-            showGridLines={true}
-            className="h-80"
-            fill="gradient"
-            autoMinValue={true}
-            yAxisWidth={56}
-          />
-        ) : (
-          <ChartEmptyState metric="profit" />
-        ))}
-      </div>
-    </ChartCard>
-  )
-}
-
-/* ── Bundle Comparison Bar ── */
-function BundleComparisonChart({ bundles }: { bundles: DashboardBundle[] }) {
-  const maxRevenue = Math.max(...bundles.map(b => b.totalRevenue ?? 0), 1)
-
-  return (
-    <ChartCard title="Bundle Revenue Comparison" description="Revenue breakdown by bundle">
-      <div className="flex flex-col gap-4">
-        {bundles.map(b => {
-          const rev = b.totalRevenue ?? 0
-          const pct = (rev / maxRevenue) * 100
-          const accentClass = BUNDLE_ACCENTS[b.name] || 'bg-gray-400'
-
-          return (
-            <div key={b.id}>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2">
-                  <div className={cn('h-2.5 w-2.5 rounded-full', accentClass)} />
-                  <span className="text-sm font-semibold text-[var(--color-text-primary)]">{b.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
-                    {formatCurrency(rev)}
-                  </span>
-                  {b.delta !== null && b.delta !== undefined && <DeltaBadge value={b.delta} size="sm" />}
-                </div>
-              </div>
-              <div className="h-3 w-full rounded-full bg-[var(--color-surface-secondary)]">
-                <div
-                  className={cn('h-3 rounded-full transition-all duration-500', accentClass)}
-                  style={{ width: `${Math.max(pct, 2)}%` }}
-                />
-              </div>
-              <div className="mt-1 flex items-center gap-3 text-[11px] font-medium text-[var(--color-text-muted)]">
-                <span>Profit: {formatCurrency(b.profit ?? 0)}</span>
-                <span>ROMI: {(b.romi ?? 0).toFixed(1)}%</span>
-                <span>RPM: ${(b.rpm ?? 0).toFixed(2)}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </ChartCard>
-  )
-}
-
-/* ── Performance Summary Sidebar ── */
-function PerformanceSummary({ bundles }: { bundles: DashboardBundle[] }) {
-  const totalRevenue = bundles.reduce((s, b) => s + (b.totalRevenue ?? 0), 0)
-  const totalProfit = bundles.reduce((s, b) => s + (b.profit ?? 0), 0)
-  const totalCosts = bundles.reduce((s, b) => s + (b.costs ?? 0), 0)
-  const avgRomi = bundles.length > 0
-    ? bundles.reduce((s, b) => s + (b.romi ?? 0), 0) / bundles.length
-    : 0
-
-  const metrics = [
-    { label: 'Total Revenue', value: formatCurrency(totalRevenue), color: 'text-[var(--color-primary-600)]' },
-    { label: 'Total Profit', value: formatCurrency(totalProfit), color: totalProfit >= 0 ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-danger-dark)]' },
-    { label: 'Total Costs', value: formatCurrency(totalCosts), color: 'text-[var(--color-text-primary)]' },
-    { label: 'Avg ROMI', value: `${avgRomi.toFixed(1)}%`, color: avgRomi >= 100 ? 'text-[var(--color-success-dark)]' : 'text-[var(--color-warning-dark)]' },
-  ]
-
-  return (
-    <div className="flex flex-col gap-3">
-      {metrics.map(m => (
-        <div
-          key={m.label}
-          className={cn(
-            'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-            'border border-[var(--color-border-subtle)]',
-            'shadow-[var(--shadow-card)] p-4',
-          )}
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{m.label}</p>
-          <p className={cn('mt-1 text-executive-value', m.color)}>{m.value}</p>
-        </div>
-      ))}
+    <div className="mb-3">
+      <h2 className="text-card-title">{title}</h2>
+      {subtitle && <p className="mt-0.5 text-xs text-[var(--color-text-disabled)]">{subtitle}</p>}
     </div>
   )
 }
@@ -434,80 +125,6 @@ function computeInsights(bundles: DashboardBundle[], rawInsights: DashboardInsig
   return typed
 }
 
-/* ── Skeleton ── */
-function DashboardSkeleton() {
-  return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
-      <div className="flex flex-col gap-6">
-        {/* Data Freshness */}
-        <div className="flex gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="animate-shimmer h-7 w-28 rounded-full" />
-          ))}
-        </div>
-        {/* Primary KPIs */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => <KPICardSkeleton key={i} />)}
-        </div>
-        {/* Secondary KPIs */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <KPICardSkeleton key={i} />)}
-        </div>
-        {/* Signals */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 3 }).map((_, i) => <SignalCardSkeleton key={i} />)}
-        </div>
-        {/* Chart + Sidebar */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-          <div className="md:col-span-8"><ChartSkeleton /></div>
-          <div className="md:col-span-4 flex flex-col gap-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
-                <div className="animate-shimmer h-3 w-16 rounded-md" />
-                <div className="animate-shimmer mt-2 h-7 w-24 rounded-md" />
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Bundles */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <BundleCardSkeleton key={i} />)}
-        </div>
-        {/* Bundle Comparison + Summary */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-          <div className="md:col-span-8">
-            <div className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
-              <div className="px-5 pt-5 pb-3">
-                <div className="animate-shimmer h-4 w-40 rounded-md" />
-                <div className="animate-shimmer mt-2 h-3 w-28 rounded-md" />
-              </div>
-              <div className="px-5 pb-5 flex flex-col gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="animate-shimmer h-4 w-16 rounded-md" />
-                      <div className="animate-shimmer h-4 w-20 rounded-md" />
-                    </div>
-                    <div className="animate-shimmer h-3 w-full rounded-full" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="md:col-span-4 flex flex-col gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-[var(--radius-card)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
-                <div className="animate-shimmer h-3 w-20 rounded-md" />
-                <div className="animate-shimmer mt-2 h-7 w-24 rounded-md" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ── Empty State ── */
 function EmptyState() {
   return (
@@ -556,6 +173,9 @@ function ErrorState({ error }: { error: Error | unknown }) {
   )
 }
 
+/* ── Hero KPI keys: these get size="hero" (#1) ── */
+const HERO_KPI_KEYS = new Set(['total_revenue', 'profit'])
+
 /* ── Dashboard Content ── */
 function DashboardContent() {
   const { period, compare } = usePeriod()
@@ -568,7 +188,6 @@ function DashboardContent() {
   const bundles: DashboardBundle[] = data.bundles ?? []
   const trends = data.trends
   const insights: DashboardInsight[] = data.insights ?? []
-  const signals: DashboardSignal[] = data.signals ?? []
   const summary = data.executiveSummary
 
   const hasKpis = kpis.length > 0
@@ -610,31 +229,43 @@ function DashboardContent() {
 
   const dayCount = trends?.revenue?.length ?? 0
 
+  // pt 10: per-bundle trend data from network trends (proportional estimate)
+  const bundleTrends = useMemo(() => {
+    if (!trends?.revenue || bundles.length === 0) return {}
+    const totalRev = bundles.reduce((s, b) => s + (b.totalRevenue ?? 0), 0)
+    const result: Record<string, number[]> = {}
+    bundles.forEach(b => {
+      const share = totalRev > 0 ? (b.totalRevenue ?? 0) / totalRev : 0
+      result[b.id] = trends.revenue.map((pt: TrendPoint) => (pt.value ?? 0) * share)
+    })
+    return result
+  }, [trends, bundles])
+
   return (
-    <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-16 overflow-hidden sm:px-6">
-        <div className="flex flex-col gap-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-6 pb-16 overflow-hidden sm:px-6">
+      <div className="flex flex-col gap-6">
 
-          {/* ── 1. Data Freshness ── */}
-          <motion.div custom={0} variants={fadeInUp}>
-            <DataFreshnessSummary />
-          </motion.div>
+        {/* ── 1. Data Freshness ── */}
+        <AnimatedSection>
+          <DataFreshnessSummary />
+        </AnimatedSection>
 
-          {/* ── Coverage indicator ── */}
-          {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
-            <motion.div custom={0.5} variants={fadeInUp}>
-              <Badge
-                variant="light" color="indigo" size="lg" radius="lg"
-                styles={{ root: { textTransform: 'none', fontWeight: 500, fontSize: 12 } }}
-              >
-                Loading historical data for {data.coverage.missingDates} missing days...
-              </Badge>
-            </motion.div>
-          )}
+        {/* ── Coverage indicator ── */}
+        {data.coverage && !data.coverage.complete && data.coverage.syncTriggered && (
+          <AnimatedSection>
+            <Badge
+              variant="light" color="indigo" size="lg" radius="lg"
+              styles={{ root: { textTransform: 'none', fontWeight: 500, fontSize: 12 } }}
+            >
+              Loading historical data for {data.coverage.missingDates} missing days...
+            </Badge>
+          </AnimatedSection>
+        )}
 
-          {/* ── 2. Primary KPIs ── */}
-          {primaryKpis.length > 0 && (
-            <motion.div custom={1} variants={fadeInUp}>
+        {/* ── 2. Primary KPIs (#1: hero for key metrics) ── */}
+        {primaryKpis.length > 0 && (
+          <AnimatedSection>
+            <div className="rounded-2xl bg-[var(--color-section-kpi-bg)] p-3 -m-3">
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
                 {primaryKpis.map(kpi => (
                   <KPICard
@@ -645,149 +276,143 @@ function DashboardContent() {
                     delta={kpi.delta ?? undefined}
                     format={kpi.format}
                     trend={kpi.trend}
+                    size={HERO_KPI_KEYS.has(kpi.key) ? 'hero' : 'default'}
+                    completeness={kpi.completeness}
                   />
                 ))}
               </div>
-            </motion.div>
-          )}
+            </div>
+          </AnimatedSection>
+        )}
 
-          {/* ── 3. Secondary KPIs ── */}
-          {secondaryKpis.length > 0 && (
-            <motion.div custom={2} variants={fadeInUp}>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {secondaryKpis.map(kpi => (
-                  <KPICard
-                    key={kpi.key}
-                    label={kpi.label}
-                    value={kpi.value ?? 0}
-                    previousValue={kpi.previousValue ?? undefined}
-                    delta={kpi.delta ?? undefined}
-                    format={kpi.format}
-                    trend={kpi.trend}
-                  />
-                ))}
+        {/* ── 3. Secondary KPIs (#2: compact size) ── */}
+        {secondaryKpis.length > 0 && (
+          <AnimatedSection>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {secondaryKpis.map(kpi => (
+                <KPICard
+                  key={kpi.key}
+                  label={kpi.label}
+                  value={kpi.value ?? 0}
+                  previousValue={kpi.previousValue ?? undefined}
+                  delta={kpi.delta ?? undefined}
+                  format={kpi.format}
+                  trend={kpi.trend}
+                  size="compact"
+                  completeness={kpi.completeness}
+                />
+              ))}
+            </div>
+          </AnimatedSection>
+        )}
+
+        {/* ── 3.5. Critical Alert Banner (#4) ── */}
+        {insights.length > 0 && (
+          <AnimatedSection>
+            <CriticalAlertBanner insights={insights} />
+          </AnimatedSection>
+        )}
+
+        {/* ── 4. Network Signals ── */}
+        {(hasBundles || insights.length > 0) && (
+          <AnimatedSection>
+            <SignalStrip bundles={signalBundles} insights={signalInsights} />
+          </AnimatedSection>
+        )}
+
+        {/* ── 5. Analytics Canvas: TabbedChart (8) + Sidebar (4) ── */}
+        {hasTrends && (
+          <AnimatedSection>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+              {/* Main chart (#6: comparison overlay, #12: tab animation, #23: responsive height) */}
+              <div className="md:col-span-8">
+                <TabbedChart trends={trends} compareTrends={data.compareTrends} dayCount={dayCount} compareLabel={compareLabel} />
               </div>
-            </motion.div>
-          )}
 
-          {/* ── 4. Network Signals ── */}
-          {(hasBundles || insights.length > 0) && (
-            <motion.div custom={3} variants={fadeInUp}>
-              <SignalStrip bundles={signalBundles} insights={signalInsights} />
-            </motion.div>
-          )}
+              {/* Sidebar analytics */}
+              <div className="md:col-span-4 flex flex-col gap-3">
+                <NetworkHealthCard
+                  score={networkHealthScore}
+                  unhealthyCount={unhealthyCount}
+                  totalBundles={bundles.length}
+                  confidence={summary?.networkHealthConfidence === 'high' ? 'full' : summary?.networkHealthConfidence === 'medium' ? 'partial' : 'low'}
+                />
 
-          {/* ── 5. Analytics Canvas: TabbedChart (8) + Sidebar (4) ── */}
-          {hasTrends && (
-            <motion.div custom={4} variants={fadeInUp}>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-                {/* Main chart */}
-                <div className="md:col-span-8">
-                  <TabbedChart trends={trends} dayCount={dayCount} compareLabel={compareLabel} />
-                </div>
+                {summary?.topRisk && (
+                  <div className={cn(
+                    'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
+                    'border border-[var(--color-border-subtle)] border-l-[3px] border-l-[var(--color-warning)]',
+                    'shadow-[var(--shadow-card)] p-4 min-h-[72px]',
+                  )}>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-warning)]">Top Risk</p>
+                    <p className="mt-1 text-sm font-medium text-[var(--color-text-secondary)] line-clamp-2">{summary.topRisk}</p>
+                  </div>
+                )}
+                {summary?.topOpportunity && (
+                  <div className={cn(
+                    'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
+                    'border border-[var(--color-border-subtle)] border-l-[3px] border-l-[var(--color-primary-500)]',
+                    'shadow-[var(--shadow-card)] p-4 min-h-[72px]',
+                  )}>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-primary-500)]">Opportunity</p>
+                    <p className="mt-1 text-sm font-medium text-[var(--color-text-secondary)] line-clamp-2">{summary.topOpportunity}</p>
+                  </div>
+                )}
 
-                {/* Sidebar analytics */}
-                <div className="md:col-span-4 flex flex-col gap-3">
-                  {/* Network Health */}
-                  <NetworkHealthCard
-                    score={networkHealthScore}
-                    unhealthyCount={unhealthyCount}
-                    totalBundles={bundles.length}
-                    confidence={summary?.networkHealthConfidence === 'high' ? 'full' : summary?.networkHealthConfidence === 'medium' ? 'partial' : 'low'}
-                  />
-
-                  {/* Executive hints */}
-                  {summary?.topRisk && (
-                    <div className={cn(
-                      'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-                      'border border-[var(--color-border-subtle)] border-l-[3px] border-l-[var(--color-warning)]',
-                      'shadow-[var(--shadow-card)] p-4 min-h-[72px]',
-                    )}>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-warning)]">Top Risk</p>
-                      <p className="mt-1 text-sm font-medium text-[var(--color-text-secondary)] line-clamp-2">{summary.topRisk}</p>
-                    </div>
-                  )}
-                  {summary?.topOpportunity && (
-                    <div className={cn(
-                      'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-                      'border border-[var(--color-border-subtle)] border-l-[3px] border-l-[var(--color-primary-500)]',
-                      'shadow-[var(--shadow-card)] p-4 min-h-[72px]',
-                    )}>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-primary-500)]">Opportunity</p>
-                      <p className="mt-1 text-sm font-medium text-[var(--color-text-secondary)] line-clamp-2">{summary.topOpportunity}</p>
-                    </div>
-                  )}
-
-                  {/* Quick totals */}
-                  {hasBundles && (
-                    <div className={cn(
-                      'rounded-[var(--radius-card)] bg-[var(--color-surface)]',
-                      'border border-[var(--color-border-subtle)]',
-                      'shadow-[var(--shadow-card)] p-4 flex-1',
-                    )}>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Period Totals</p>
-                      <div className="mt-3 flex flex-col gap-2.5">
-                        {[
-                          { label: 'Revenue', value: formatCurrency(bundles.reduce((s, b) => s + (b.totalRevenue ?? 0), 0)) },
-                          { label: 'Profit', value: formatCurrency(bundles.reduce((s, b) => s + (b.profit ?? 0), 0)) },
-                          { label: 'Costs', value: formatCurrency(bundles.reduce((s, b) => s + (b.costs ?? 0), 0)) },
-                        ].map(m => (
-                          <div key={m.label} className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-[var(--color-text-muted)]">{m.label}</span>
-                            <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{m.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* pt 3: Revenue Composition instead of Period Totals */}
+                {hasBundles && <RevenueComposition bundles={bundles} />}
               </div>
-            </motion.div>
-          )}
+            </div>
+          </AnimatedSection>
+        )}
 
-          {/* ── 6. Bundle Cards ── */}
-          {hasBundles && (
-            <motion.div custom={5} variants={fadeInUp}>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-card-title">Bundles</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {bundles.map(bundle => (
-                  <BundleCard key={bundle.id} bundle={bundle} />
-                ))}
-              </div>
-            </motion.div>
-          )}
+        {/* ── 6. Bundle Cards (#5: section header, #10: mini sparklines, #19: hover preview) ── */}
+        {hasBundles && (
+          <AnimatedSection>
+            <SectionHeader title="Bundles" subtitle="Performance by content vertical" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {bundles.map(bundle => (
+                <BundleCard key={bundle.id} bundle={bundle} trendData={bundleTrends[bundle.id]} />
+              ))}
+            </div>
+          </AnimatedSection>
+        )}
 
-          {/* ── 7. Bundle Comparison (8) + Performance Summary (4) ── */}
-          {hasBundles && bundles.length > 1 && (
-            <motion.div custom={6} variants={fadeInUp}>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-                <div className="md:col-span-8">
-                  <BundleComparisonChart bundles={bundles} />
-                </div>
-                <div className="md:col-span-4">
-                  <PerformanceSummary bundles={bundles} />
-                </div>
+        {/* ── 7. Bundle Comparison + Performance Summary ── */}
+        {hasBundles && bundles.length > 1 && (
+          <AnimatedSection>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+              <div className="md:col-span-8">
+                <BundleComparisonChart bundles={bundles} />
               </div>
-            </motion.div>
-          )}
+              <div className="md:col-span-4">
+                <PerformanceSummary bundles={bundles} />
+              </div>
+            </div>
+          </AnimatedSection>
+        )}
 
-          {/* ── 8. Operational Insights ── */}
-          {typedInsights.length > 0 && (
-            <motion.div custom={7} variants={fadeInUp}>
-              <h2 className="text-card-title mb-3">Insights</h2>
+        {/* ── 8. Operational Insights (#5: section header, #15: section tint) ── */}
+        {typedInsights.length > 0 && (
+          <AnimatedSection>
+            <div className={cn(
+              'rounded-2xl p-4 -mx-1',
+              typedInsights.some(i => i.severity === 'critical' || i.severity === 'high')
+                ? 'bg-[var(--color-section-insights-risk-bg)]'
+                : 'bg-[var(--color-section-insights-bg)]',
+            )}>
+              <SectionHeader title="Insights" subtitle="Automated anomaly detection and recommendations" />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {typedInsights.map((insight, i) => (
                   <InsightCard key={i} {...insight} />
                 ))}
               </div>
-            </motion.div>
-          )}
+            </div>
+          </AnimatedSection>
+        )}
 
-        </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
