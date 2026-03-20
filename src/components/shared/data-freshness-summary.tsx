@@ -5,13 +5,7 @@ import { RefreshCw, CheckCircle, AlertTriangle, XCircle, HelpCircle } from 'luci
 
 type SourceStatus = 'fresh' | 'partial' | 'stale' | 'failed' | 'missing'
 
-interface SourceStatusPillProps {
-  label: string
-  status: SourceStatus
-  lastSync?: string
-}
-
-function SourceStatusPill({ label, status }: SourceStatusPillProps) {
+function SourceStatusPill({ label, status }: { label: string; status: SourceStatus }) {
   const config = {
     fresh: { icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
     partial: { icon: AlertTriangle, color: 'text-amber-600 bg-amber-50 border-amber-200' },
@@ -20,10 +14,22 @@ function SourceStatusPill({ label, status }: SourceStatusPillProps) {
     missing: { icon: HelpCircle, color: 'text-gray-500 bg-gray-50 border-gray-200' },
   }
   const { icon: Icon, color } = config[status]
+  const isCritical = status === 'failed' || status === 'stale'
+
   return (
-    <div className={cn('flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium', color)}>
-      <Icon size={12} strokeWidth={2} />
+    <div className={cn(
+      'flex items-center gap-1.5 rounded-full border text-xs font-medium transition-all',
+      color,
+      // pt 20: critical statuses get larger, attention-grabbing style
+      isCritical ? 'px-3 py-1.5 shadow-sm' : 'px-2.5 py-1',
+    )}>
+      <Icon size={isCritical ? 14 : 12} strokeWidth={2} />
       <span>{label}</span>
+      {isCritical && (
+        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+          {status === 'failed' ? '— sync failed' : '— outdated'}
+        </span>
+      )}
     </div>
   )
 }
@@ -50,7 +56,7 @@ export function DataFreshnessSummary() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-muted-foreground">Data Sources:</span>
+      <span className="text-xs font-medium text-[var(--color-text-muted)]">Data Sources:</span>
       {sources.map(s => (
         <SourceStatusPill key={s.key} label={s.label} status={getStatus(s.key)} />
       ))}

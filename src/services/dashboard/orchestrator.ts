@@ -84,8 +84,9 @@ export async function executeDashboardQuery(
     normalize(period.compare.from, period.compare.to),
   ])
 
-  // 4. Compute trends
+  // 4. Compute trends (current + comparison overlay)
   const { series: trends, byDate: trendByDate } = computeTrends(currentData)
+  const { series: compareTrendsSeries } = computeTrends(compareData)
 
   // 5. Compute network health
   const currentAgg = aggregateRows(currentData.sites)
@@ -123,12 +124,30 @@ export async function executeDashboardQuery(
   const completeness = computeOverallCompleteness(currentData, compareData)
 
   // 12. Build response
+  // Build compare trends — align to current period length for chart overlay
+  const compareTrends = (() => {
+    const cur = trends.revenue.length
+    const cmp = compareTrendsSeries.revenue.length
+    if (cmp === 0 || cur === 0) return undefined
+    // If compare period has different length, take last N points matching current length
+    const slice = (arr: typeof trends.revenue) =>
+      arr.length > cur ? arr.slice(arr.length - cur) : arr.length < cur
+        ? [...Array.from({ length: cur - arr.length }, (_, i) => ({ date: '', value: null as number | null, completeness: 'incomplete' as const })), ...arr]
+        : arr
+    return {
+      revenue: slice(compareTrendsSeries.revenue),
+      traffic: slice(compareTrendsSeries.traffic),
+      profit: slice(compareTrendsSeries.profit),
+    }
+  })()
+
   const response: DashboardResponse = {
     sourceStatus: currentData.sourceStatuses,
     completeness,
     executiveSummary,
     kpis,
     trends,
+    compareTrends,
     bundles,
     signals,
     insights,

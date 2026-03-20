@@ -273,6 +273,8 @@ export interface DashboardResponse {
   executiveSummary: ExecutiveSummary
   kpis: DashboardKpi[]
   trends: TrendSeries
+  /** pt 6: comparison period trends for chart overlay */
+  compareTrends?: Partial<TrendSeries>
   bundles: DashboardBundle[]
   signals: DashboardSignal[]
   insights: DashboardInsight[]

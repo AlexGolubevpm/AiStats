@@ -1,9 +1,9 @@
 'use client'
 
-import { Suspense } from 'react'
-import { Group, Box, Text, ActionIcon, Menu, Skeleton, Badge } from '@mantine/core'
+import { Suspense, useState, useCallback } from 'react'
+import { Group, Box, Text, ActionIcon, Menu, Skeleton, Badge, Tooltip } from '@mantine/core'
 import { motion } from 'framer-motion'
-import { RefreshCw, Download, GitCompare, Check } from 'lucide-react'
+import { RefreshCw, Download, GitCompare, Check, FileSpreadsheet, FileJson } from 'lucide-react'
 import { PeriodSelector } from '@/components/features/period-selector'
 import { useSyncStatus } from '@/hooks/use-sync-status'
 import { usePeriod } from '@/hooks/use-period'
@@ -14,28 +14,33 @@ function SyncStatusBadge() {
   if (!latest?.completedAt) return null
 
   const ago = getTimeAgo(latest.completedAt)
+  const diff = Date.now() - new Date(latest.completedAt).getTime()
+  const isStale = diff > 6 * 60 * 60 * 1000
+
   return (
-    <Badge
-      variant="dot"
-      color="green"
-      size="sm"
-      radius="xl"
-      styles={{
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          fontSize: 12,
-          color: '#64748B',
-          paddingLeft: 10,
-          paddingRight: 10,
-          height: 28,
-          background: 'rgba(255,255,255,0.6)',
-          border: '1px solid #E7EAF0',
-        },
-      }}
-    >
-      Synced {ago}
-    </Badge>
+    <Tooltip label={isStale ? 'Data may be outdated — consider syncing' : `Last sync: ${latest.completedAt}`} withArrow>
+      <Badge
+        variant="dot"
+        color={isStale ? 'orange' : 'green'}
+        size="sm"
+        radius="xl"
+        styles={{
+          root: {
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: 12,
+            color: '#64748B',
+            paddingLeft: 10,
+            paddingRight: 10,
+            height: 28,
+            background: 'rgba(255,255,255,0.6)',
+            border: '1px solid #E7EAF0',
+          },
+        }}
+      >
+        Synced {ago}
+      </Badge>
+    </Tooltip>
   )
 }
 
@@ -53,27 +58,29 @@ function SyncButton() {
   const { triggerSync, isSyncing } = useSyncStatus()
 
   return (
-    <ActionIcon
-      variant="default"
-      size="lg"
-      radius="md"
-      onClick={() => triggerSync()}
-      loading={isSyncing}
-      aria-label="Sync data"
-      styles={{
-        root: {
-          border: '1px solid #E7EAF0',
-          height: 36,
-          width: 36,
-          transition: 'all 0.14s ease',
-          '&:hover': {
-            backgroundColor: '#F1F5F9',
+    <Tooltip label="Sync all data sources" withArrow>
+      <ActionIcon
+        variant="default"
+        size="lg"
+        radius="md"
+        onClick={() => triggerSync()}
+        loading={isSyncing}
+        aria-label="Sync data"
+        styles={{
+          root: {
+            border: '1px solid #E7EAF0',
+            height: 36,
+            width: 36,
+            transition: 'all 0.14s ease',
+            '&:hover': {
+              backgroundColor: '#F1F5F9',
+            },
           },
-        },
-      }}
-    >
-      <RefreshCw size={15} color="#64748B" />
-    </ActionIcon>
+        }}
+      >
+        <RefreshCw size={15} color="#64748B" />
+      </ActionIcon>
+    </Tooltip>
   )
 }
 
@@ -127,6 +134,92 @@ function CompareModeSelect() {
             {opt.label}
           </Menu.Item>
         ))}
+      </Menu.Dropdown>
+    </Menu>
+  )
+}
+
+/* ── pt 14: Export dropdown with format options and feedback ── */
+function ExportButton() {
+  const [exporting, setExporting] = useState<string | null>(null)
+
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
+    setExporting(format)
+    try {
+      const res = await fetch(`/api/dashboard?${new URLSearchParams(window.location.search)}`)
+      const data = await res.json()
+
+      let blob: Blob
+      let filename: string
+
+      if (format === 'json') {
+        blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        filename = `dashboard-export-${new Date().toISOString().slice(0, 10)}.json`
+      } else {
+        const kpis = data.kpis ?? []
+        const csvLines = ['Metric,Value,Delta,Format']
+        kpis.forEach((k: { label: string; value: number; delta: number; format: string }) => {
+          csvLines.push(`"${k.label}",${k.value ?? 0},${k.delta ?? 0},"${k.format}"`)
+        })
+        blob = new Blob([csvLines.join('\n')], { type: 'text/csv' })
+        filename = `dashboard-export-${new Date().toISOString().slice(0, 10)}.csv`
+      }
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silently fail
+    } finally {
+      setTimeout(() => setExporting(null), 1000)
+    }
+  }, [])
+
+  return (
+    <Menu shadow="lg" radius="lg" width={180}>
+      <Menu.Target>
+        <Tooltip label="Export dashboard data" withArrow>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            radius="md"
+            aria-label="Export"
+            loading={!!exporting}
+            styles={{
+              root: {
+                border: '1px solid #E7EAF0',
+                height: 36,
+                width: 36,
+                transition: 'all 0.14s ease',
+                '&:hover': {
+                  backgroundColor: '#F1F5F9',
+                },
+              },
+            }}
+          >
+            <Download size={15} color="#64748B" />
+          </ActionIcon>
+        </Tooltip>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>Export Format</Menu.Label>
+        <Menu.Item
+          leftSection={<FileSpreadsheet size={14} />}
+          onClick={() => handleExport('csv')}
+          style={{ fontSize: 13 }}
+        >
+          Export as CSV
+        </Menu.Item>
+        <Menu.Item
+          leftSection={<FileJson size={14} />}
+          onClick={() => handleExport('json')}
+          style={{ fontSize: 13 }}
+        >
+          Export as JSON
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   )
@@ -240,25 +333,9 @@ export function TopContextBar({
             )}
 
             {showExport && (
-              <ActionIcon
-                variant="default"
-                size="lg"
-                radius="md"
-                aria-label="Export"
-                styles={{
-                  root: {
-                    border: '1px solid #E7EAF0',
-                    height: 36,
-                    width: 36,
-                    transition: 'all 0.14s ease',
-                    '&:hover': {
-                      backgroundColor: '#F1F5F9',
-                    },
-                  },
-                }}
-              >
-                <Download size={15} color="#64748B" />
-              </ActionIcon>
+              <Suspense fallback={<Skeleton h={36} w={36} radius="md" />}>
+                <ExportButton />
+              </Suspense>
             )}
 
             {actions}
